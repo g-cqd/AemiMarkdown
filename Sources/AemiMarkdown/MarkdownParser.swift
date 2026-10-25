@@ -13,6 +13,8 @@ public struct MarkdownParser: Sendable {
     var lineStart = 0
     /// Where scanning for a line ending resumes: the first byte not yet looked at, or a carriage return that waits for its line feed.
     var scanPosition = 0
+    /// Where the check for control bytes and invalid UTF-8 resumes: everything before it was checked.
+    var scannedUpTo = 0
     var isFinished = false
     /// Steps the inline phase has taken so far, over every leaf block: what the work limit counts, kept so tests can show that the cost grows with the input.
     var inlineSteps = 0
@@ -31,6 +33,22 @@ public struct MarkdownParser: Sendable {
         parser.append(bytes)
         parser.finish()
         return parser.document()
+    }
+
+    /// Starts a new document. The parser keeps the memory it grew for the last one, so a parser used for one document after another allocates only when a
+    /// document is larger than any before it. A snapshot of the last document still shares its storage; it is left alone, and the parser takes new.
+    public mutating func reset() {
+        source.removeAll(keepingCapacity: true)
+        blocks.removeAll()
+        inlines.removeAll()
+        diagnostics = []
+        state.reset()
+        references.removeAll()
+        lineStart = 0
+        scanPosition = 0
+        scannedUpTo = 0
+        isFinished = false
+        inlineSteps = 0
     }
 
     func document() -> MarkdownDocument {

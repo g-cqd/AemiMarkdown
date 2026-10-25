@@ -23,7 +23,7 @@ let isDev = Context.environment["AEMIMARKDOWN_DEV"] != nil
 // One revision of Aemi for the whole graph: SwiftPM rejects one package identity at two revisions. ask, TerminalKit and
 // AemiJSON pin the same one, so they move together.
 let aemiDependency: Package.Dependency = .package(
-    url: "https://github.com/Aemi-Studio/aemi.git", revision: "4f270e05473accace718446ee31c7b03d60a61ae")
+    url: "https://github.com/Aemi-Studio/aemi.git", revision: "e0c5d36ed0075922b2d613fdcacfc4b01434a159")
 
 var packageDependencies: [Package.Dependency] = [aemiDependency]
 var devTargets: [Target] = []

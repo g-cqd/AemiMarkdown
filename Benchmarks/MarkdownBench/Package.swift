@@ -8,15 +8,13 @@ let package = Package(
     platforms: [.macOS(.v15)],
     dependencies: [
         .package(path: "../.."),
-        .package(path: "../../../AemiJSON"),
-        .package(url: "https://github.com/Aemi-Studio/aemi.git", revision: "4f270e05473accace718446ee31c7b03d60a61ae")
+        .package(url: "https://github.com/Aemi-Studio/aemi.git", revision: "e0c5d36ed0075922b2d613fdcacfc4b01434a159")
     ],
     targets: [
         .executableTarget(
             name: "MarkdownBench",
             dependencies: [
                 .product(name: "AemiMarkdown", package: "AemiMarkdown"),
-                .product(name: "AemiJSONCore", package: "AemiJSON"),
                 .product(name: "CAemiTestKitMalloc", package: "aemi")
             ])
     ]

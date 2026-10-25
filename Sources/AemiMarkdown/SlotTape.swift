@@ -19,6 +19,18 @@ struct SlotTape: Sendable {
 
     mutating func append(_ slot: UInt64) { tail.append(slot) }
 
+    /// Makes room for `count` more slots in each part, so a document whose size is known grows its tapes once.
+    mutating func reserveCapacity(_ count: Int) {
+        committed.reserveCapacity(committed.count + count)
+        tail.reserveCapacity(count)
+    }
+
+    /// Empties the tape and keeps the room it grew. Storage that a snapshot still shares is left to that snapshot and replaced.
+    mutating func removeAll() {
+        committed.removeAll(keepingCapacity: true)
+        tail.removeAll(keepingCapacity: true)
+    }
+
     /// Removes the last slot, which must still be in the tail: a slot is committed only after the block it belongs to has closed.
     mutating func removeLast() {
         precondition(!tail.isEmpty, "the last slot is already committed")

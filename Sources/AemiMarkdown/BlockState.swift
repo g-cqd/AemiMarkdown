@@ -49,6 +49,23 @@ struct BlockState: Sendable {
         var lineCount: Int
     }
 
+    /// The state of a new document: only the document is open. The arrays keep the room they grew.
+    mutating func reset() {
+        open.removeAll(keepingCapacity: true)
+        open.append(Open(kind: .document, slot: -1, startLine: 0))
+        lineNumber = 0
+        lineRanges.removeAll(keepingCapacity: true)
+        pending.removeAll(keepingCapacity: true)
+        cells.removeAll(keepingCapacity: true)
+        offset = 0
+        column = 0
+        firstNonspace = 0
+        firstNonspaceColumn = 0
+        indent = 0
+        blank = false
+        partiallyConsumedTab = false
+    }
+
     var open: ContiguousArray<Open> = [Open(kind: .document, slot: -1, startLine: 0)]
     var lineNumber = 0
     var lineRanges: ContiguousArray<Range<Int>> = []

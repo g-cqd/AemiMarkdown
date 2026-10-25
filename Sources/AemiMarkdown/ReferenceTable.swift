@@ -9,6 +9,8 @@ struct ReferenceTable: Sendable {
 
     var isEmpty: Bool { entries.isEmpty }
 
+    mutating func removeAll() { entries.removeAll(keepingCapacity: true) }
+
     /// Records a definition. The first definition of a label wins.
     mutating func insert(label: some Collection<UInt8>, _ reference: Reference) {
         let key = Self.normalize(label)

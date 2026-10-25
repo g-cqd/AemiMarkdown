@@ -9,7 +9,7 @@ extension InlineParser {
         let length = end - start
         position = end
         // A run of this length with no closer after it means no later run of this length has one either: no scan needed.
-        guard length <= Self.longestBacktickRun, !backticksExhausted[length] else {
+        guard length <= Self.longestBacktickRun, !isExhausted(length) else {
             appendText(start, end)
             return
         }
@@ -28,13 +28,41 @@ extension InlineParser {
             }
             scan = runEnd
         }
-        backticksExhausted[length] = true
+        markExhausted(length)
         appendText(start, end)
+    }
+
+    private func isExhausted(_ length: Int) -> Bool {
+        length < 64
+            ? backticksExhaustedLow & (1 << UInt64(length)) != 0
+            : backticksExhaustedHigh & (1 << UInt64(length - 64)) != 0
+    }
+
+    private mutating func markExhausted(_ length: Int) {
+        if length < 64 {
+            backticksExhaustedLow |= 1 << UInt64(length)
+        } else {
+            backticksExhaustedHigh |= 1 << UInt64(length - 64)
+        }
     }
 
     /// The code span whose content is `text[from ..< to]`. A line ending in it is a space; one space is stripped from each end if both have one and the
     /// content is not all spaces.
     private mutating func codeSpan(from: Int, to: Int) {
+        if !text[from ..< to].contains(0x0A) {
+            // One line, the common case: a range to trim, and no list of pieces.
+            var lower = from
+            var upper = to
+            if upper - lower >= 2, text[lower] == 0x20, text[upper - 1] == 0x20,
+                text[lower ..< upper].contains(where: { $0 != 0x20 })
+            {
+                lower += 1
+                upper -= 1
+            }
+            let container = tree.append(InlineNode(kind: .codeSpan, height: 1))
+            appendText(lower, upper, to: container, joining: false)
+            return
+        }
         codePieces.removeAll(keepingCapacity: true)
         var lineStart = from
         for index in from ..< to where text[index] == 0x0A {

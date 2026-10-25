@@ -17,7 +17,7 @@ extension InlineParser {
                     mergeTouchingText(into: child)
                     child = tree.nodes[Int(splitLinks(in: child))].next
                 } else {
-                    if Self.containerKinds.contains(kind), tree.nodes[Int(child)].firstChild >= 0 {
+                    if Self.isContainer(kind), tree.nodes[Int(child)].firstChild >= 0 {
                         stack.append(child)
                     }
                     child = tree.nodes[Int(child)].next
@@ -26,7 +26,29 @@ extension InlineParser {
         }
     }
 
-    private static let containerKinds: Set<NodeKind> = [.emphasis, .strong, .strikethrough]
+    /// Whether the text has a byte that can start a bare link: `://`, `@`, or `www.`. Most leaf blocks have none, and then the pass over their nodes is skipped.
+    func mayHoldBareLink() -> Bool {
+        var index = 0
+        while true {
+            index = ByteScan.firstIndex(inSet: ByteScan.autolinkStarts, in: text, from: index)
+            guard index < text.count else { return false }
+            switch text[index] {
+                case UInt8(ascii: "@"): return true
+                case UInt8(ascii: ":"):
+                    if index + 2 < text.count, text[index + 1] == 0x2F, text[index + 2] == 0x2F { return true }
+                default:
+                    if index + 3 < text.count, text[index + 1] == 0x77, text[index + 2] == 0x77, text[index + 3] == 0x2E
+                    {
+                        return true
+                    }
+            }
+            index += 1
+        }
+    }
+
+    private static func isContainer(_ kind: NodeKind) -> Bool {
+        kind == .emphasis || kind == .strong || kind == .strikethrough
+    }
 
     /// Text that touches the text after it is one run, as it would have been written: emphasis delimiters that stayed text join it.
     private mutating func mergeTouchingText(into node: Int32) {
@@ -216,7 +238,7 @@ extension InlineParser {
         }
         while end > start {
             let last = source[end - 1]
-            if Self.trailingPunctuation.contains(last) {
+            if Self.isTrailingPunctuation(last) {
                 end -= 1
             } else if last == UInt8(ascii: ";") {
                 var scan = end - 2
@@ -233,5 +255,13 @@ extension InlineParser {
         return end
     }
 
-    private static let trailingPunctuation: Set<UInt8> = Set(Array("?!.,:*_~'\"".utf8))
+    private static func isTrailingPunctuation(_ byte: UInt8) -> Bool {
+        switch byte {
+            case UInt8(ascii: "?"), UInt8(ascii: "!"), UInt8(ascii: "."), UInt8(ascii: ","), UInt8(ascii: ":"),
+                UInt8(ascii: "*"),
+                UInt8(ascii: "_"), UInt8(ascii: "~"), UInt8(ascii: "'"), UInt8(ascii: "\""):
+                true
+            default: false
+        }
+    }
 }

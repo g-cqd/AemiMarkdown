@@ -39,7 +39,9 @@ struct InlineParser {
     var work = 0
     var workLimit = 0
     var diagnostics: MarkdownDiagnostics = []
-    var backticksExhausted = [Bool](repeating: false, count: 65)
+    /// Bit `n` is set when no closing run of `n` backticks follows the position scanned from (for `n` up to 64): two words, so a parse starts with two stores.
+    var backticksExhaustedLow: UInt64 = 0
+    var backticksExhaustedHigh: UInt64 = 0
     var source: ContiguousArray<UInt8> = []
     /// Scratch indices of the `|` whose backslash was left out of the text (a table cell: `\|` is a pipe even in a code span), ascending.
     var droppedBackslashes: ContiguousArray<Int> = []
@@ -60,13 +62,15 @@ struct InlineParser {
         text.removeAll(keepingCapacity: true)
         lineScratchStart.removeAll(keepingCapacity: true)
         lineSourceStart.removeAll(keepingCapacity: true)
-        delimiters.removeAll(keepingCapacity: true)
-        brackets.removeAll(keepingCapacity: true)
+        // The next three are empty for most leaf blocks, and clearing an empty array still costs a call.
+        if !delimiters.isEmpty { delimiters.removeAll(keepingCapacity: true) }
+        if !brackets.isEmpty { brackets.removeAll(keepingCapacity: true) }
+        if !droppedBackslashes.isEmpty { droppedBackslashes.removeAll(keepingCapacity: true) }
         delimiterTop = -1
         position = 0
         work = 0
-        droppedBackslashes.removeAll(keepingCapacity: true)
-        for index in backticksExhausted.indices { backticksExhausted[index] = false }
+        backticksExhaustedLow = 0
+        backticksExhaustedHigh = 0
         var remaining = lines.count
         for line in lines {
             remaining -= 1
@@ -94,7 +98,7 @@ struct InlineParser {
             while position < text.count { parseInline() }
             processEmphasis(bottom: -1)
         }
-        if extensions.contains(.autolinks), text.count <= limits.maxLeafBytes { autolinkBareLinks() }
+        if extensions.contains(.autolinks), text.count <= limits.maxLeafBytes, mayHoldBareLink() { autolinkBareLinks() }
         let run = inlines.count
         serialize(into: &inlines)
         inlines.append(Slot.make(.marker, .runEnd, payload: 0, low: 0))
@@ -155,12 +159,6 @@ struct InlineParser {
         return true
     }
 
-    private static let special: [Bool] = {
-        var table = [Bool](repeating: false, count: 256)
-        for byte in "\n\\`*_~[]!<&".utf8 { table[Int(byte)] = true }
-        return table
-    }()
-
     @discardableResult
     mutating func appendNode(_ kind: NodeKind, scratch start: Int, length: Int, payload: Int = 0) -> Int32 {
         tree.append(InlineNode(kind: kind, payload: payload, start: sourceOffset(start), length: length))
@@ -218,8 +216,7 @@ struct InlineParser {
     /// Plain text up to the next byte that can start something.
     private mutating func plain() {
         let start = position
-        position += 1
-        while position < text.count, !Self.special[Int(text[position])] { position += 1 }
+        position = ByteScan.firstIndex(inSet: ByteScan.inlineSpecials, in: text, from: position + 1)
         appendText(start, position)
     }
 

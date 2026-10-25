@@ -1,10 +1,10 @@
-import AemiJSONCore
 import AemiMarkdown
 import CAemiTestKitMalloc
 import Foundation
 
 // One {"t": "<assistant message>"} per line. The corpus is private (session logs) and is never committed.
-func now() -> UInt64 { clock_gettime_nsec_np(CLOCK_UPTIME_RAW) }
+// CPU time of this thread, not wall time: the machine is shared, and a wall clock measures the neighbours too.
+func now() -> UInt64 { clock_gettime_nsec_np(CLOCK_THREAD_CPUTIME_ID) }
 func percentile(_ sorted: [Double], _ p: Double) -> Double {
     sorted.isEmpty ? 0 : sorted[min(sorted.count - 1, Int(Double(sorted.count) * p))]
 }
@@ -15,7 +15,7 @@ guard CommandLine.arguments.count > 1, let data = FileManager.default.contents(a
 }
 var messages: [[UInt8]] = []
 for line in data.split(separator: UInt8(ascii: "\n")) {
-    if let document = try? AemiJSON.parse(Array(line)), let text = document.root["t"].string {
+    if let object = try? JSONSerialization.jsonObject(with: Data(line)) as? [String: String], let text = object["t"] {
         messages.append(Array(text.utf8))
     }
 }
@@ -25,6 +25,19 @@ getloadavg(&load, 3)
 print(
     "messages \(messages.count), \(totalBytes) bytes, load average \(String(format: "%.1f", load[0])); counting available: \(adtk_malloc_counting_available())"
 )
+
+// `--profile`: only the parse loop, many rounds, for a sampling profiler.
+if CommandLine.arguments.contains("--profile") {
+    var parser = MarkdownParser()
+    for _ in 0 ..< 40 {
+        for message in messages {
+            parser.reset()
+            parser.append(message)
+            parser.finish()
+        }
+    }
+    exit(0)
+}
 
 // 1. Whole messages, five rounds.
 var rounds: [Double] = []
@@ -43,6 +56,24 @@ print(
     String(
         format: "parse:      median %.3f s (%.1f MB/s), p10..p90 %.3f..%.3f s over 5 rounds; %d slots", rounds[2],
         megabytes / rounds[2], rounds[0], rounds[4], slots))
+
+// 1b. The same with one parser used for message after message (what a reader of many answers does).
+var reuseRounds: [Double] = []
+var reused = MarkdownParser()
+for _ in 0 ..< 5 {
+    let start = now()
+    for message in messages {
+        reused.reset()
+        reused.append(message)
+        reused.finish()
+    }
+    reuseRounds.append(Double(now() - start) / 1e9)
+}
+reuseRounds.sort()
+print(
+    String(
+        format: "parse, one parser reused: median %.3f s (%.1f MB/s), p10..p90 %.3f..%.3f s", reuseRounds[2],
+        megabytes / reuseRounds[2], reuseRounds[0], reuseRounds[4]))
 
 // 2. One message at a time: latency, and allocations.
 var perMessage: [Double] = []
@@ -63,6 +94,15 @@ for message in sample {
     _ = MarkdownParser.parse(message)
     allocations.append(adtk_malloc_count_end())
 }
+var reusedAllocations: [UInt64] = []
+for message in sample {
+    reused.reset()
+    adtk_malloc_count_begin()
+    reused.append(message)
+    reused.finish()
+    reusedAllocations.append(adtk_malloc_count_end())
+}
+let sortedReused = reusedAllocations.sorted()
 let sorted = allocations.sorted()
 let sampleKB = Double(sample.reduce(0) { $0 + $1.count }) / 1024
 print(

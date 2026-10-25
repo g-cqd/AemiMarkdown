@@ -11,6 +11,12 @@ extension MarkdownParser {
             diagnostics.insert(.documentSizeLimit)
             bytes = bytes.prefix(Swift.max(0, room))
         }
+        if source.isEmpty {
+            // About one slot for every 16 bytes of Markdown on real answers (ask's census): room for that, once.
+            source.reserveCapacity(bytes.count)
+            blocks.reserveCapacity(bytes.count / 32 + 16)
+            inlines.reserveCapacity(bytes.count / 16 + 16)
+        }
         source.append(contentsOf: bytes)
         processCompleteLines()
     }
@@ -53,45 +59,39 @@ extension MarkdownParser {
         }
         if lineStart < source.count { processLines(start: lineStart, end: source.count) }
         lineStart = source.count
+        scan(upTo: source.count)
         closeAbove(0)
         parsePendingInlines()
     }
 
-    /// Notes control bytes and invalid UTF-8 in one line, which is complete, so no character is cut by a chunk boundary.
-    private mutating func scan(_ range: Range<Int>) {
-        guard !range.isEmpty else { return }
-        let found = source.withUnsafeBufferPointer { buffer in unsafe Self.scanBytes(buffer, range) }
-        diagnostics.formUnion(found)
-    }
-
-    /// SAFETY: `range` lies inside `buffer` (a caller passes a line of the source), so every pointer made below stays inside it, and each kernel call
-    /// is given the count that remains after that pointer.
-    @unsafe
-    private static func scanBytes(_ buffer: UnsafeBufferPointer<UInt8>, _ range: Range<Int>) -> MarkdownDiagnostics {
-        guard let start = buffer.baseAddress else { return [] }
-        let base = unsafe start + range.lowerBound
-        var result: MarkdownDiagnostics = []
-        if unsafe AemiKernels.firstInvalidUTF8(base: base, count: range.count) != range.count {
-            result.insert(.invalidUTF8)
-        }
-        // Tab is a control byte Markdown uses, so the scan resumes after one. A line has no line ending in it.
-        var index = 0
-        while index < range.count {
-            let offset = unsafe AemiKernels.indexOfControlOrAny(
-                base: base + index, count: range.count - index, 0x7F, 0x7F, 0x7F, 0x7F, 0x7F)
-            let hit = index + offset
-            if hit >= range.count { break }
-            if unsafe base[hit] != 0x09 {
-                result.insert(.controlBytes)
-                break
+    /// Notes control bytes and invalid UTF-8 in `source[scannedUpTo ..< end]`, which holds only whole characters: it ends at a line ending, or at the end of the input.
+    /// One pass of each kernel over everything that arrived since the last, not one per line.
+    private mutating func scan(upTo end: Int) {
+        guard scannedUpTo < end else { return }
+        let range = scannedUpTo ..< end
+        scannedUpTo = end
+        let found = source.withUnsafeBufferPointer { buffer -> MarkdownDiagnostics in
+            // SAFETY: `range` lies inside the source, so `base + range.lowerBound` is valid for `range.count` bytes, which is the count the kernels are given.
+            guard let start = buffer.baseAddress else { return [] }
+            let base = unsafe start + range.lowerBound
+            var result: MarkdownDiagnostics = []
+            if unsafe AemiKernels.firstInvalidUTF8(base: base, count: range.count) != range.count {
+                result.insert(.invalidUTF8)
             }
-            index = hit + 1
+            if unsafe AemiKernels.firstIndex(inSet: ByteScan.unsafeControls, base: base, count: range.count)
+                != range.count
+            {
+                result.insert(.controlBytes)
+            }
+            return result
         }
-        return result
+        diagnostics.formUnion(found)
     }
 
     /// Parses each complete line from `from` on. A line ends at a line feed, a carriage return, or a carriage return and a line feed.
     private mutating func processCompleteLines() {
+        // Every line that was completed has been looked at once the loop ends, however it ends.
+        defer { scan(upTo: lineStart) }
         var cursor = scanPosition
         while cursor < source.count {
             let byte = source[cursor]
@@ -118,7 +118,6 @@ extension MarkdownParser {
 
     /// Parses one line, cut into pieces of at most `maxLineBytes` so that no line is longer than the limit says.
     private mutating func processLines(start: Int, end: Int) {
-        scan(start ..< end)
         var from = start
         while end - from > limits.maxLineBytes {
             diagnostics.insert(.lineLengthLimit)
