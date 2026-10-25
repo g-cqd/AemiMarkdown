@@ -51,12 +51,12 @@ struct BlockState: Sendable {
 
     /// The state of a new document: only the document is open. The arrays keep the room they grew.
     mutating func reset() {
-        open.removeAll(keepingCapacity: true)
-        open.append(Open(kind: .document, slot: -1, startLine: 0))
+        if open.count > 1 { open.removeSubrange(1...) }
+        open[0] = Open(kind: .document, slot: -1, startLine: 0)
         lineNumber = 0
-        lineRanges.removeAll(keepingCapacity: true)
-        pending.removeAll(keepingCapacity: true)
-        cells.removeAll(keepingCapacity: true)
+        if !lineRanges.isEmpty { lineRanges.removeAll(keepingCapacity: true) }
+        if !pending.isEmpty { pending.removeAll(keepingCapacity: true) }
+        if !cells.isEmpty { cells.removeAll(keepingCapacity: true) }
         offset = 0
         column = 0
         firstNonspace = 0
@@ -72,6 +72,10 @@ struct BlockState: Sendable {
     var pending: ContiguousArray<Pending> = []
     /// The cells of the table row being read, as source ranges: scratch that is reused.
     var cells: ContiguousArray<Range<Int>> = []
+    /// The lines of a paragraph that may start with definitions, joined, and where each line starts: scratch, reused.
+    var definitionText = ContiguousArray<UInt8>()
+    var definitionScratchStarts: [Int] = []
+    var definitionSourceStarts: [Int] = []
 
     // The cursor in the line being processed, as in cmark's parser.
     var offset = 0

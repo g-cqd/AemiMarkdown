@@ -45,11 +45,15 @@ enum HTMLBlockScanner {
         let nameStart = i
         while i < end, isASCIILetter(source[i]) || (i > nameStart && source[i] >= 0x30 && source[i] <= 0x39) { i += 1 }
         if i > nameStart {
-            let name = source[nameStart ..< i].map(lower)
+            let name = source[nameStart ..< i]
             let followed =
                 i == end || source[i] == 0x20 || source[i] == 0x09 || source[i] == UInt8(ascii: ">")
                 || (source[i] == UInt8(ascii: "/") && i + 1 < end && source[i + 1] == UInt8(ascii: ">"))
-            if followed, blockNames.contains(where: { $0 == name }) { return 6 }
+            if followed,
+                blockNames.contains(where: { $0.count == name.count && zip($0, name).allSatisfy { $0 == lower($1) } })
+            {
+                return 6
+            }
         }
         if !interruptsParagraph, HTMLTagScanner.completeTagFillsLine(source, index, end) { return 7 }
         return nil

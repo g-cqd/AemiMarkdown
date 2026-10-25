@@ -38,12 +38,12 @@ public struct MarkdownParser: Sendable {
     /// Starts a new document. The parser keeps the memory it grew for the last one, so a parser used for one document after another allocates only when a
     /// document is larger than any before it. A snapshot of the last document still shares its storage; it is left alone, and the parser takes new.
     public mutating func reset() {
-        source.removeAll(keepingCapacity: true)
+        if !source.isEmpty { source.removeAll(keepingCapacity: true) }
         blocks.removeAll()
         inlines.removeAll()
         diagnostics = []
         state.reset()
-        references.removeAll()
+        if !references.isEmpty { references.removeAll() }
         lineStart = 0
         scanPosition = 0
         scannedUpTo = 0

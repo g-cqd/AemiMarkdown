@@ -11,21 +11,23 @@ struct ReferenceTable: Sendable {
 
     mutating func removeAll() { entries.removeAll(keepingCapacity: true) }
 
-    /// Records a definition. The first definition of a label wins.
+    /// Records a definition. The first definition of a label wins. The key is one allocation.
     mutating func insert(label: some Collection<UInt8>, _ reference: Reference) {
-        let key = Self.normalize(label)
+        var key: [UInt8] = []
+        Self.normalize(label, into: &key)
         if !key.isEmpty, entries[key] == nil { entries[key] = reference }
     }
 
-    func find(label: some Collection<UInt8>) -> Reference? {
-        entries[Self.normalize(label)]
+    /// The definition of the label, using `key` as scratch for its normalized form, so a lookup allocates nothing for an ASCII label.
+    func find(label: some Collection<UInt8>, scratch key: inout [UInt8]) -> Reference? {
+        Self.normalize(label, into: &key)
+        return entries[key]
     }
 
-    /// The matching form of a label: no leading or trailing whitespace, runs of whitespace as one space, and Unicode case folded.
-    /// - Complexity: O(label length); non-ASCII labels allocate.
-    static func normalize(_ label: some Collection<UInt8>) -> [UInt8] {
-        var out: [UInt8] = []
-        out.reserveCapacity(label.count)
+    /// Writes the matching form of a label into `out`: no leading or trailing whitespace, runs of whitespace as one space, and Unicode case folded.
+    /// - Complexity: O(label length); a label with non-ASCII bytes allocates.
+    static func normalize(_ label: some Collection<UInt8>, into out: inout [UInt8]) {
+        out.removeAll(keepingCapacity: true)
         var pendingSpace = false
         var ascii = true
         for byte in label {
@@ -44,8 +46,8 @@ struct ReferenceTable: Sendable {
                 }
             }
         }
-        guard !ascii else { return out }
+        guard !ascii else { return }
         // Case folding is not lowercasing (`ẞ` and `ß` both fold to `ss`); lower, upper, lower gets the full folds the spec's examples need.
-        return Array(String(decoding: out, as: UTF8.self).lowercased().uppercased().lowercased().utf8)
+        out = Array(String(decoding: out, as: UTF8.self).lowercased().uppercased().lowercased().utf8)
     }
 }

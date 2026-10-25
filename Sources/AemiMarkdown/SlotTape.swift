@@ -27,8 +27,8 @@ struct SlotTape: Sendable {
 
     /// Empties the tape and keeps the room it grew. Storage that a snapshot still shares is left to that snapshot and replaced.
     mutating func removeAll() {
-        committed.removeAll(keepingCapacity: true)
-        tail.removeAll(keepingCapacity: true)
+        if !committed.isEmpty { committed.removeAll(keepingCapacity: true) }
+        if !tail.isEmpty { tail.removeAll(keepingCapacity: true) }
     }
 
     /// Removes the last slot, which must still be in the tail: a slot is committed only after the block it belongs to has closed.

@@ -1,15 +1,15 @@
 /// Character references: `&#35;`, `&#x23;` and the HTML5 names such as `&amp;`.
 enum CharacterReference {
     /// The scalars of the reference that starts at `index` (a `&`) and its length in bytes, `;` included, or nil if no valid reference starts there.
-    static func decode(_ bytes: ContiguousArray<UInt8>, at index: Int, end: Int) -> ([Unicode.Scalar], Int)? {
+    static func decode(_ bytes: ContiguousArray<UInt8>, at index: Int, end: Int) -> (EntityTable.Entity, Int)? {
         guard index + 2 < end else { return nil }
         if bytes[index + 1] == UInt8(ascii: "#") { return numeric(bytes, at: index, end: end) }
         var i = index + 1
         while i < end, i - index <= EntityTable.maxNameLength + 1, isNameByte(bytes[i]) { i += 1 }
-        guard i < end, bytes[i] == UInt8(ascii: ";"), let scalars = EntityTable.lookup(bytes[(index + 1) ..< i]) else {
+        guard i < end, bytes[i] == UInt8(ascii: ";"), let entity = EntityTable.lookup(bytes[(index + 1) ..< i]) else {
             return nil
         }
-        return (scalars, i + 1 - index)
+        return (entity, i + 1 - index)
     }
 
     /// The length of the reference that starts at `index` in `bytes`, or nil.
@@ -17,7 +17,8 @@ enum CharacterReference {
         decode(bytes, at: index, end: bytes.count)?.1
     }
 
-    private static func numeric(_ bytes: ContiguousArray<UInt8>, at index: Int, end: Int) -> ([Unicode.Scalar], Int)? {
+    private static func numeric(_ bytes: ContiguousArray<UInt8>, at index: Int, end: Int) -> (EntityTable.Entity, Int)?
+    {
         var i = index + 2
         let hex = i < end && (bytes[i] == UInt8(ascii: "x") || bytes[i] == UInt8(ascii: "X"))
         if hex { i += 1 }
@@ -32,7 +33,7 @@ enum CharacterReference {
         guard digits > 0, i < end, bytes[i] == UInt8(ascii: ";") else { return nil }
         // NUL, surrogates and anything past U+10FFFF stand for U+FFFD.
         let scalar = value == 0 ? nil : Unicode.Scalar(value)
-        return ([scalar ?? "\u{FFFD}"], i + 1 - index)
+        return (EntityTable.Entity(first: scalar ?? "\u{FFFD}", second: nil), i + 1 - index)
     }
 
     private static func isNameByte(_ byte: UInt8) -> Bool {

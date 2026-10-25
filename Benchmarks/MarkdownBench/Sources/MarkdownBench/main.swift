@@ -28,13 +28,40 @@ print(
 
 // `--profile`: only the parse loop, many rounds, for a sampling profiler.
 if CommandLine.arguments.contains("--profile") {
-    var parser = MarkdownParser()
-    for _ in 0 ..< 40 {
+    var parser = MarkdownParser(
+        limits: CommandLine.arguments.contains("--plain") ? MarkdownLimits(maxLeafBytes: 1) : .default)
+    for _ in 0 ..< 80 {
         for message in messages {
             parser.reset()
             parser.append(message)
             parser.finish()
         }
+    }
+    exit(0)
+}
+
+// `--phases`: where the time goes: the block phase alone (leaf blocks kept as text), and both, on one reused parser each.
+if CommandLine.arguments.contains("--phases") {
+    for (name, limits) in [
+        ("blocks only (leaves are plain text)", MarkdownLimits(maxLeafBytes: 1)),
+        ("blocks and inlines", MarkdownLimits.default)
+    ] {
+        var parser = MarkdownParser(limits: limits)
+        var rounds: [Double] = []
+        for _ in 0 ..< 7 {
+            let start = now()
+            for message in messages {
+                parser.reset()
+                parser.append(message)
+                parser.finish()
+            }
+            rounds.append(Double(now() - start) / 1e9)
+        }
+        rounds.sort()
+        print(
+            String(
+                format: "%-38@ median %.3f s (%.1f MB/s)", name as NSString, rounds[3],
+                Double(totalBytes) / 1e6 / rounds[3]))
     }
     exit(0)
 }
@@ -105,6 +132,9 @@ for message in sample {
 let sortedReused = reusedAllocations.sorted()
 let sorted = allocations.sorted()
 let sampleKB = Double(sample.reduce(0) { $0 + $1.count }) / 1024
+print(
+    "allocations per message, one parser reused (first 2000): p50 \(sortedReused[sortedReused.count / 2]) p95 \(sortedReused[Int(Double(sortedReused.count) * 0.95)]) max \(sortedReused.last!); \(String(format: "%.1f", Double(reusedAllocations.reduce(0, +)) / sampleKB)) per KB"
+)
 print(
     "allocations per message (first 2000): p50 \(sorted[sorted.count / 2]) p95 \(sorted[Int(Double(sorted.count) * 0.95)]) max \(sorted.last!); \(String(format: "%.1f", Double(allocations.reduce(0, +)) / sampleKB)) per KB"
 )

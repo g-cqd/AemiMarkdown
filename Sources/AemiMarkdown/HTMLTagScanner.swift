@@ -18,8 +18,8 @@ enum HTMLTagScanner {
         while nameEnd < end,
             ASCIIClass.isAlphanumeric(source[nameEnd]) || source[nameEnd] == UInt8(ascii: "-")
         { nameEnd += 1 }
-        let name = String(decoding: source[nameStart ..< nameEnd], as: UTF8.self).lowercased()
-        return !["script", "style", "pre", "textarea"].contains(name)
+        let name = source[nameStart ..< nameEnd]
+        return !["script", "style", "pre", "textarea"].contains { ASCIIClass.equalsIgnoringCase(name, $0) }
     }
 
     /// The index after the open tag or closing tag at `index`, within `end`, or nil.
@@ -89,11 +89,15 @@ enum HTMLTagScanner {
             return i < end ? i + 1 : nil
         }
         var i = start
-        let forbidden: [UInt8] = [
-            0x20, 0x09, 0x0A, 0x0C, 0x0D, UInt8(ascii: "\""), UInt8(ascii: "'"), UInt8(ascii: "="), UInt8(ascii: "<"),
-            UInt8(ascii: ">"), UInt8(ascii: "`")
-        ]
-        while i < end, !forbidden.contains(source[i]) { i += 1 }
+        while i < end, !Self.endsUnquotedValue(source[i]) { i += 1 }
         return i > start ? i : nil
+    }
+
+    /// A space, a quote, `=`, `<`, `>` or a backtick: none of them may appear in an attribute value that is not quoted.
+    private static func endsUnquotedValue(_ byte: UInt8) -> Bool {
+        switch byte {
+            case 0x20, 0x09, 0x0A, 0x0C, 0x0D, 0x22, 0x27, 0x3D, 0x3C, 0x3E, 0x60: true
+            default: false
+        }
     }
 }

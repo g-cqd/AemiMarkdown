@@ -76,7 +76,7 @@ extension InlineParser {
         }
         if length == 0 { position = afterBracket }
         guard let label, spend(label.count) else { return nil }
-        return references.find(label: text[label])
+        return references.find(label: text[label], scratch: &referenceKey)
     }
 
     /// Builds the link or image node over what follows the opener on the tree. False if it would nest past the limit.

@@ -47,6 +47,12 @@ struct InlineParser {
     var droppedBackslashes: ContiguousArray<Int> = []
     /// The lines of a code span's content, reused from one span to the next.
     var codePieces: [Range<Int>] = []
+    /// The containers open while the tree is written as slots, reused from one leaf block to the next.
+    var serializeStack: [(slot: Int, node: Int32)] = []
+    /// The bare links found in one text node, reused.
+    var bareLinks: [BareLink] = []
+    /// The normalized form of the label being looked up, reused.
+    var referenceKey: [UInt8] = []
 
     /// Parses `lines` of `source` and appends the leaf block's inline run, ending in a `runEnd` slot, to `inlines`. Returns the index of the run's first slot.
     mutating func parse(
@@ -102,6 +108,9 @@ struct InlineParser {
         let run = inlines.count
         serialize(into: &inlines)
         inlines.append(Slot.make(.marker, .runEnd, payload: 0, low: 0))
+        // Let go of the parser's arrays: holding them would make the next change to them copy the whole buffer (and a reused parser allocate one per document).
+        self.source = []
+        self.references = ReferenceTable()
         return run
     }
 
@@ -117,6 +126,8 @@ struct InlineParser {
 
     /// The source offset of the byte at `index` in the joined text.
     func sourceOffset(_ index: Int) -> Int {
+        // One line and no dropped backslash, which is nearly every leaf block: no search.
+        if lineScratchStart.count == 1, droppedBackslashes.isEmpty { return lineSourceStart[0] + index }
         var low = 0
         var high = lineScratchStart.count - 1
         while low < high {

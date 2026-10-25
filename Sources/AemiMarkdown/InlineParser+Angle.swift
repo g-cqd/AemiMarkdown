@@ -47,11 +47,18 @@ extension InlineParser {
         return emailAutolink(text, at: index)
     }
 
+    /// `. ! # $ % & ' * + / = ? ^ _ ` { | } ~ -`, which an address may hold besides letters and digits.
+    private static func isEmailLocalPunctuation(_ byte: UInt8) -> Bool {
+        switch byte {
+            case 0x21, 0x23 ... 0x27, 0x2A, 0x2B, 0x2D, 0x2E, 0x2F, 0x3D, 0x3F, 0x5E, 0x5F, 0x60, 0x7B ... 0x7E: true
+            default: false
+        }
+    }
+
     private static func emailAutolink(_ text: ContiguousArray<UInt8>, at index: Int) -> (Int, Int)? {
         var i = index + 1
         let local = i
-        let allowed = Array("!#$%&'*+/=?^_`{|}~-.".utf8)
-        while i < text.count, ASCIIClass.isAlphanumeric(text[i]) || allowed.contains(text[i]) {
+        while i < text.count, ASCIIClass.isAlphanumeric(text[i]) || isEmailLocalPunctuation(text[i]) {
             i += 1
         }
         guard i > local, i < text.count, text[i] == UInt8(ascii: "@") else { return nil }
@@ -78,30 +85,41 @@ extension InlineParser {
     /// The index after a raw HTML construct that starts at `index` (`<`): an open or closing tag, a comment, a processing instruction, a declaration or CDATA.
     static func rawHTMLEnd(_ text: ContiguousArray<UInt8>, at index: Int) -> Int? {
         guard index + 1 < text.count else { return nil }
-        func find(_ needle: String, from: Int) -> Int? {
-            let bytes = Array(needle.utf8)
-            guard text.count - from >= bytes.count else { return nil }
+        func find(_ needle: [UInt8], from: Int) -> Int? {
+            guard text.count - from >= needle.count else { return nil }
             var i = from
-            while i + bytes.count <= text.count {
-                if text[i] == bytes[0], text[i ..< (i + bytes.count)].elementsEqual(bytes) { return i + bytes.count }
+            while i + needle.count <= text.count {
+                if text[i] == needle[0], text[i ..< (i + needle.count)].elementsEqual(needle) {
+                    return i + needle.count
+                }
                 i += 1
             }
             return nil
         }
-        func starts(_ prefix: String) -> Bool {
-            let bytes = Array(prefix.utf8)
-            return index + bytes.count <= text.count && text[index ..< (index + bytes.count)].elementsEqual(bytes)
+        func starts(_ prefix: [UInt8]) -> Bool {
+            index + prefix.count <= text.count && text[index ..< (index + prefix.count)].elementsEqual(prefix)
         }
         switch text[index + 1] {
             case UInt8(ascii: "!"):
-                if starts("<!-->") { return index + 5 }
-                if starts("<!--->") { return index + 6 }
-                if starts("<!--") { return find("-->", from: index + 4) }
-                if starts("<![CDATA[") { return find("]]>", from: index + 9) }
-                if index + 2 < text.count, ASCIIClass.isLetter(text[index + 2]) { return find(">", from: index + 2) }
+                if starts(Self.emptyComment) { return index + 5 }
+                if starts(Self.dashComment) { return index + 6 }
+                if starts(Self.commentStart) { return find(Self.commentEnd, from: index + 4) }
+                if starts(Self.cdataStart) { return find(Self.cdataEnd, from: index + 9) }
+                if index + 2 < text.count, ASCIIClass.isLetter(text[index + 2]) {
+                    return find(Self.greaterThan, from: index + 2)
+                }
                 return nil
-            case UInt8(ascii: "?"): return find("?>", from: index + 2)
+            case UInt8(ascii: "?"): return find(Self.instructionEnd, from: index + 2)
             default: return HTMLTagScanner.tag(text, index, text.count)
         }
     }
+
+    private static let emptyComment = Array("<!-->".utf8)
+    private static let dashComment = Array("<!--->".utf8)
+    private static let commentStart = Array("<!--".utf8)
+    private static let commentEnd = Array("-->".utf8)
+    private static let cdataStart = Array("<![CDATA[".utf8)
+    private static let cdataEnd = Array("]]>".utf8)
+    private static let instructionEnd = Array("?>".utf8)
+    private static let greaterThan = Array(">".utf8)
 }

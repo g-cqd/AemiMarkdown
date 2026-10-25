@@ -93,7 +93,10 @@ extension MarkdownParser {
         // Every line that was completed has been looked at once the loop ends, however it ends.
         defer { scan(upTo: lineStart) }
         var cursor = scanPosition
-        while cursor < source.count {
+        while true {
+            // A SIMD scan to the next line ending, not a look at every byte.
+            cursor = ByteScan.firstIndex(inSet: ByteScan.lineEndings, in: source, from: cursor)
+            guard cursor < source.count else { break }
             let byte = source[cursor]
             if byte == 0x0A {
                 processLines(start: lineStart, end: cursor)
@@ -113,7 +116,7 @@ extension MarkdownParser {
             }
             cursor += 1
         }
-        scanPosition = cursor
+        scanPosition = source.count
     }
 
     /// Parses one line, cut into pieces of at most `maxLineBytes` so that no line is longer than the limit says.

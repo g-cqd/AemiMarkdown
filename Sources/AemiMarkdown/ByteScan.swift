@@ -29,6 +29,14 @@ enum ByteScan {
         return set
     }()
 
+    /// Line feed and carriage return.
+    static let lineEndings: AemiKernels.ByteSet = {
+        guard let set = AemiKernels.ByteSet([0x0A, 0x0D]) else {
+            preconditionFailure("the line endings do not fit in nibble tables")
+        }
+        return set
+    }()
+
     /// The C0 controls other than tab, line feed and carriage return, and DEL: what a renderer must neutralise.
     static let unsafeControls: AemiKernels.ByteSet = {
         let bytes = (0 ..< 0x20).filter { $0 != 0x09 && $0 != 0x0A && $0 != 0x0D }.map { UInt8($0) } + [0x7F]

@@ -21,17 +21,23 @@ enum EntityTable {
         return starts
     }()
 
-    /// The code points of the entity `name` (without `&` and `;`), one or two, or nil.
-    static func lookup(_ name: some Collection<UInt8>) -> [Unicode.Scalar]? {
+    /// The code points of an entity: one, or two for a few.
+    struct Entity {
+        var first: Unicode.Scalar
+        var second: Unicode.Scalar?
+    }
+
+    /// The code points of the entity `name` (without `&` and `;`), or nil. Allocates nothing.
+    /// - Complexity: O(log n) names, each compared in O(name length).
+    static func lookup(_ name: some RandomAccessCollection<UInt8>) -> Entity? {
         guard name.count <= maxNameLength, !name.isEmpty else { return nil }
-        let wanted = Array(name)
         var low = 0
         var high = lineStarts.count - 1
         while low <= high {
             let middle = (low + high) / 2
             let start = lineStarts[middle]
-            switch compare(wanted, at: start) {
-                case 0: return scalars(at: start + wanted.count + 1)
+            switch compare(name, at: start) {
+                case 0: return entity(at: start + name.count + 1)
                 case let order where order < 0: high = middle - 1
                 default: low = middle + 1
             }
@@ -40,32 +46,33 @@ enum EntityTable {
     }
 
     /// Negative if `name` sorts before the entry at `start`, positive if after, and 0 if they are the same name.
-    private static func compare(_ name: [UInt8], at start: Int) -> Int {
+    private static func compare(_ name: some RandomAccessCollection<UInt8>, at start: Int) -> Int {
         var index = 0
-        while index < name.count {
+        for byte in name {
             let entry = bytes[start + index]
             if entry == 0x20 { return 1 }  // the entry's name is shorter, so it sorts first
-            if name[index] != entry { return name[index] < entry ? -1 : 1 }
+            if byte != entry { return byte < entry ? -1 : 1 }
             index += 1
         }
         return bytes[start + index] == 0x20 ? 0 : -1
     }
 
-    private static func scalars(at start: Int) -> [Unicode.Scalar]? {
-        var result: [Unicode.Scalar] = []
+    private static func entity(at start: Int) -> Entity {
+        var first: Unicode.Scalar?
         var value: UInt32 = 0
         var index = start
         while index < bytes.count, bytes[index] != 0x0A {
             let byte = bytes[index]
             if byte == 0x20 {
-                result.append(Unicode.Scalar(value) ?? "\u{FFFD}")
+                first = Unicode.Scalar(value) ?? "\u{FFFD}"
                 value = 0
             } else {
                 value = value * 16 + UInt32(byte <= 0x39 ? byte - 0x30 : byte - 0x61 + 10)
             }
             index += 1
         }
-        result.append(Unicode.Scalar(value) ?? "\u{FFFD}")
-        return result
+        let last = Unicode.Scalar(value) ?? "\u{FFFD}"
+        if let first { return Entity(first: first, second: last) }
+        return Entity(first: last, second: nil)
     }
 }

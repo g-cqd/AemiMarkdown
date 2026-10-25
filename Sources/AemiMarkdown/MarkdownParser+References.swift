@@ -22,9 +22,21 @@ extension MarkdownParser {
     private mutating func consumeDefinitions(firstLine: Int, lineCount: Int) -> Int {
         // A definition starts with `[`; most paragraphs do not, and need no scratch text at all.
         guard lineCount > 0, source[state.lineRanges[firstLine].lowerBound] == UInt8(ascii: "[") else { return 0 }
-        var text = ContiguousArray<UInt8>()
-        var scratchStarts: [Int] = []
-        var sourceStarts: [Int] = []
+        // The scratch arrays are taken out of the state and put back, so that they keep their room from one paragraph to the next.
+        var text = state.definitionText
+        var scratchStarts = state.definitionScratchStarts
+        var sourceStarts = state.definitionSourceStarts
+        state.definitionText = []
+        state.definitionScratchStarts = []
+        state.definitionSourceStarts = []
+        text.removeAll(keepingCapacity: true)
+        scratchStarts.removeAll(keepingCapacity: true)
+        sourceStarts.removeAll(keepingCapacity: true)
+        defer {
+            state.definitionText = text
+            state.definitionScratchStarts = scratchStarts
+            state.definitionSourceStarts = sourceStarts
+        }
         for line in 0 ..< lineCount {
             let range = state.lineRanges[firstLine + line]
             scratchStarts.append(text.count)

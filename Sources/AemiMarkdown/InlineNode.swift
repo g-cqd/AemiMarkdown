@@ -30,8 +30,14 @@ struct InlineTree {
     @discardableResult
     mutating func append(_ node: InlineNode, to parent: Int32 = root) -> Int32 {
         let index = Int32(nodes.count)
+        let last = nodes[Int(parent)].lastChild
+        var node = node
+        node.parent = parent
+        node.previous = last
+        node.next = -1
         nodes.append(node)
-        link(index, lastChildOf: parent)
+        if last >= 0 { nodes[Int(last)].next = index } else { nodes[Int(parent)].firstChild = index }
+        nodes[Int(parent)].lastChild = index
         return index
     }
 

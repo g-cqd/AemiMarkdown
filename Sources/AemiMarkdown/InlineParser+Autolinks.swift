@@ -1,6 +1,6 @@
 extension InlineParser {
     /// A link found in a text node: where it starts and ends in the source, and how its target is made (the `autolink` payload).
-    private struct Found {
+    struct BareLink {
         var start: Int
         var end: Int
         var payload: Int
@@ -67,29 +67,29 @@ extension InlineParser {
     private mutating func splitLinks(in node: Int32) -> Int32 {
         let start = tree.nodes[Int(node)].start
         let length = tree.nodes[Int(node)].length
-        var found: [Found] = []
+        bareLinks.removeAll(keepingCapacity: true)
         var index = 0
         while index < length {
-            var match: Found?
+            var match: BareLink?
             switch source[start + index] {
                 case UInt8(ascii: "w"): match = wwwLink(at: start + index, start, start + length)
                 case UInt8(ascii: ":"): match = schemeLink(at: start + index, start, start + length)
                 case UInt8(ascii: "@"): match = emailLink(at: start + index, start, start + length)
                 default: break
             }
-            if let match, match.start >= (found.last?.end ?? start) {
-                found.append(match)
+            if let match, match.start >= (bareLinks.last?.end ?? start) {
+                bareLinks.append(match)
                 index = match.end - start
             } else {
                 index += 1
             }
         }
-        guard let first = found.first else { return node }
+        guard let first = bareLinks.first else { return node }
         // The node keeps the text before the first link; the rest is inserted after it.
         tree.nodes[Int(node)].length = first.start - start
         var anchor = node
         var cursor = first.start
-        for link in found {
+        for link in bareLinks {
             if link.start > cursor { anchor = insertText(cursor, link.start, after: anchor) }
             let container = Int32(tree.nodes.count)
             tree.nodes.append(InlineNode(kind: .autolink, payload: link.payload, height: 1))
@@ -115,7 +115,7 @@ extension InlineParser {
     private func isSpace(_ byte: UInt8) -> Bool { ASCIIClass.isWhitespace(byte) }
 
     /// `www.` after the start of the text, a space, or one of `*_~(`; then a domain with a dot.
-    private func wwwLink(at index: Int, _ lower: Int, _ upper: Int) -> Found? {
+    private func wwwLink(at index: Int, _ lower: Int, _ upper: Int) -> BareLink? {
         guard upper - index >= 4, source[index + 1] == UInt8(ascii: "w"), source[index + 2] == UInt8(ascii: "w"),
             source[index + 3] == UInt8(ascii: ".")
         else {
@@ -130,26 +130,28 @@ extension InlineParser {
         }
         guard let domainEnd = domain(source, index, upper, allowShort: false) else { return nil }
         let end = trimmed(from: index, pathEnd(domainEnd, upper))
-        return end > index ? Found(start: index, end: end, payload: 2) : nil
+        return end > index ? BareLink(start: index, end: end, payload: 2) : nil
     }
 
     /// `http://`, `https://` or `ftp://` and a domain.
-    private func schemeLink(at index: Int, _ lower: Int, _ upper: Int) -> Found? {
+    private func schemeLink(at index: Int, _ lower: Int, _ upper: Int) -> BareLink? {
         guard upper - index >= 4, source[index + 1] == UInt8(ascii: "/"), source[index + 2] == UInt8(ascii: "/") else {
             return nil
         }
         var start = index
         while start > lower, ASCIIClass.isLetter(source[start - 1]) { start -= 1 }
-        let scheme = String(decoding: source[start ..< index], as: UTF8.self).lowercased()
-        guard ["http", "https", "ftp"].contains(scheme) else { return nil }
+        let scheme = source[start ..< index]
+        guard ["http", "https", "ftp"].contains(where: { ASCIIClass.equalsIgnoringCase(scheme, $0) }) else {
+            return nil
+        }
         guard let domainEnd = domain(source, index + 3, upper, allowShort: true) else { return nil }
         let end = trimmed(from: start, pathEnd(domainEnd, upper))
-        return end > index + 3 ? Found(start: start, end: end, payload: 0) : nil
+        return end > index + 3 ? BareLink(start: start, end: end, payload: 0) : nil
     }
 
     // @dl:enable near-clone
     /// `local@domain`, where the domain has a dot, optionally after `mailto:` or `xmpp:`.
-    private func emailLink(at index: Int, _ lower: Int, _ upper: Int) -> Found? {
+    private func emailLink(at index: Int, _ lower: Int, _ upper: Int) -> BareLink? {
         var start = index
         while start > lower,
             ASCIIClass.isAlphanumeric(source[start - 1])
@@ -178,8 +180,7 @@ extension InlineParser {
         guard dots > 0, end - index >= 2, ASCIIClass.isLetter(source[end - 1]) || source[end - 1] == UInt8(ascii: ".")
         else { return nil }
         var payload = 1
-        for prefix in ["mailto:", "xmpp:"] {
-            let bytes = Array(prefix.utf8)
+        for (prefix, bytes) in [("mailto:", Self.mailto), ("xmpp:", Self.xmpp)] {
             let before = start - bytes.count - 1
             if start - lower >= bytes.count, source[(start - bytes.count) ..< start].elementsEqual(bytes),
                 before < lower || !(ASCIIClass.isAlphanumeric(source[before]))
@@ -192,7 +193,7 @@ extension InlineParser {
             }
         }
         end = trimmed(from: start, end)
-        return end > index ? Found(start: start, end: end, payload: payload) : nil
+        return end > index ? BareLink(start: start, end: end, payload: payload) : nil
     }
 
     /// The end of a valid domain that starts at `index`: letters, digits and hyphens, dots between, no underscore in the last two parts.
@@ -264,4 +265,7 @@ extension InlineParser {
             default: false
         }
     }
+
+    private static let mailto = Array("mailto:".utf8)
+    private static let xmpp = Array("xmpp:".utf8)
 }

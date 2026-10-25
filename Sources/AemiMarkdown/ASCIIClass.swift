@@ -21,4 +21,18 @@ enum ASCIIClass {
 
     @inline(__always)
     static func isAlphanumeric(_ byte: UInt8) -> Bool { isLetter(byte) || isDigit(byte) }
+
+    /// Whether `bytes` is the lowercase ASCII word `lowercase`, ignoring the case of `bytes`. Allocates nothing.
+    static func equalsIgnoringCase(_ bytes: some Collection<UInt8>, _ lowercase: StaticString) -> Bool {
+        guard bytes.count == lowercase.utf8CodeUnitCount else { return false }
+        var index = 0
+        for byte in bytes {
+            let folded = byte >= 0x41 && byte <= 0x5A ? byte + 0x20 : byte
+            // SAFETY: `index` is below the literal's length, which equals `bytes.count`.
+            let expected = unsafe lowercase.utf8Start[index]
+            guard folded == expected else { return false }
+            index += 1
+        }
+        return true
+    }
 }

@@ -13,9 +13,10 @@ extension MarkdownDocument {
                 out.append(source[i + 1])
                 i += 2
             } else if byte == UInt8(ascii: "&"),
-                let (scalars, length) = CharacterReference.decode(source, at: i, end: end)
+                let (entity, length) = CharacterReference.decode(source, at: i, end: end)
             {
-                for scalar in scalars { out.append(contentsOf: Array(String(scalar).utf8)) }
+                out.append(contentsOf: Array(String(entity.first).utf8))
+                if let second = entity.second { out.append(contentsOf: Array(String(second).utf8)) }
                 i += length
             } else {
                 out.append(byte)
