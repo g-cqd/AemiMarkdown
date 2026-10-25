@@ -35,34 +35,35 @@ extension InlineParser {
     /// The code span whose content is `text[from ..< to]`. A line ending in it is a space; one space is stripped from each end if both have one and the
     /// content is not all spaces.
     private mutating func codeSpan(from: Int, to: Int) {
-        var pieces: [Range<Int>] = []
+        codePieces.removeAll(keepingCapacity: true)
         var lineStart = from
         for index in from ..< to where text[index] == 0x0A {
-            pieces.append(lineStart ..< index)
+            codePieces.append(lineStart ..< index)
             lineStart = index + 1
         }
-        pieces.append(lineStart ..< to)
-        let multiline = pieces.count > 1
-        let firstIsSpace = pieces[0].isEmpty ? multiline : text[pieces[0].lowerBound] == 0x20
+        codePieces.append(lineStart ..< to)
+        let multiline = codePieces.count > 1
+        let firstIsSpace = codePieces[0].isEmpty ? multiline : text[codePieces[0].lowerBound] == 0x20
         let lastIsSpace =
-            pieces[pieces.count - 1].isEmpty ? multiline : text[pieces[pieces.count - 1].upperBound - 1] == 0x20
-        let allSpaces = pieces.allSatisfy { $0.allSatisfy { text[$0] == 0x20 } }
+            codePieces[codePieces.count - 1].isEmpty
+            ? multiline : text[codePieces[codePieces.count - 1].upperBound - 1] == 0x20
+        let allSpaces = codePieces.allSatisfy { $0.allSatisfy { text[$0] == 0x20 } }
         if firstIsSpace, lastIsSpace, !allSpaces {
-            if pieces[0].isEmpty {
-                pieces.removeFirst()
+            if codePieces[0].isEmpty {
+                codePieces.removeFirst()
             } else {
-                pieces[0] = (pieces[0].lowerBound + 1) ..< pieces[0].upperBound
+                codePieces[0] = (codePieces[0].lowerBound + 1) ..< codePieces[0].upperBound
             }
-            if let last = pieces.last {
+            if let last = codePieces.last {
                 if last.isEmpty {
-                    pieces.removeLast()
+                    codePieces.removeLast()
                 } else {
-                    pieces[pieces.count - 1] = last.lowerBound ..< (last.upperBound - 1)
+                    codePieces[codePieces.count - 1] = last.lowerBound ..< (last.upperBound - 1)
                 }
             }
         }
         let container = tree.append(InlineNode(kind: .codeSpan, height: 1))
-        for (index, piece) in pieces.enumerated() {
+        for (index, piece) in codePieces.enumerated() {
             if index > 0 { tree.append(InlineNode(kind: .softBreak), to: container) }
             appendText(piece.lowerBound, piece.upperBound, to: container, joining: false)
         }

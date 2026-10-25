@@ -2,7 +2,7 @@ extension InlineParser {
     /// A `<`: an autolink, raw inline HTML, or the character itself (CommonMark 6.5 and 6.6).
     mutating func angle() {
         let start = position
-        if let (end, kind) = autolink(at: start) {
+        if let (end, kind) = Self.autolink(text, at: start) {
             let container = tree.append(InlineNode(kind: .autolink, payload: kind, height: 1))
             tree.append(InlineNode(kind: .text, start: sourceOffset(start + 1), length: end - start - 2), to: container)
             position = end
@@ -27,15 +27,15 @@ extension InlineParser {
     }
 
     /// The index after an autolink that starts at `index` (`<`), and its kind: 0 for a URI, 1 for an email address.
-    private func autolink(at index: Int) -> (Int, Int)? {
+    static func autolink(_ text: ContiguousArray<UInt8>, at index: Int) -> (Int, Int)? {
         var i = index + 1
-        guard i < text.count, ASCIIClass.isLetter(text[i]) else { return emailAutolink(at: index) }
+        guard i < text.count, ASCIIClass.isLetter(text[i]) else { return emailAutolink(text, at: index) }
         let schemeStart = i
         while i < text.count,
             ASCIIClass.isLetter(text[i]) || ASCIIClass.isDigit(text[i]) || [0x2B, 0x2E, 0x2D].contains(text[i])
         { i += 1 }
         guard i - schemeStart >= 2, i - schemeStart <= 32, i < text.count, text[i] == UInt8(ascii: ":") else {
-            return emailAutolink(at: index)
+            return emailAutolink(text, at: index)
         }
         i += 1
         while i < text.count {
@@ -44,10 +44,10 @@ extension InlineParser {
             if byte <= 0x20 || byte == UInt8(ascii: "<") || byte == 0x7F { break }
             i += 1
         }
-        return emailAutolink(at: index)
+        return emailAutolink(text, at: index)
     }
 
-    private func emailAutolink(at index: Int) -> (Int, Int)? {
+    private static func emailAutolink(_ text: ContiguousArray<UInt8>, at index: Int) -> (Int, Int)? {
         var i = index + 1
         let local = i
         let allowed = Array("!#$%&'*+/=?^_`{|}~-.".utf8)

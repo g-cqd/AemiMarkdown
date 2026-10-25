@@ -36,7 +36,11 @@ extension MarkdownParser {
     /// The alignments in a delimiter row, two bits a column (1 left, 2 center, 3 right), and the number of columns; nil if the line is not one.
     private mutating func delimiterRow(_ range: Range<Int>) -> (alignments: UInt128, columns: Int)? {
         splitCells(range)
-        guard !state.cells.isEmpty, state.cells.count <= limits.maxTableColumns else { return nil }
+        guard !state.cells.isEmpty else { return nil }
+        guard state.cells.count <= limits.maxTableColumns else {
+            diagnostics.insert(.tableColumnLimit)
+            return nil
+        }
         var alignments: UInt128 = 0
         for (column, cell) in state.cells.enumerated() {
             var i = cell.lowerBound

@@ -43,6 +43,8 @@ struct InlineParser {
     var source: ContiguousArray<UInt8> = []
     /// Scratch indices of the `|` whose backslash was left out of the text (a table cell: `\|` is a pipe even in a code span), ascending.
     var droppedBackslashes: ContiguousArray<Int> = []
+    /// The lines of a code span's content, reused from one span to the next.
+    var codePieces: [Range<Int>] = []
 
     /// Parses `lines` of `source` and appends the leaf block's inline run, ending in a `runEnd` slot, to `inlines`. Returns the index of the run's first slot.
     mutating func parse(

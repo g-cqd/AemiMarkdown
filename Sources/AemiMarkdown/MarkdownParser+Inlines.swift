@@ -8,6 +8,7 @@ extension MarkdownParser {
                 source: source, lines: lines, references: references, limits: limits, extensions: extensions,
                 isTableCell: Slot.kind(blocks[leaf.slot]) == .tableCell, into: &inlines)
             diagnostics.formUnion(inlineParser.diagnostics)
+            inlineSteps += inlineParser.work
             blocks[leaf.slot] = Slot.withLow(blocks[leaf.slot], run)
         }
         state.pending.removeAll(keepingCapacity: true)

@@ -26,12 +26,16 @@ let aemiDependency: Package.Dependency = .package(
     url: "https://github.com/Aemi-Studio/aemi.git", revision: "4f270e05473accace718446ee31c7b03d60a61ae")
 
 var packageDependencies: [Package.Dependency] = [aemiDependency]
-var devTestDependencies: [Target.Dependency] = []
+var devTargets: [Target] = []
 if isDev {
     // The spec's raw-HTML and autolink grammars are regular; AemiRegex runs them as the oracle for the hand-written byte
     // scanners (differential tests). It is never on the parse path: it takes an Array, and a search costs more than a scan.
     packageDependencies.append(.package(path: "../aemiregex"))
-    devTestDependencies.append(.product(name: "AemiRegex", package: "aemiregex"))
+    devTargets.append(
+        .testTarget(
+            name: "AemiMarkdownGrammarTests",
+            dependencies: ["AemiMarkdown", .product(name: "AemiRegex", package: "aemiregex")],
+            swiftSettings: strictSettings))
 }
 
 let package = Package(
@@ -53,8 +57,8 @@ let package = Package(
                 "AemiMarkdown",
                 .product(name: "AemiKernel", package: "aemi"),
                 .product(name: "AemiTestKit", package: "aemi")
-            ] + devTestDependencies,
+            ],
             resources: [.copy("Fixtures")],
             swiftSettings: strictSettings)
-    ]
+    ] + devTargets
 )

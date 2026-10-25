@@ -14,6 +14,8 @@ public struct MarkdownParser: Sendable {
     /// Where scanning for a line ending resumes: the first byte not yet looked at, or a carriage return that waits for its line feed.
     var scanPosition = 0
     var isFinished = false
+    /// Steps the inline phase has taken so far, over every leaf block: what the work limit counts, kept so tests can show that the cost grows with the input.
+    var inlineSteps = 0
 
     public init(extensions: MarkdownExtensions = .all, limits: MarkdownLimits = .default) {
         self.extensions = extensions
