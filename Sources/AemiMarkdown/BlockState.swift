@@ -2,7 +2,8 @@
 struct BlockState: Sendable {
     /// The kinds of block that can be open. A leaf that takes one line (`heading`, `thematicBreak`) stays open until the next line, as in cmark.
     enum Kind: UInt8, Sendable {
-        case document, blockQuote, list, item, paragraph, heading, thematicBreak, indentedCode, fencedCode, htmlBlock,
+        case document, blockQuote, list, item, footnote, paragraph, heading, thematicBreak, indentedCode, fencedCode,
+            htmlBlock,
             table
     }
 
@@ -34,6 +35,10 @@ struct BlockState: Sendable {
         // A table: its column count, and two bits of alignment per column.
         var columns = 0
         var alignments: UInt128 = 0
+        /// A paragraph that is the first block of a list item, so it may start with a task list marker.
+        var taskCandidate = false
+        /// A paragraph that is the first block of a block quote, so its first line may be an alert marker.
+        var alertCandidate = false
         // A paragraph or heading: where its lines start in `BlockState.lineRanges`.
         var firstLine = 0
         var lineCount = 0
@@ -47,6 +52,7 @@ struct BlockState: Sendable {
         var slot: Int
         var firstLine: Int
         var lineCount: Int
+        var taskCandidate = false
     }
 
     /// The state of a new document: only the document is open. The arrays keep the room they grew.

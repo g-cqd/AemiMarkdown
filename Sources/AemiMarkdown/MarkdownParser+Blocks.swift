@@ -28,7 +28,7 @@ extension MarkdownParser {
                     } else {
                         matched = false
                     }
-                case .item:
+                case .item, .footnote:
                     if state.indent >= block.markerOffset + block.padding {
                         advance(block.markerOffset + block.padding, columns: true, end)
                     } else if state.blank, block.hasChild {

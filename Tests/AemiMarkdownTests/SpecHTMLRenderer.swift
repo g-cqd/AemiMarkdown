@@ -3,27 +3,38 @@
 /// Renders a document as the reference HTML of the spec (cmark's `html.c`), from the event walk. It lives in the tests: the library has no opinion about
 /// output, so a failing example is a fault in the parser or in this renderer, and the ratchet file records which.
 struct SpecHTMLRenderer {
-    private var out: [UInt8] = []
+    var out: [UInt8] = []
     private var stack: [MarkdownNode] = []
-    private let document: MarkdownDocument
+    let document: MarkdownDocument
+    /// GFM's tag filter, which is part of GitHub's HTML output and not of CommonMark's.
+    let tagFilter: Bool
     private var codeTagOpen = false
     private var link: (destination: [UInt8], title: [UInt8]?)?
     /// Open images, innermost last: each collects the plain text of its description.
     private var images: [(destination: [UInt8], title: [UInt8]?, alt: [UInt8])] = []
     private var imageContainers: [NodeKind] = []
     private var tableBodyOpen = false
+    var footnotes = FootnoteBook()
 
-    init(_ document: MarkdownDocument) { self.document = document }
+    init(_ document: MarkdownDocument, tagFilter: Bool) {
+        self.document = document
+        self.tagFilter = tagFilter
+    }
 
-    static func html(of document: MarkdownDocument) -> String {
-        var renderer = SpecHTMLRenderer(document)
+    static func html(of document: MarkdownDocument, tagFilter: Bool = false) -> String {
+        var renderer = SpecHTMLRenderer(document, tagFilter: tagFilter)
         for event in document.events { renderer.handle(event) }
+        renderer.writeFootnotes()
         return String(decoding: renderer.out, as: UTF8.self)
     }
 
-    private mutating func write(_ text: String) { out.append(contentsOf: Array(text.utf8)) }
+    private mutating func raw(_ bytes: ArraySlice<UInt8>) {
+        if tagFilter { HTMLEscaping.rawHTML(bytes, into: &out) } else { out.append(contentsOf: bytes) }
+    }
 
-    private mutating func carriageReturn() {
+    mutating func write(_ text: String) { out.append(contentsOf: Array(text.utf8)) }
+
+    mutating func carriageReturn() {
         if let last = out.last, last != UInt8(ascii: "\n") { out.append(UInt8(ascii: "\n")) }
     }
 
@@ -34,7 +45,11 @@ struct SpecHTMLRenderer {
         return ListFlags(rawValue: stack[stack.count - 2].payload).contains(.tight)
     }
 
-    private mutating func handle(_ event: MarkdownEvent) {
+    mutating func handle(_ event: MarkdownEvent) {
+        if case .leaf(let node) = event, node.kind == .footnoteLabel {
+            footnotes.name(Self.key(Array(document.source[node.range])))
+        }
+        if footnotes.capture(event) { return }
         if !images.isEmpty { return handleInImage(event) }
         switch event {
             case .enter(let node): enter(node)
@@ -157,7 +172,7 @@ struct SpecHTMLRenderer {
                 if parent == .autolink { return writeAutolink(node) }
                 HTMLEscaping.text(document.source[node.range], into: &out)
             case .entity: HTMLEscaping.text(document.decode(node.range), into: &out)
-            case .htmlInline: out.append(contentsOf: document.source[node.range])
+            case .htmlInline: raw(document.source[node.range])
             case .softBreak: write(parent == .codeSpan ? " " : "\n")
             case .hardBreak: write("<br />\n")
             case .thematicBreak:
@@ -176,12 +191,18 @@ struct SpecHTMLRenderer {
                 write("\"")
             case .codeLine:
                 if parent == .htmlBlock {
-                    out.append(contentsOf: document.source[node.range])
+                    raw(document.source[node.range])
                 } else {
                     closeCodeTag()
                     HTMLEscaping.text(document.source[node.range], into: &out)
                 }
                 write("\n")
+            case .taskMarker:
+                write(
+                    node.payload == 1
+                        ? "<input type=\"checkbox\" checked=\"\" disabled=\"\" /> "
+                        : "<input type=\"checkbox\" disabled=\"\" /> ")
+            case .footnoteReference: writeFootnoteReference(node)
             case .virtualSpaces:
                 closeCodeTag()
                 write(String(repeating: " ", count: node.value))

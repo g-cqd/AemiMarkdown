@@ -19,7 +19,7 @@ public struct MarkdownParser: Sendable {
     /// Steps the inline phase has taken so far, over every leaf block: what the work limit counts, kept so tests can show that the cost grows with the input.
     var inlineSteps = 0
 
-    public init(extensions: MarkdownExtensions = .all, limits: MarkdownLimits = .default) {
+    public init(extensions: MarkdownExtensions = .github, limits: MarkdownLimits = .default) {
         self.extensions = extensions
         self.limits = limits
     }
@@ -27,7 +27,7 @@ public struct MarkdownParser: Sendable {
     /// Parses `bytes` as a whole document. Reference definitions anywhere apply to every link.
     /// - Complexity: O(n) in `bytes.count`, within the limits.
     public static func parse(
-        _ bytes: [UInt8], extensions: MarkdownExtensions = .all, limits: MarkdownLimits = .default
+        _ bytes: [UInt8], extensions: MarkdownExtensions = .github, limits: MarkdownLimits = .default
     ) -> MarkdownDocument {
         var parser = MarkdownParser(extensions: extensions, limits: limits)
         parser.append(bytes)

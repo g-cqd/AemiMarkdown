@@ -7,8 +7,12 @@ import Testing
 /// Every example of CommonMark 0.31.2 and of the GitHub extensions the project supports, parsed and rendered as the spec's HTML.
 @Suite("The parser agrees with the specification")
 struct SpecConformanceTests {
-    /// Chapters of `extensions.txt` that are in scope. The others (tag filter, footnotes, task lists, interop) are not built, and are not run.
-    static let supportedChapters: Set<String> = ["Tables", "Strikethroughs", "Autolinks"]
+    /// Chapters of `extensions.txt` that are in scope: all of them.
+    static let supportedChapters: Set<String> = [
+        "Tables", "Strikethroughs", "Autolinks", "HTML tag filter", "Footnotes",
+        "When a footnote is used multiple times, we insert multiple backrefs.",
+        "Footnote reference labels are href escaped", "Interop", "Task lists"
+    ]
 
     static let examples: [SpecExample] = {
         let core = (try? SpecFile.load("commonmark")) ?? []
@@ -19,6 +23,7 @@ struct SpecConformanceTests {
     @Test func `the fixture files are all there`() throws {
         #expect(try SpecFile.load("commonmark").count == 652)
         #expect(try SpecFile.load("extensions").count == 30)
+        #expect(Self.examples.count == 652 + 30)
     }
 
     @Test(arguments: examples)
@@ -26,8 +31,8 @@ struct SpecConformanceTests {
         let known = try SpecRatchet.knownFailing()
         // The CommonMark file is CommonMark alone; the extensions file is read with the extensions on.
         let document = MarkdownParser.parse(
-            Array(example.markdown.utf8), extensions: example.file == "commonmark" ? [] : .all)
-        let html = SpecHTMLRenderer.html(of: document)
+            Array(example.markdown.utf8), extensions: example.file == "commonmark" ? [] : .gfm)
+        let html = SpecHTMLRenderer.html(of: document, tagFilter: example.file != "commonmark")
         // `<IGNORE>` marks a case that only has to not crash.
         let passes = html == example.html || example.html == "<IGNORE>\n"
         if let proposal = ProcessInfo.processInfo.environment["AEMIMARKDOWN_RATCHET_PROPOSAL"], !passes {

@@ -6,16 +6,34 @@ struct ReferenceTable: Sendable {
     }
 
     private var entries: [[UInt8]: Reference] = [:]
+    private var footnotes: Set<[UInt8]> = []
 
-    var isEmpty: Bool { entries.isEmpty }
+    var isEmpty: Bool { entries.isEmpty && footnotes.isEmpty }
 
-    mutating func removeAll() { entries.removeAll(keepingCapacity: true) }
+    mutating func removeAll() {
+        entries.removeAll(keepingCapacity: true)
+        footnotes.removeAll(keepingCapacity: true)
+    }
 
     /// Records a definition. The first definition of a label wins. The key is one allocation.
     mutating func insert(label: some Collection<UInt8>, _ reference: Reference) {
         var key: [UInt8] = []
         Self.normalize(label, into: &key)
         if !key.isEmpty, entries[key] == nil { entries[key] = reference }
+    }
+
+    /// Records that a footnote has this label (the first one is the one that counts).
+    mutating func insertFootnote(label: some Collection<UInt8>) {
+        var key: [UInt8] = []
+        Self.normalize(label, into: &key)
+        if !key.isEmpty { footnotes.insert(key) }
+    }
+
+    /// Whether a footnote has this label, using `key` as scratch.
+    func hasFootnote(label: some Collection<UInt8>, scratch key: inout [UInt8]) -> Bool {
+        guard !footnotes.isEmpty else { return false }
+        Self.normalize(label, into: &key)
+        return footnotes.contains(key)
     }
 
     /// The definition of the label, using `key` as scratch for its normalized form, so a lookup allocates nothing for an ASCII label.

@@ -2,7 +2,7 @@ extension MarkdownParser {
     /// Whether a block of `child` can be a child of an open `parent`.
     private static func canContain(_ parent: BlockState.Kind, _ child: BlockState.Kind) -> Bool {
         switch parent {
-            case .document, .blockQuote, .item: true
+            case .document, .blockQuote, .item, .footnote: true
             case .list: child == .item
             default: false
         }
@@ -45,6 +45,16 @@ extension MarkdownParser {
         return false
     }
 
+    /// What trying to start a block on the rest of the line came to.
+    private enum Start {
+        /// No block starts here.
+        case none
+        /// A container opened: the rest of the line may start more blocks inside it.
+        case container
+        /// A block opened (or the line was used up) that takes no further blocks on this line.
+        case leaf
+    }
+
     /// cmark's `open_new_blocks`: while the rest of the line starts a block, open it. `container` is the index of the last open block that matched, and
     /// becomes the innermost block opened.
     mutating func startNewBlocks(_ container: inout Int, _ end: Int) {
@@ -54,77 +64,103 @@ extension MarkdownParser {
             let kind = state.open[container].kind
             if kind == .fencedCode || kind == .indentedCode || kind == .htmlBlock { return }
             findFirstNonspace(end)
-            let indented = state.indent >= 4
-            let first = peek(state.firstNonspace, end)
-            let lineEmpty = state.firstNonspace >= end
-            let source = self.source
-            if !indented, first == UInt8(ascii: ">"), !lineEmpty {
-                if atContainerLimit {
-                    diagnostics.insert(.containerDepthLimit)
+            let start =
+                state.indent >= 4
+                ? startIndentedCode(&container, maybeLazy: maybeLazy, end)
+                : startUnindented(&container, kind: kind, maybeLazy: maybeLazy, end)
+            switch start {
+                case .none:
+                    _ = tryTable(container: &container, end)
                     return
-                }
-                advance(state.firstNonspace + 1 - state.offset, columns: false, end)
-                if BlockScanner.isSpaceOrTab(peek(state.offset, end)) { advance(1, columns: true, end) }
-                container = addChild(
-                    .blockQuote, to: container, slot: Slot.make(.container, .blockQuote, payload: 0, low: 0))
-            } else if !indented, !lineEmpty, let level = BlockScanner.atxHeadingLevel(source, state.firstNonspace, end)
-            {
-                advance(state.firstNonspace + level - state.offset, columns: false, end)
-                container = addChild(
-                    .heading, to: container, slot: Slot.make(.leafBlock, .heading, payload: level, low: 0))
-            } else if !indented, !lineEmpty, let fence = BlockScanner.codeFenceOpening(source, state.firstNonspace, end)
-            {
-                let fenceOffset = state.firstNonspace - state.offset
-                container = addChild(
-                    .fencedCode, to: container, slot: Slot.make(.container, .codeBlock, payload: 1, low: 0))
-                state.open[container].fenceCharacter = fence.character
-                state.open[container].fenceLength = fence.length
-                state.open[container].fenceOffset = fenceOffset
-                recordInfoString(from: state.firstNonspace + fence.length, end)
-                advance(end - state.offset, columns: false, end)
-                return
-            } else if !indented, first == UInt8(ascii: "<"),
-                let condition = HTMLBlockScanner.startCondition(
-                    source, state.firstNonspace, end, interruptsParagraph: maybeLazy)
-            {
-                container = addChild(
-                    .htmlBlock, to: container, slot: Slot.make(.container, .htmlBlock, payload: 0, low: 0))
-                state.open[container].htmlCondition = condition
-                return
-            } else if !indented, kind == .paragraph, !lineEmpty,
-                let level = BlockScanner.setextLevel(source, state.firstNonspace, end)
-            {
-                // When definitions use every line of the paragraph, the underline is text: nothing starts here.
-                if makeSetextHeading(at: container, level: level) { advance(end - state.offset, columns: false, end) }
-                return
-            } else if !indented, !lineEmpty, BlockScanner.isThematicBreak(source, state.firstNonspace, end) {
-                container = addChild(
-                    .thematicBreak, to: container, slot: Slot.make(.marker, .thematicBreak, payload: 0, low: 0))
-                advance(end - state.offset, columns: false, end)
-            } else if !indented,
-                let marker = BlockScanner.listMarker(
-                    source, state.firstNonspace, end, interruptsParagraph: kind == .paragraph)
-            {
-                if atContainerLimit {
-                    diagnostics.insert(.containerDepthLimit)
-                    return
-                }
-                openListItem(marker, container: &container, end)
-            } else if indented, !maybeLazy, !state.blank {
-                advance(4, columns: true, end)
-                container = addChild(
-                    .indentedCode, to: container, slot: Slot.make(.container, .codeBlock, payload: 0, low: 0))
-                return
-            } else {
-                _ = tryTable(container: &container, end)
-                return
-            }
-            maybeLazy = false
-            switch state.open[container].kind {
-                case .heading, .paragraph, .thematicBreak, .fencedCode, .indentedCode, .htmlBlock: return
-                default: continue
+                case .leaf: return
+                case .container: maybeLazy = false
             }
         }
+    }
+
+    private mutating func startIndentedCode(_ container: inout Int, maybeLazy: Bool, _ end: Int) -> Start {
+        guard !maybeLazy, !state.blank else { return .none }
+        advance(4, columns: true, end)
+        container = addChild(
+            .indentedCode, to: container, slot: Slot.make(.container, .codeBlock, payload: 0, low: 0))
+        return .leaf
+    }
+
+    /// The starts that need the line to be indented less than four columns, tried in cmark's order.
+    private mutating func startUnindented(_ container: inout Int, kind: BlockState.Kind, maybeLazy: Bool, _ end: Int)
+        -> Start
+    {
+        let source = self.source
+        let first = peek(state.firstNonspace, end)
+        guard state.firstNonspace < end else { return .none }
+        if first == UInt8(ascii: ">") { return startQuote(&container, end) }
+        if let level = BlockScanner.atxHeadingLevel(source, state.firstNonspace, end) {
+            advance(state.firstNonspace + level - state.offset, columns: false, end)
+            container = addChild(.heading, to: container, slot: Slot.make(.leafBlock, .heading, payload: level, low: 0))
+            return .leaf
+        }
+        if let fence = BlockScanner.codeFenceOpening(source, state.firstNonspace, end) {
+            startFence(&container, fence, end)
+            return .leaf
+        }
+        if first == UInt8(ascii: "<"),
+            let condition = HTMLBlockScanner.startCondition(
+                source, state.firstNonspace, end, interruptsParagraph: maybeLazy)
+        {
+            container = addChild(.htmlBlock, to: container, slot: Slot.make(.container, .htmlBlock, payload: 0, low: 0))
+            state.open[container].htmlCondition = condition
+            return .leaf
+        }
+        if kind == .paragraph, let level = BlockScanner.setextLevel(source, state.firstNonspace, end) {
+            // When definitions use every line of the paragraph, the underline is text: nothing starts here.
+            if makeSetextHeading(at: container, level: level) { advance(end - state.offset, columns: false, end) }
+            return .leaf
+        }
+        if first == UInt8(ascii: "["), extensions.contains(.footnotes),
+            let label = Self.footnoteLabel(source, state.firstNonspace, end)
+        {
+            guard !atContainerLimit else { return containerLimitReached() }
+            container = openFootnote(label: label, container: container, end)
+            return .container
+        }
+        if BlockScanner.isThematicBreak(source, state.firstNonspace, end) {
+            container = addChild(
+                .thematicBreak, to: container, slot: Slot.make(.marker, .thematicBreak, payload: 0, low: 0))
+            advance(end - state.offset, columns: false, end)
+            return .leaf
+        }
+        if let marker = BlockScanner.listMarker(
+            source, state.firstNonspace, end, interruptsParagraph: kind == .paragraph)
+        {
+            guard !atContainerLimit else { return containerLimitReached() }
+            openListItem(marker, container: &container, end)
+            return .container
+        }
+        return .none
+    }
+
+    private mutating func startQuote(_ container: inout Int, _ end: Int) -> Start {
+        guard !atContainerLimit else { return containerLimitReached() }
+        advance(state.firstNonspace + 1 - state.offset, columns: false, end)
+        if BlockScanner.isSpaceOrTab(peek(state.offset, end)) { advance(1, columns: true, end) }
+        container = addChild(.blockQuote, to: container, slot: Slot.make(.container, .blockQuote, payload: 0, low: 0))
+        return .container
+    }
+
+    private mutating func startFence(_ container: inout Int, _ fence: (character: UInt8, length: Int), _ end: Int) {
+        let fenceOffset = state.firstNonspace - state.offset
+        container = addChild(.fencedCode, to: container, slot: Slot.make(.container, .codeBlock, payload: 1, low: 0))
+        state.open[container].fenceCharacter = fence.character
+        state.open[container].fenceLength = fence.length
+        state.open[container].fenceOffset = fenceOffset
+        recordInfoString(from: state.firstNonspace + fence.length, end)
+        advance(end - state.offset, columns: false, end)
+    }
+
+    /// Past the nesting limit a container's marker is text, and nothing more starts on the line.
+    private mutating func containerLimitReached() -> Start {
+        diagnostics.insert(.containerDepthLimit)
+        return .leaf
     }
 
     /// The info string of a fenced code block: the rest of the opening line, trimmed.

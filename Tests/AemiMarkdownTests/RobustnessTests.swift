@@ -20,7 +20,7 @@ struct RobustnessTests {
     /// Markdown's own bytes are most of the alphabet, so that random input forms constructs, with a few arbitrary bytes among them.
     static func randomInput(seed: UInt64) -> [UInt8] {
         var generator = Generator(state: seed)
-        let alphabet = Array("\n\n  \t>>-*_`#[]()!<>&;:|\\~=1.abcXYZ \"'".utf8)
+        let alphabet = Array("\n\n  \t>>-*_`#[]()!<>&;:|\\~=1.abcXYZ \"'^$x".utf8)
         let length = Int.random(in: 0 ... 400, using: &generator)
         return (0 ..< length)
             .map { _ in
@@ -123,7 +123,7 @@ struct RobustnessTests {
     /// (cmark's pathological list). A ratio is deterministic where a clock is not.
     @Test(arguments: [
         "*a ", "_a ", "[", "[a](", "`a", "``a ", "*a_ ", "[a][", "![", "<a ", "&a", "**a *b ", "~~a ~b ", "[a]: b\n",
-        "> ", "- "
+        "> ", "- ", "$a ", "$$a ", "[^a]: b\n", "[^a ", "- [ ] ", "> [!NOTE]\n", "$a$ $"
     ])
     func `the inline work grows in step with the input`(unit: String) {
         let small = steps(unit, 4_000)

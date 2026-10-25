@@ -9,7 +9,7 @@ extension InlineParser {
             let node = tree.nodes[Int(cursor)]
             var descended = false
             switch node.kind {
-                case .emphasis, .strong, .strikethrough, .codeSpan, .link, .image, .autolink:
+                case .emphasis, .strong, .strikethrough, .codeSpan, .math, .link, .image, .autolink:
                     serializeStack.append((inlines.count, cursor))
                     inlines.append(Slot.make(.container, node.kind, payload: node.payload, low: 0))
                     descended = node.firstChild >= 0
@@ -21,7 +21,7 @@ extension InlineParser {
                     if node.length > 0 {
                         inlines.append(Slot.make(.range, .text, payload: node.length, low: node.start))
                     }
-                case .htmlInline, .entity, .linkDestination, .linkTitle:
+                case .htmlInline, .entity, .linkDestination, .linkTitle, .footnoteReference:
                     inlines.append(Slot.make(.range, node.kind, payload: node.length, low: node.start))
                 default:
                     inlines.append(Slot.make(.marker, node.kind, payload: node.payload, low: 0))

@@ -35,13 +35,16 @@ struct InlineParser {
     var openersBottom = [Int32](repeating: -1, count: 18)
     var references = ReferenceTable()
     var limits = MarkdownLimits.default
-    var extensions = MarkdownExtensions.all
+    var extensions = MarkdownExtensions.github
     var work = 0
     var workLimit = 0
     var diagnostics: MarkdownDiagnostics = []
     /// Bit `n` is set when no closing run of `n` backticks follows the position scanned from (for `n` up to 64): two words, so a parse starts with two stores.
     var backticksExhaustedLow: UInt64 = 0
     var backticksExhaustedHigh: UInt64 = 0
+    /// No closing `$` follows the position scanned from, and no closing `$$` does: a later opener cannot find one either.
+    var singleDollarExhausted = false
+    var doubleDollarExhausted = false
     var source: ContiguousArray<UInt8> = []
     /// Scratch indices of the `|` whose backslash was left out of the text (a table cell: `\|` is a pipe even in a code span), ascending.
     var droppedBackslashes: ContiguousArray<Int> = []
@@ -58,6 +61,7 @@ struct InlineParser {
     mutating func parse(
         source: ContiguousArray<UInt8>, lines: ArraySlice<Range<Int>>, references: ReferenceTable,
         limits: MarkdownLimits, extensions: MarkdownExtensions, isTableCell: Bool = false,
+        isTaskCandidate: Bool = false,
         into inlines: inout SlotTape
     ) -> Int {
         self.source = source
@@ -77,6 +81,8 @@ struct InlineParser {
         work = 0
         backticksExhaustedLow = 0
         backticksExhaustedHigh = 0
+        singleDollarExhausted = false
+        doubleDollarExhausted = false
         var remaining = lines.count
         for line in lines {
             remaining -= 1
@@ -101,6 +107,7 @@ struct InlineParser {
             diagnostics.insert(.leafSizeLimit)
             appendPlainLines()
         } else {
+            if isTaskCandidate { readTaskMarker() }
             while position < text.count { parseInline() }
             processEmphasis(bottom: -1)
         }
@@ -218,6 +225,7 @@ struct InlineParser {
             case 0x21:
                 if position + 1 < text.count, text[position + 1] == 0x5B { openBracket(isImage: true) } else { plain() }
             case 0x5D: closeBracket()
+            case 0x24: dollar()
             case 0x3C: angle()
             case 0x26: entity()
             default: plain()
@@ -229,6 +237,17 @@ struct InlineParser {
         let start = position
         position = ByteScan.firstIndex(inSet: ByteScan.inlineSpecials, in: text, from: position + 1)
         appendText(start, position)
+    }
+
+    /// A task list marker at the start of the text: `[ ]`, `[x]` or `[X]`, then a space, a tab, a line ending or the end. It becomes a marker, and what follows it is the item's text.
+    private mutating func readTaskMarker() {
+        guard text.count >= 3, text[0] == UInt8(ascii: "["), text[2] == UInt8(ascii: "]") else { return }
+        let state = text[1]
+        guard state == 0x20 || state == UInt8(ascii: "x") || state == UInt8(ascii: "X") else { return }
+        guard text.count == 3 || text[3] == 0x20 || text[3] == 0x09 || text[3] == 0x0A else { return }
+        tree.append(InlineNode(kind: .taskMarker, payload: state == 0x20 ? 0 : 1))
+        position = 3
+        while position < text.count, text[position] == 0x20 || text[position] == 0x09 { position += 1 }
     }
 
     private mutating func newline() {

@@ -6,7 +6,8 @@ extension MarkdownParser {
             inlineParser.diagnostics = []
             let run = inlineParser.parse(
                 source: source, lines: lines, references: references, limits: limits, extensions: extensions,
-                isTableCell: Slot.kind(blocks[leaf.slot]) == .tableCell, into: &inlines)
+                isTableCell: Slot.kind(blocks[leaf.slot]) == .tableCell, isTaskCandidate: leaf.taskCandidate,
+                into: &inlines)
             diagnostics.formUnion(inlineParser.diagnostics)
             inlineSteps += inlineParser.work
             blocks[leaf.slot] = Slot.withLow(blocks[leaf.slot], run)

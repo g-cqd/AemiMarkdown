@@ -7,12 +7,16 @@ public enum NodeKind: UInt8, Sendable, CaseIterable {
     case paragraph = 0
     /// A leaf block with inlines. Payload: the level, 1 to 6.
     case heading
-    /// A container. Payload: nothing.
+    /// A container. Payload: 0, or the alert it opens with: 1 note, 2 tip, 3 important, 4 warning, 5 caution.
     case blockQuote
     /// A container. Payload: `ListFlags`. An ordered list's first child is a ``listStart`` marker.
     case list
     /// A container whose children are blocks.
     case listItem
+    /// A container: a footnote's content. Its first child is its ``footnoteLabel``.
+    case footnoteDefinition
+    /// The label of a footnote definition, as a range of the source (without `[^` and `]`).
+    case footnoteLabel
     /// A container whose children are ``codeLine`` leaves, after an optional ``infoString``. Payload: 1 if fenced.
     case codeBlock
     /// A container whose children are ``codeLine`` leaves. The lines are raw HTML, shown as text.
@@ -46,18 +50,24 @@ public enum NodeKind: UInt8, Sendable, CaseIterable {
     case image
     /// An autolink. Payload: 0 for `<scheme:…>`, 1 for `<a@b>`, 2 for a bare `www.` or URL. Child: one ``text``.
     case autolink
+    /// Math, as `$…$` (payload 0) or `$$…$$` (payload 1). Children: ``text`` and ``softBreak`` leaves, as in a code span; the text is TeX, shown as it was written.
+    case math
     /// A code span. Children: ``text`` and ``softBreak`` leaves; the renderer shows a break as a space.
     case codeSpan
 
     // MARK: Inline leaves
     /// A run of text, as a range of the source.
     case text
+    /// A reference to a footnote, as the range of its label in the source. Only a label that a definition has becomes one.
+    case footnoteReference
     /// Raw inline HTML, as a range of the source.
     case htmlInline
     /// A character reference such as `&amp;`, as a range of the source; ``MarkdownDocument/decode(_:)`` turns it into text.
     case entity
     case linkDestination
     case linkTitle
+    /// A marker leaf that opens the inline run of a task list item's first paragraph. Payload: 1 if checked.
+    case taskMarker
     /// A marker leaf: a line ending inside a paragraph.
     case softBreak
     /// A marker leaf.

@@ -30,6 +30,31 @@ enum HTMLEscaping {
             }
         }
     }
+
+    /// GFM's tag filter: raw HTML as it is, except that the `<` of a few tags (the ones that can swallow the rest of a page or run a script) becomes `&lt;`.
+    static func rawHTML(_ bytes: some Sequence<UInt8>, into out: inout [UInt8]) {
+        let filtered = ["title", "textarea", "style", "xmp", "iframe", "noembed", "noframes", "script", "plaintext"]
+            .map { Array($0.utf8) }
+        let all = Array(bytes)
+        var i = 0
+        while i < all.count {
+            if all[i] == UInt8(ascii: "<") {
+                var j = i + 1
+                if j < all.count, all[j] == UInt8(ascii: "/") { j += 1 }
+                let nameStart = j
+                while j < all.count, all[j].isASCIIAlphanumeric { j += 1 }
+                let name = all[nameStart ..< j].map { $0 >= 0x41 && $0 <= 0x5A ? $0 + 0x20 : $0 }
+                let ends = j == all.count || [0x20, 0x09, 0x0A, UInt8(ascii: ">"), UInt8(ascii: "/")].contains(all[j])
+                if ends, filtered.contains(where: { $0 == name }) {
+                    out.append(contentsOf: Array("&lt;".utf8))
+                    i += 1
+                    continue
+                }
+            }
+            out.append(all[i])
+            i += 1
+        }
+    }
 }
 
 extension UInt8 {

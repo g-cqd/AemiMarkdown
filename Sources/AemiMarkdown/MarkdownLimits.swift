@@ -66,7 +66,7 @@ public struct MarkdownDiagnostics: OptionSet, Sendable, Equatable {
     public static let linkLengthLimit = MarkdownDiagnostics(rawValue: 1 << 9)
 }
 
-/// The syntax beyond CommonMark that the parser reads. All are on by default; with none, the parser is CommonMark 0.31.2 and nothing else.
+/// The syntax beyond CommonMark that the parser reads. Every one is on by default (``github``); with none, the parser is CommonMark 0.31.2 and nothing else.
 public struct MarkdownExtensions: OptionSet, Sendable {
     public let rawValue: UInt8
     public init(rawValue: UInt8) { self.rawValue = rawValue }
@@ -78,6 +78,22 @@ public struct MarkdownExtensions: OptionSet, Sendable {
     /// Bare `www.example.com`, `https://example.com` and `me@example.com` become links.
     public static let autolinks = MarkdownExtensions(rawValue: 1 << 2)
 
-    public static let all: MarkdownExtensions = [.tables, .strikethrough, .autolinks]
+    /// `- [ ] item` and `- [x] item`: a checkbox before the text of the item.
+    public static let taskLists = MarkdownExtensions(rawValue: 1 << 3)
+
+    /// `[^label]` in the text, and `[^label]: …` blocks that hold what it refers to.
+    public static let footnotes = MarkdownExtensions(rawValue: 1 << 4)
+
+    /// `> [!NOTE]`, `> [!TIP]`, `> [!IMPORTANT]`, `> [!WARNING]` and `> [!CAUTION]` on the first line of a block quote, which GitHub draws as a callout. The block quote's
+    /// payload says which, and the marker line is not part of its text.
+    public static let alerts = MarkdownExtensions(rawValue: 1 << 5)
+    /// `$x^2$` and `$$ … $$`, as GitHub reads them: the opening `$` is followed by something other than a space, the closing one is preceded by something other than a space and
+    /// not followed by a digit. A shell line such as `"$A" "$B"` outside a code span can look like one, as it does on GitHub.
+    public static let math = MarkdownExtensions(rawValue: 1 << 6)
+
+    /// What cmark-gfm implements and the GitHub Flavored Markdown specification describes.
+    public static let gfm: MarkdownExtensions = [.tables, .strikethrough, .autolinks, .taskLists, .footnotes]
+    /// Everything GitHub renders that has a meaning in a terminal: GFM, alerts and math.
+    public static let github: MarkdownExtensions = [.gfm, .alerts, .math]
 }
 // @dl:enable near-clone

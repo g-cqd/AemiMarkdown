@@ -12,7 +12,7 @@ extension MarkdownParser {
             case .indentedCode:
                 trimTrailingBlankCodeLines()
                 blocks[block.slot] = Slot.withLow(blocks[block.slot], blocks.count)
-            case .fencedCode, .htmlBlock, .blockQuote, .item, .table:
+            case .fencedCode, .htmlBlock, .blockQuote, .item, .footnote, .table:
                 blocks[block.slot] = Slot.withLow(blocks[block.slot], blocks.count)
             case .list:
                 var slot = Slot.withLow(blocks[block.slot], blocks.count)

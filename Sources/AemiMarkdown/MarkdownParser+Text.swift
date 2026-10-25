@@ -43,8 +43,13 @@ extension MarkdownParser {
             case .heading, .paragraph:
                 addLeafLine(to: container, end)
             default:
+                // The first block of a list item may start with a task list marker.
+                let firstInItem = kind == .item && !state.open[container].hasChild
+                let firstInQuote = kind == .blockQuote && !state.open[container].hasChild
                 let paragraph = addChild(
                     .paragraph, to: container, slot: Slot.make(.leafBlock, .paragraph, payload: 0, low: 0))
+                state.open[paragraph].taskCandidate = firstInItem && extensions.contains(.taskLists)
+                state.open[paragraph].alertCandidate = firstInQuote && extensions.contains(.alerts)
                 addLeafLine(to: paragraph, end)
         }
     }

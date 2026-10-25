@@ -15,7 +15,7 @@ enum ByteScan {
 
     /// The bytes that start something in a leaf block: a line ending, a backslash, a backtick, `*`, `_`, `~`, `[`, `]`, `!`, `<` and `&`. Six rows of nibbles, so the tables hold it exactly.
     static let inlineSpecials: AemiKernels.ByteSet = {
-        guard let set = AemiKernels.ByteSet(Array("\n\\`*_~[]!<&".utf8)) else {
+        guard let set = AemiKernels.ByteSet(Array("\n\\`*_~[]!<&$".utf8)) else {
             preconditionFailure("the inline specials do not fit in nibble tables")
         }
         return set

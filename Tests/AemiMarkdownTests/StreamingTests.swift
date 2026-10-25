@@ -9,7 +9,7 @@ struct StreamingTests {
     /// Examples without a link reference definition: a definition that comes after a link reaches it only when the document is parsed whole.
     static let examples: [SpecExample] = SpecConformanceTests.examples.filter { !$0.markdown.contains("]:") }
 
-    private func extensions(_ example: SpecExample) -> MarkdownExtensions { example.file == "commonmark" ? [] : .all }
+    private func extensions(_ example: SpecExample) -> MarkdownExtensions { example.file == "commonmark" ? [] : .gfm }
 
     private func html(_ document: MarkdownDocument) -> String { SpecHTMLRenderer.html(of: document) }
 

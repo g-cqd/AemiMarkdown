@@ -20,6 +20,7 @@ extension InlineParser {
             appendText(close, position)
             return
         }
+        if extensions.contains(.footnotes), footnoteReference(opener: opener, close: close) { return }
         let afterBracket = position
         var destination: Range<Int>?
         var title: Range<Int>?

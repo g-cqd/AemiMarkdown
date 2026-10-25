@@ -9,13 +9,29 @@ extension MarkdownParser {
 
     /// The same for a paragraph that is closing. When the definitions use every line, the paragraph disappears (its slot is the last on the tape).
     mutating func resolveReferenceDefinitionsAtClose(_ block: BlockState.Open) {
+        if block.alertCandidate, block.lineCount > 0,
+            let alert = Self.alertKind(source, state.lineRanges[block.firstLine])
+        {
+            // The marker line says which alert the block quote is, and is not part of its text.
+            let quote = state.open.count - 1
+            blocks[state.open[quote].slot] = Slot.withPayload(blocks[state.open[quote].slot], alert)
+            if block.lineCount == 1, block.slot == blocks.count - 1 {
+                blocks.removeLast()
+            } else {
+                state.pending.append(
+                    .init(slot: block.slot, firstLine: block.firstLine + 1, lineCount: block.lineCount - 1))
+            }
+            return
+        }
         let consumed = consumeDefinitions(firstLine: block.firstLine, lineCount: block.lineCount)
         if consumed >= block.lineCount, block.slot == blocks.count - 1 {
             blocks.removeLast()
             return
         }
         state.pending.append(
-            .init(slot: block.slot, firstLine: block.firstLine + consumed, lineCount: block.lineCount - consumed))
+            .init(
+                slot: block.slot, firstLine: block.firstLine + consumed, lineCount: block.lineCount - consumed,
+                taskCandidate: block.taskCandidate && consumed == 0))
     }
 
     /// Parses definitions from the start of the lines and returns how many lines they used.
@@ -117,5 +133,22 @@ extension MarkdownParser {
         }
         position = index
         return true
+    }
+
+    /// The alert a line announces: `[!NOTE]`, `[!TIP]`, `[!IMPORTANT]`, `[!WARNING]` or `[!CAUTION]`, in any case, and nothing after it but spaces. 1 to 5, or nil.
+    static func alertKind(_ source: ContiguousArray<UInt8>, _ line: Range<Int>) -> Int? {
+        var end = line.upperBound
+        while end > line.lowerBound, BlockScanner.isSpaceOrTab(source[end - 1]) { end -= 1 }
+        guard end - line.lowerBound >= 5, source[line.lowerBound] == UInt8(ascii: "["),
+            source[line.lowerBound + 1] == UInt8(ascii: "!"),
+            source[end - 1] == UInt8(ascii: "]")
+        else { return nil }
+        let name = source[(line.lowerBound + 2) ..< (end - 1)]
+        if ASCIIClass.equalsIgnoringCase(name, "note") { return 1 }
+        if ASCIIClass.equalsIgnoringCase(name, "tip") { return 2 }
+        if ASCIIClass.equalsIgnoringCase(name, "important") { return 3 }
+        if ASCIIClass.equalsIgnoringCase(name, "warning") { return 4 }
+        if ASCIIClass.equalsIgnoringCase(name, "caution") { return 5 }
+        return nil
     }
 }

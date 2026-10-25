@@ -19,7 +19,7 @@ struct DifferentialTests {
     func `every input renders as the reference renders it`() throws {
         let path = try #require(Self.path)
         let environment = ProcessInfo.processInfo.environment
-        let extensions: MarkdownExtensions = environment["AEMIMARKDOWN_DIFFERENTIAL_MODE"] == "ext" ? .all : []
+        let extensions: MarkdownExtensions = environment["AEMIMARKDOWN_DIFFERENTIAL_MODE"] == "ext" ? .gfm : []
         let decoder = JSONDecoder()
         var total = 0
         var mismatches: [String] = []

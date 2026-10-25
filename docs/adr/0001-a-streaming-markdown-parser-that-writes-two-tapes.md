@@ -36,7 +36,7 @@ ask draws an assistant's answer as Markdown while it streams in (ask roadmap 006
    (found with Aemi's SIMD scans), so a renderer can neutralise them. A construct that exceeds a limit in `MarkdownLimits` (container nesting, inline nesting,
    line length, delimiter work, table columns, document size) is kept as plain text, and `diagnostics` names the limit. No recursion: block nesting is an explicit stack and inline nesting an
    explicit stack; every loop has a bound.
-6. **Conformance.** CommonMark 0.31.2 (652 examples) and the GitHub extensions the corpus uses (tables, strikethrough, autolinks). The spec files are the
+6. **Conformance.** CommonMark 0.31.2 (652 examples) and every extension of the GFM specification (tables, strikethrough, autolinks, tag filter, task lists, footnotes), all 30 examples. Alerts and math are GitHub's, not in the spec, so they are tested against GitHub's documentation, not against a reference. The spec files are the
    tests, compared as HTML through a renderer that lives in the test target. A **ratchet** lists the examples that fail; it shrinks and never gains an entry,
    and an example that passes while listed fails the suite, so the list cannot go stale. Raw HTML passes through as text for a terminal: it is parsed, not interpreted.
 7. **Dependencies, by what each does.**
