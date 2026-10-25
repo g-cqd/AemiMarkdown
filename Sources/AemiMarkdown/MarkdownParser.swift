@@ -18,6 +18,9 @@ public struct MarkdownParser: Sendable {
     var isFinished = false
     /// Steps the inline phase has taken so far, over every leaf block: what the work limit counts, kept so tests can show that the cost grows with the input.
     var inlineSteps = 0
+    /// When a single open paragraph runs without line breaks for many bytes, an incremental parser keeps its inline tree across appends and snapshots.
+    var openParagraphParser: InlineParser?
+    var openParagraphParsedUpTo = 0
 
     public init(extensions: MarkdownExtensions = .github, limits: MarkdownLimits = .default) {
         self.extensions = extensions
@@ -49,6 +52,8 @@ public struct MarkdownParser: Sendable {
         scannedUpTo = 0
         isFinished = false
         inlineSteps = 0
+        openParagraphParser = nil
+        openParagraphParsedUpTo = 0
     }
 
     func document() -> MarkdownDocument {

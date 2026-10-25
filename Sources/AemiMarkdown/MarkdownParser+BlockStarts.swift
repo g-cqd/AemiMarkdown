@@ -176,6 +176,8 @@ extension MarkdownParser {
     private mutating func makeSetextHeading(at index: Int, level: Int) -> Bool {
         resolveReferenceDefinitions(in: index)
         guard state.open[index].lineCount > 0 else { return false }
+        openParagraphParser = nil
+        openParagraphParsedUpTo = 0
         state.open[index].kind = .heading
         blocks[state.open[index].slot] = Slot.make(.leafBlock, .heading, payload: level, low: 0)
         return true

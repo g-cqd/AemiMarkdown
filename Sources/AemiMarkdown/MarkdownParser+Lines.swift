@@ -19,6 +19,7 @@ extension MarkdownParser {
         }
         source.append(contentsOf: bytes)
         processCompleteLines()
+        updateIncrementalParagraph()
     }
 
     /// Ends the document: the last line, if it has no ending, is parsed, every open block closes, and every inline run is parsed.
@@ -40,6 +41,7 @@ extension MarkdownParser {
         parsePendingInlines()
         inlines.commit()
         if state.open.allSatisfy({ $0.lineCount == 0 }) { state.lineRanges.removeAll(keepingCapacity: true) }
+        updateIncrementalParagraph()
         // The rest is parsed on a copy, which owns the inline parser's buffers while it works and hands them back.
         var provisional = self
         inlineParser = InlineParser()

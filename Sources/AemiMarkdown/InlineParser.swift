@@ -213,7 +213,7 @@ struct InlineParser {
         }
     }
 
-    private mutating func parseInline() {
+    mutating func parseInline() {
         let byte = text[position]
         switch byte {
             case 0x0A: newline()

@@ -4,6 +4,7 @@ extension InlineParser {
     /// No recursion: the containers that are open are a stack of slot indices, and the walk climbs when a node has no next sibling.
     mutating func serialize(into inlines: inout SlotTape) {
         serializeStack.removeAll(keepingCapacity: true)
+        inlines.reserveCapacity(tree.nodes.count)
         var cursor = tree.nodes[0].firstChild
         while cursor >= 0 {
             let node = tree.nodes[Int(cursor)]
