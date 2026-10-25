@@ -1,0 +1,93 @@
+internal import AemiKernels
+
+extension MarkdownParser {
+    /// Adds bytes to the document. Complete lines are parsed now; a partial last line waits for the rest of it.
+    /// - Complexity: O(bytes.count), within the limits.
+    public mutating func append(_ bytes: [UInt8]) {
+        guard !isFinished, !bytes.isEmpty else { return }
+        var bytes = bytes[...]
+        let room = limits.maxDocumentBytes - source.count
+        if bytes.count > room {
+            diagnostics.insert(.documentSizeLimit)
+            bytes = bytes.prefix(Swift.max(0, room))
+        }
+        let scanFrom = source.count
+        source.append(contentsOf: bytes)
+        processCompleteLines(from: scanFrom)
+    }
+
+    /// Ends the document: the last line, if it has no ending, is parsed, every open block closes, and every inline run is parsed.
+    public mutating func finish() {
+        guard !isFinished else { return }
+        isFinished = true
+        if lineStart < source.count { processLines(start: lineStart, end: source.count) }
+        lineStart = source.count
+        closeAbove(0)
+        parsePendingInlines()
+    }
+
+    /// Notes control bytes and invalid UTF-8 in one line, which is complete, so no character is cut by a chunk boundary.
+    private mutating func scan(_ range: Range<Int>) {
+        guard !range.isEmpty else { return }
+        let found = source.withUnsafeBufferPointer { buffer in unsafe Self.scanBytes(buffer, range) }
+        diagnostics.formUnion(found)
+    }
+
+    /// SAFETY: `range` lies inside `buffer` (a caller passes a line of the source), so every pointer made below stays inside it, and each kernel call
+    /// is given the count that remains after that pointer.
+    @unsafe
+    private static func scanBytes(_ buffer: UnsafeBufferPointer<UInt8>, _ range: Range<Int>) -> MarkdownDiagnostics {
+        guard let start = buffer.baseAddress else { return [] }
+        let base = unsafe start + range.lowerBound
+        var result: MarkdownDiagnostics = []
+        if unsafe AemiKernels.firstInvalidUTF8(base: base, count: range.count) != range.count {
+            result.insert(.invalidUTF8)
+        }
+        // Tab is a control byte Markdown uses, so the scan resumes after one. A line has no line ending in it.
+        var index = 0
+        while index < range.count {
+            let offset = unsafe AemiKernels.indexOfControlOrAny(
+                base: base + index, count: range.count - index, 0x7F, 0x7F, 0x7F, 0x7F, 0x7F)
+            let hit = index + offset
+            if hit >= range.count { break }
+            if unsafe base[hit] != 0x09 {
+                result.insert(.controlBytes)
+                break
+            }
+            index = hit + 1
+        }
+        return result
+    }
+
+    /// Parses each complete line from `from` on. A line ends at a line feed, a carriage return, or a carriage return and a line feed.
+    private mutating func processCompleteLines(from scanFrom: Int) {
+        var cursor = Swift.max(scanFrom, lineStart)
+        while cursor < source.count {
+            let byte = source[cursor]
+            if byte == 0x0A {
+                processLines(start: lineStart, end: cursor)
+                lineStart = cursor + 1
+            } else if byte == 0x0D {
+                // A carriage return at the very end may be the first half of a line ending whose second half has not arrived.
+                guard cursor + 1 < source.count else { return }
+                processLines(start: lineStart, end: cursor)
+                lineStart = source[cursor + 1] == 0x0A ? cursor + 2 : cursor + 1
+                cursor = lineStart
+                continue
+            }
+            cursor += 1
+        }
+    }
+
+    /// Parses one line, cut into pieces of at most `maxLineBytes` so that no line is longer than the limit says.
+    private mutating func processLines(start: Int, end: Int) {
+        scan(start ..< end)
+        var from = start
+        while end - from > limits.maxLineBytes {
+            diagnostics.insert(.lineLengthLimit)
+            processLine(from, from + limits.maxLineBytes)
+            from += limits.maxLineBytes
+        }
+        processLine(from, end)
+    }
+}

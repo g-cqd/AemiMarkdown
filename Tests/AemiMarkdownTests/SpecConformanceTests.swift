@@ -28,7 +28,12 @@ struct SpecConformanceTests {
         let html = SpecHTMLRenderer.html(of: document)
         let passes = html == example.html
         if let proposal = ProcessInfo.processInfo.environment["AEMIMARKDOWN_RATCHET_PROPOSAL"], !passes {
-            try Self.record(example, in: proposal)
+            try Self.record("\(example.id) # \(example.section)\n", in: proposal)
+        }
+        if let report = ProcessInfo.processInfo.environment["AEMIMARKDOWN_REPORT"], !passes {
+            try Self.record(
+                "## \(example.id) (\(example.section))\n\(example.markdown.debugDescription)\nexpected \(example.html.debugDescription)\nactual   \(html.debugDescription)\n\n",
+                in: report)
         }
         #expect(
             passes == !known.contains(example.id),
@@ -37,9 +42,8 @@ struct SpecConformanceTests {
     }
 
     private static let proposalLock = Mutex(())
-    /// Appends the failing example to the proposal file, for `Scripts/update-ratchet.sh`.
-    private static func record(_ example: SpecExample, in path: String) throws {
-        let line = "\(example.id) # \(example.section)\n"
+    /// Appends `line` to a file named by the environment: the ratchet proposal for `Scripts/update-ratchet.sh`, or a report of failures.
+    private static func record(_ line: String, in path: String) throws {
         try proposalLock.withLock { _ in
             if let handle = FileHandle(forWritingAtPath: path) {
                 defer { try? handle.close() }
