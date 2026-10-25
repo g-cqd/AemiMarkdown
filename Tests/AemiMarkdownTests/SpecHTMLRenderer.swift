@@ -10,6 +10,7 @@ struct SpecHTMLRenderer {
     private var link: (destination: [UInt8], title: [UInt8]?)?
     /// Open images, innermost last: each collects the plain text of its description.
     private var images: [(destination: [UInt8], title: [UInt8]?, alt: [UInt8])] = []
+    private var imageContainers: [NodeKind] = []
 
     init(_ document: MarkdownDocument) { self.document = document }
 
@@ -86,7 +87,9 @@ struct SpecHTMLRenderer {
             case .strikethrough: write("<del>")
             case .codeSpan: write("<code>")
             case .link: link = ([], nil)
-            case .image: images.append(([], nil, []))
+            case .image:
+                images.append(([], nil, []))
+                imageContainers = [.image]
             case .autolink, .table, .tableRow, .tableCell: break
             default: break
         }
@@ -157,7 +160,9 @@ struct SpecHTMLRenderer {
                     HTMLEscaping.text(document.source[node.range], into: &out)
                 }
                 write("\n")
-            case .virtualSpaces: write(String(repeating: " ", count: node.value))
+            case .virtualSpaces:
+                closeCodeTag()
+                write(String(repeating: " ", count: node.value))
             case .linkDestination: link?.destination = document.decode(node.range)
             case .linkTitle: link?.title = document.decode(node.range)
             default: break
@@ -176,11 +181,19 @@ struct SpecHTMLRenderer {
 
     private mutating func handleInImage(_ event: MarkdownEvent) {
         switch event {
-            case .enter(let node) where node.kind == .image: images.append(([], nil, []))
-            case .exit(let node) where node.kind == .image:
+            case .enter(let node):
+                imageContainers.append(node.kind)
+                if node.kind == .image { images.append(([], nil, [])) }
+            case .exit(let node):
+                imageContainers.removeLast()
+                guard node.kind == .image else { return }
                 let image = images.removeLast()
-                var tag: [UInt8] = []
-                tag.append(contentsOf: Array("<img src=\"".utf8))
+                if !images.isEmpty {
+                    // Inside another image only the description of this one is text.
+                    images[images.count - 1].alt.append(contentsOf: image.alt)
+                    return
+                }
+                var tag: [UInt8] = Array("<img src=\"".utf8)
                 HTMLEscaping.href(image.destination, into: &tag)
                 tag.append(contentsOf: Array("\" alt=\"".utf8))
                 tag.append(contentsOf: image.alt)
@@ -191,22 +204,18 @@ struct SpecHTMLRenderer {
                     tag.append(UInt8(ascii: "\""))
                 }
                 tag.append(contentsOf: Array(" />".utf8))
-                if images.isEmpty {
-                    out.append(contentsOf: tag)
-                } else {
-                    images[images.count - 1].alt.append(contentsOf: tag)
-                }
+                out.append(contentsOf: tag)
             case .leaf(let node):
                 let last = images.count - 1
+                let ownLeaf = imageContainers.last == .image
                 switch node.kind {
-                    case .linkDestination: images[last].destination = document.decode(node.range)
-                    case .linkTitle: images[last].title = document.decode(node.range)
+                    case .linkDestination where ownLeaf: images[last].destination = document.decode(node.range)
+                    case .linkTitle where ownLeaf: images[last].title = document.decode(node.range)
                     case .text, .htmlInline: HTMLEscaping.text(document.source[node.range], into: &images[last].alt)
                     case .entity: HTMLEscaping.text(document.decode(node.range), into: &images[last].alt)
                     case .softBreak, .hardBreak: images[last].alt.append(UInt8(ascii: " "))
                     default: break
                 }
-            default: break
         }
     }
 }

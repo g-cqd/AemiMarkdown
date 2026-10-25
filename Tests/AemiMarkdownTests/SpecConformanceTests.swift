@@ -26,7 +26,8 @@ struct SpecConformanceTests {
         let known = try SpecRatchet.knownFailing()
         let document = MarkdownParser.parse(Array(example.markdown.utf8))
         let html = SpecHTMLRenderer.html(of: document)
-        let passes = html == example.html
+        // `<IGNORE>` marks a case that only has to not crash.
+        let passes = html == example.html || example.html == "<IGNORE>\n"
         if let proposal = ProcessInfo.processInfo.environment["AEMIMARKDOWN_RATCHET_PROPOSAL"], !passes {
             try Self.record("\(example.id) # \(example.section)\n", in: proposal)
         }

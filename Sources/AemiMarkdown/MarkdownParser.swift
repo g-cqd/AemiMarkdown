@@ -6,6 +6,8 @@ public struct MarkdownParser: Sendable {
     var inlines: ContiguousArray<UInt64> = []
     var diagnostics: MarkdownDiagnostics = []
     var state = BlockState()
+    var references = ReferenceTable()
+    var inlineParser = InlineParser()
     /// Where the unprocessed part of the source starts: the beginning of the line the next byte belongs to.
     var lineStart = 0
     var isFinished = false

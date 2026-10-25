@@ -48,7 +48,7 @@ ask draws an assistant's answer as Markdown while it streams in (ask roadmap 006
 | Aemi `AemiUnicode` case folding | reference-label matching, which CommonMark defines on the Unicode case fold | shipped, when the first non-ASCII label needs it |
 | Aemi `AemiTestKit` | allocation ceilings (`CAemiTestKitMalloc`) in every suite | tests |
 | AemiRegex | the spec defines raw-HTML tags, autolinks and email addresses by regular grammars; the hand-written byte scanners are checked against those grammars, differentially, on generated and mutated inputs | tests, behind `AEMIMARKDOWN_DEV`, by path (it has no remote yet) |
-| AemiJSON | generating the entity table from the WHATWG `entities.json` in a tool outside the package; reading corpus reports | `Tools/`, never a dependency of the library |
+| AemiJSON | generating the entity table from the WHATWG `entities.json` in a tool outside the package; reading corpus reports | `Plugins/GenerateEntities` (a separate package that the library does not depend on; `Plugins/` is where the shared lint configuration expects tooling) |
 | Swift standard library | `Unicode.Scalar.Properties.generalCategory` for punctuation and whitespace outside ASCII, which the flanking rules need | shipped; a table from AemiRegex's generated Unicode data replaces it only if a measurement asks |
 
    AemiRegex is not on the parse path: its API takes an `Array`, and a search costs more than a scan of an 80-byte line. *Stated from reading the

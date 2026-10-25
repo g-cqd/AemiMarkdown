@@ -91,10 +91,10 @@ extension MarkdownParser {
                 state.open[container].htmlCondition = condition
                 return
             } else if !indented, kind == .paragraph, !lineEmpty,
-                let level = BlockScanner.setextLevel(source, state.firstNonspace, end),
-                makeSetextHeading(at: container, level: level)
+                let level = BlockScanner.setextLevel(source, state.firstNonspace, end)
             {
-                advance(end - state.offset, columns: false, end)
+                // When definitions use every line of the paragraph, the underline is text: nothing starts here.
+                if makeSetextHeading(at: container, level: level) { advance(end - state.offset, columns: false, end) }
                 return
             } else if !indented, !lineEmpty, BlockScanner.isThematicBreak(source, state.firstNonspace, end) {
                 container = addChild(
