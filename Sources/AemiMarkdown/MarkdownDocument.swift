@@ -5,12 +5,12 @@
 public struct MarkdownDocument: Sendable {
     /// The input, as the parser received it. Every range in the tapes indexes this array.
     public let source: ContiguousArray<UInt8>
-    let blocks: ContiguousArray<UInt64>
-    let inlines: ContiguousArray<UInt64>
+    let blocks: SlotTape
+    let inlines: SlotTape
     public let diagnostics: MarkdownDiagnostics
 
     init(
-        source: ContiguousArray<UInt8>, blocks: ContiguousArray<UInt64>, inlines: ContiguousArray<UInt64>,
+        source: ContiguousArray<UInt8>, blocks: SlotTape, inlines: SlotTape,
         diagnostics: MarkdownDiagnostics
     ) {
         self.source = source

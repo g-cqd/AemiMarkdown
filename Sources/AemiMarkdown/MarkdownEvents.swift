@@ -2,15 +2,15 @@
 ///
 /// - Complexity: O(1) per event, apart from the stack's growth, which is bounded by the nesting limits the parser applied.
 public struct MarkdownEvents: Sequence, IteratorProtocol, Sendable {
-    private let blocks: ContiguousArray<UInt64>
-    private let inlines: ContiguousArray<UInt64>
+    private let blocks: SlotTape
+    private let inlines: SlotTape
     private var blockIndex = 0
     private var blockStack: [(end: Int, node: MarkdownNode)] = []
     private var inlineIndex = 0
     private var inlineStack: [(end: Int, node: MarkdownNode)] = []
     private var leafBlock: MarkdownNode?
 
-    init(blocks: ContiguousArray<UInt64>, inlines: ContiguousArray<UInt64>) {
+    init(blocks: SlotTape, inlines: SlotTape) {
         self.blocks = blocks
         self.inlines = inlines
         blockStack.reserveCapacity(16)

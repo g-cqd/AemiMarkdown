@@ -2,7 +2,7 @@ extension InlineParser {
     /// Writes the tree as slots, in document order, into `inlines`. A container's slot learns where its subtree ends when its last child is written.
     ///
     /// No recursion: the containers that are open are a stack of slot indices, and the walk climbs when a node has no next sibling.
-    mutating func serialize(into inlines: inout ContiguousArray<UInt64>) {
+    mutating func serialize(into inlines: inout SlotTape) {
         var open: [(slot: Int, node: Int32)] = []
         var cursor = tree.nodes[0].firstChild
         while cursor >= 0 {

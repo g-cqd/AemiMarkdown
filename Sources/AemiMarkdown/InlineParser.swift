@@ -48,7 +48,7 @@ struct InlineParser {
     mutating func parse(
         source: ContiguousArray<UInt8>, lines: ArraySlice<Range<Int>>, references: ReferenceTable,
         limits: MarkdownLimits, extensions: MarkdownExtensions, isTableCell: Bool = false,
-        into inlines: inout ContiguousArray<UInt64>
+        into inlines: inout SlotTape
     ) -> Int {
         self.source = source
         self.references = references

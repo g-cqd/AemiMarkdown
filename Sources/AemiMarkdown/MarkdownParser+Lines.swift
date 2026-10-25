@@ -11,13 +11,39 @@ extension MarkdownParser {
             diagnostics.insert(.documentSizeLimit)
             bytes = bytes.prefix(Swift.max(0, room))
         }
-        let scanFrom = source.count
         source.append(contentsOf: bytes)
-        processCompleteLines(from: scanFrom)
+        processCompleteLines()
     }
 
     /// Ends the document: the last line, if it has no ending, is parsed, every open block closes, and every inline run is parsed.
     public mutating func finish() {
+        close()
+        blocks.commit()
+        inlines.commit()
+    }
+
+    /// The document as it stands: closed blocks are final, and the open ones are drawn as if the input ended here. Parsing goes on afterwards.
+    ///
+    /// The cost is that of the open top-level block, not of the document: the closed part is shared, and the rest is parsed into a copy that is thrown away.
+    /// A later `append` copies the closed part once if the snapshot is still alive, so a reader lets one go before it appends.
+    /// - Note: a link reference definition in the open paragraph is not applied yet, and one that closed after a link does not reach it. A document
+    ///   parsed whole (`parse(_:)`) applies every definition.
+    public mutating func snapshot() -> MarkdownDocument {
+        guard !isFinished else { return document() }
+        // What has closed is final.
+        parsePendingInlines()
+        inlines.commit()
+        if state.open.allSatisfy({ $0.lineCount == 0 }) { state.lineRanges.removeAll(keepingCapacity: true) }
+        // The rest is parsed on a copy, which owns the inline parser's buffers while it works and hands them back.
+        var provisional = self
+        inlineParser = InlineParser()
+        provisional.close()
+        inlineParser = provisional.inlineParser
+        return provisional.document()
+    }
+
+    /// Parses the last line, closes every open block and parses every inline run, without committing.
+    private mutating func close() {
         guard !isFinished else { return }
         isFinished = true
         if lineStart < source.count { processLines(start: lineStart, end: source.count) }
@@ -60,8 +86,8 @@ extension MarkdownParser {
     }
 
     /// Parses each complete line from `from` on. A line ends at a line feed, a carriage return, or a carriage return and a line feed.
-    private mutating func processCompleteLines(from scanFrom: Int) {
-        var cursor = Swift.max(scanFrom, lineStart)
+    private mutating func processCompleteLines() {
+        var cursor = scanPosition
         while cursor < source.count {
             let byte = source[cursor]
             if byte == 0x0A {
@@ -69,7 +95,10 @@ extension MarkdownParser {
                 lineStart = cursor + 1
             } else if byte == 0x0D {
                 // A carriage return at the very end may be the first half of a line ending whose second half has not arrived.
-                guard cursor + 1 < source.count else { return }
+                guard cursor + 1 < source.count else {
+                    scanPosition = cursor
+                    return
+                }
                 processLines(start: lineStart, end: cursor)
                 lineStart = source[cursor + 1] == 0x0A ? cursor + 2 : cursor + 1
                 cursor = lineStart
@@ -77,6 +106,7 @@ extension MarkdownParser {
             }
             cursor += 1
         }
+        scanPosition = cursor
     }
 
     /// Parses one line, cut into pieces of at most `maxLineBytes` so that no line is longer than the limit says.
@@ -89,5 +119,7 @@ extension MarkdownParser {
             from += limits.maxLineBytes
         }
         processLine(from, end)
+        // A top-level block that has closed is final, and no later line can change it.
+        if state.open.count == 1 { blocks.commit() }
     }
 }

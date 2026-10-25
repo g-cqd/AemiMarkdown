@@ -3,14 +3,16 @@ public struct MarkdownParser: Sendable {
     public let limits: MarkdownLimits
     public let extensions: MarkdownExtensions
     var source: ContiguousArray<UInt8> = []
-    var blocks: ContiguousArray<UInt64> = []
-    var inlines: ContiguousArray<UInt64> = []
+    var blocks = SlotTape()
+    var inlines = SlotTape()
     var diagnostics: MarkdownDiagnostics = []
     var state = BlockState()
     var references = ReferenceTable()
     var inlineParser = InlineParser()
     /// Where the unprocessed part of the source starts: the beginning of the line the next byte belongs to.
     var lineStart = 0
+    /// Where scanning for a line ending resumes: the first byte not yet looked at, or a carriage return that waits for its line feed.
+    var scanPosition = 0
     var isFinished = false
 
     public init(extensions: MarkdownExtensions = .all, limits: MarkdownLimits = .default) {
