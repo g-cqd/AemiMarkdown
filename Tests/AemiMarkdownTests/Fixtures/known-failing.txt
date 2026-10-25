@@ -1,0 +1,673 @@
+# Examples the parser is known to fail. Shrinks, never grows: Scripts/update-ratchet.sh rewrites it and refuses to add a line.
+commonmark 1 # Tabs
+commonmark 2 # Tabs
+commonmark 3 # Tabs
+commonmark 4 # Tabs
+commonmark 5 # Tabs
+commonmark 6 # Tabs
+commonmark 7 # Tabs
+commonmark 8 # Tabs
+commonmark 9 # Tabs
+commonmark 10 # Tabs
+commonmark 11 # Tabs
+commonmark 12 # Backslash escapes
+commonmark 13 # Backslash escapes
+commonmark 14 # Backslash escapes
+commonmark 15 # Backslash escapes
+commonmark 16 # Backslash escapes
+commonmark 17 # Backslash escapes
+commonmark 18 # Backslash escapes
+commonmark 19 # Backslash escapes
+commonmark 20 # Backslash escapes
+commonmark 21 # Backslash escapes
+commonmark 22 # Backslash escapes
+commonmark 23 # Backslash escapes
+commonmark 24 # Backslash escapes
+commonmark 25 # Entity and numeric character references
+commonmark 26 # Entity and numeric character references
+commonmark 27 # Entity and numeric character references
+commonmark 28 # Entity and numeric character references
+commonmark 29 # Entity and numeric character references
+commonmark 30 # Entity and numeric character references
+commonmark 31 # Entity and numeric character references
+commonmark 32 # Entity and numeric character references
+commonmark 33 # Entity and numeric character references
+commonmark 34 # Entity and numeric character references
+commonmark 35 # Entity and numeric character references
+commonmark 36 # Entity and numeric character references
+commonmark 37 # Entity and numeric character references
+commonmark 38 # Entity and numeric character references
+commonmark 39 # Entity and numeric character references
+commonmark 40 # Entity and numeric character references
+commonmark 41 # Entity and numeric character references
+commonmark 42 # Precedence
+commonmark 43 # Thematic breaks
+commonmark 44 # Thematic breaks
+commonmark 45 # Thematic breaks
+commonmark 46 # Thematic breaks
+commonmark 47 # Thematic breaks
+commonmark 48 # Thematic breaks
+commonmark 49 # Thematic breaks
+commonmark 50 # Thematic breaks
+commonmark 51 # Thematic breaks
+commonmark 52 # Thematic breaks
+commonmark 53 # Thematic breaks
+commonmark 54 # Thematic breaks
+commonmark 55 # Thematic breaks
+commonmark 56 # Thematic breaks
+commonmark 57 # Thematic breaks
+commonmark 58 # Thematic breaks
+commonmark 59 # Thematic breaks
+commonmark 60 # Thematic breaks
+commonmark 61 # Thematic breaks
+commonmark 62 # ATX headings
+commonmark 63 # ATX headings
+commonmark 64 # ATX headings
+commonmark 65 # ATX headings
+commonmark 66 # ATX headings
+commonmark 67 # ATX headings
+commonmark 68 # ATX headings
+commonmark 69 # ATX headings
+commonmark 70 # ATX headings
+commonmark 71 # ATX headings
+commonmark 72 # ATX headings
+commonmark 73 # ATX headings
+commonmark 74 # ATX headings
+commonmark 75 # ATX headings
+commonmark 76 # ATX headings
+commonmark 77 # ATX headings
+commonmark 78 # ATX headings
+commonmark 79 # ATX headings
+commonmark 80 # Setext headings
+commonmark 81 # Setext headings
+commonmark 82 # Setext headings
+commonmark 83 # Setext headings
+commonmark 84 # Setext headings
+commonmark 85 # Setext headings
+commonmark 86 # Setext headings
+commonmark 87 # Setext headings
+commonmark 88 # Setext headings
+commonmark 89 # Setext headings
+commonmark 90 # Setext headings
+commonmark 91 # Setext headings
+commonmark 92 # Setext headings
+commonmark 93 # Setext headings
+commonmark 94 # Setext headings
+commonmark 95 # Setext headings
+commonmark 96 # Setext headings
+commonmark 97 # Setext headings
+commonmark 98 # Setext headings
+commonmark 99 # Setext headings
+commonmark 100 # Setext headings
+commonmark 101 # Setext headings
+commonmark 102 # Setext headings
+commonmark 103 # Setext headings
+commonmark 104 # Setext headings
+commonmark 105 # Setext headings
+commonmark 106 # Setext headings
+commonmark 107 # Indented code blocks
+commonmark 108 # Indented code blocks
+commonmark 109 # Indented code blocks
+commonmark 110 # Indented code blocks
+commonmark 111 # Indented code blocks
+commonmark 112 # Indented code blocks
+commonmark 113 # Indented code blocks
+commonmark 114 # Indented code blocks
+commonmark 115 # Indented code blocks
+commonmark 116 # Indented code blocks
+commonmark 117 # Indented code blocks
+commonmark 118 # Indented code blocks
+commonmark 119 # Fenced code blocks
+commonmark 120 # Fenced code blocks
+commonmark 121 # Fenced code blocks
+commonmark 122 # Fenced code blocks
+commonmark 123 # Fenced code blocks
+commonmark 124 # Fenced code blocks
+commonmark 125 # Fenced code blocks
+commonmark 126 # Fenced code blocks
+commonmark 127 # Fenced code blocks
+commonmark 128 # Fenced code blocks
+commonmark 129 # Fenced code blocks
+commonmark 130 # Fenced code blocks
+commonmark 131 # Fenced code blocks
+commonmark 132 # Fenced code blocks
+commonmark 133 # Fenced code blocks
+commonmark 134 # Fenced code blocks
+commonmark 135 # Fenced code blocks
+commonmark 136 # Fenced code blocks
+commonmark 137 # Fenced code blocks
+commonmark 138 # Fenced code blocks
+commonmark 139 # Fenced code blocks
+commonmark 140 # Fenced code blocks
+commonmark 141 # Fenced code blocks
+commonmark 142 # Fenced code blocks
+commonmark 143 # Fenced code blocks
+commonmark 144 # Fenced code blocks
+commonmark 145 # Fenced code blocks
+commonmark 146 # Fenced code blocks
+commonmark 147 # Fenced code blocks
+commonmark 148 # HTML blocks
+commonmark 149 # HTML blocks
+commonmark 150 # HTML blocks
+commonmark 151 # HTML blocks
+commonmark 152 # HTML blocks
+commonmark 153 # HTML blocks
+commonmark 154 # HTML blocks
+commonmark 155 # HTML blocks
+commonmark 156 # HTML blocks
+commonmark 157 # HTML blocks
+commonmark 158 # HTML blocks
+commonmark 159 # HTML blocks
+commonmark 160 # HTML blocks
+commonmark 161 # HTML blocks
+commonmark 162 # HTML blocks
+commonmark 163 # HTML blocks
+commonmark 164 # HTML blocks
+commonmark 165 # HTML blocks
+commonmark 166 # HTML blocks
+commonmark 167 # HTML blocks
+commonmark 168 # HTML blocks
+commonmark 169 # HTML blocks
+commonmark 170 # HTML blocks
+commonmark 171 # HTML blocks
+commonmark 172 # HTML blocks
+commonmark 173 # HTML blocks
+commonmark 174 # HTML blocks
+commonmark 175 # HTML blocks
+commonmark 176 # HTML blocks
+commonmark 177 # HTML blocks
+commonmark 178 # HTML blocks
+commonmark 179 # HTML blocks
+commonmark 180 # HTML blocks
+commonmark 181 # HTML blocks
+commonmark 182 # HTML blocks
+commonmark 183 # HTML blocks
+commonmark 184 # HTML blocks
+commonmark 185 # HTML blocks
+commonmark 186 # HTML blocks
+commonmark 187 # HTML blocks
+commonmark 188 # HTML blocks
+commonmark 189 # HTML blocks
+commonmark 190 # HTML blocks
+commonmark 191 # HTML blocks
+commonmark 192 # Link reference definitions
+commonmark 193 # Link reference definitions
+commonmark 194 # Link reference definitions
+commonmark 195 # Link reference definitions
+commonmark 196 # Link reference definitions
+commonmark 197 # Link reference definitions
+commonmark 198 # Link reference definitions
+commonmark 199 # Link reference definitions
+commonmark 200 # Link reference definitions
+commonmark 201 # Link reference definitions
+commonmark 202 # Link reference definitions
+commonmark 203 # Link reference definitions
+commonmark 204 # Link reference definitions
+commonmark 205 # Link reference definitions
+commonmark 206 # Link reference definitions
+commonmark 208 # Link reference definitions
+commonmark 209 # Link reference definitions
+commonmark 210 # Link reference definitions
+commonmark 211 # Link reference definitions
+commonmark 212 # Link reference definitions
+commonmark 213 # Link reference definitions
+commonmark 214 # Link reference definitions
+commonmark 215 # Link reference definitions
+commonmark 216 # Link reference definitions
+commonmark 217 # Link reference definitions
+commonmark 218 # Link reference definitions
+commonmark 219 # Paragraphs
+commonmark 220 # Paragraphs
+commonmark 221 # Paragraphs
+commonmark 222 # Paragraphs
+commonmark 223 # Paragraphs
+commonmark 224 # Paragraphs
+commonmark 225 # Paragraphs
+commonmark 226 # Paragraphs
+commonmark 227 # Blank lines
+commonmark 228 # Block quotes
+commonmark 229 # Block quotes
+commonmark 230 # Block quotes
+commonmark 231 # Block quotes
+commonmark 232 # Block quotes
+commonmark 233 # Block quotes
+commonmark 234 # Block quotes
+commonmark 235 # Block quotes
+commonmark 236 # Block quotes
+commonmark 237 # Block quotes
+commonmark 238 # Block quotes
+commonmark 239 # Block quotes
+commonmark 240 # Block quotes
+commonmark 241 # Block quotes
+commonmark 242 # Block quotes
+commonmark 243 # Block quotes
+commonmark 244 # Block quotes
+commonmark 245 # Block quotes
+commonmark 246 # Block quotes
+commonmark 247 # Block quotes
+commonmark 248 # Block quotes
+commonmark 249 # Block quotes
+commonmark 250 # Block quotes
+commonmark 251 # Block quotes
+commonmark 252 # Block quotes
+commonmark 253 # List items
+commonmark 254 # List items
+commonmark 255 # List items
+commonmark 256 # List items
+commonmark 257 # List items
+commonmark 258 # List items
+commonmark 259 # List items
+commonmark 260 # List items
+commonmark 261 # List items
+commonmark 262 # List items
+commonmark 263 # List items
+commonmark 264 # List items
+commonmark 265 # List items
+commonmark 266 # List items
+commonmark 267 # List items
+commonmark 268 # List items
+commonmark 269 # List items
+commonmark 270 # List items
+commonmark 271 # List items
+commonmark 272 # List items
+commonmark 273 # List items
+commonmark 274 # List items
+commonmark 275 # List items
+commonmark 276 # List items
+commonmark 277 # List items
+commonmark 278 # List items
+commonmark 279 # List items
+commonmark 280 # List items
+commonmark 281 # List items
+commonmark 282 # List items
+commonmark 283 # List items
+commonmark 284 # List items
+commonmark 285 # List items
+commonmark 286 # List items
+commonmark 287 # List items
+commonmark 288 # List items
+commonmark 289 # List items
+commonmark 290 # List items
+commonmark 291 # List items
+commonmark 292 # List items
+commonmark 293 # List items
+commonmark 294 # List items
+commonmark 295 # List items
+commonmark 296 # List items
+commonmark 297 # List items
+commonmark 298 # List items
+commonmark 299 # List items
+commonmark 300 # List items
+commonmark 301 # Lists
+commonmark 302 # Lists
+commonmark 303 # Lists
+commonmark 304 # Lists
+commonmark 305 # Lists
+commonmark 306 # Lists
+commonmark 307 # Lists
+commonmark 308 # Lists
+commonmark 309 # Lists
+commonmark 310 # Lists
+commonmark 311 # Lists
+commonmark 312 # Lists
+commonmark 313 # Lists
+commonmark 314 # Lists
+commonmark 315 # Lists
+commonmark 316 # Lists
+commonmark 317 # Lists
+commonmark 318 # Lists
+commonmark 319 # Lists
+commonmark 320 # Lists
+commonmark 321 # Lists
+commonmark 322 # Lists
+commonmark 323 # Lists
+commonmark 324 # Lists
+commonmark 325 # Lists
+commonmark 326 # Lists
+commonmark 327 # Lists
+commonmark 328 # Code spans
+commonmark 329 # Code spans
+commonmark 330 # Code spans
+commonmark 331 # Code spans
+commonmark 332 # Code spans
+commonmark 333 # Code spans
+commonmark 334 # Code spans
+commonmark 335 # Code spans
+commonmark 336 # Code spans
+commonmark 337 # Code spans
+commonmark 338 # Code spans
+commonmark 339 # Code spans
+commonmark 340 # Code spans
+commonmark 341 # Code spans
+commonmark 342 # Code spans
+commonmark 343 # Code spans
+commonmark 344 # Code spans
+commonmark 345 # Code spans
+commonmark 346 # Code spans
+commonmark 347 # Code spans
+commonmark 348 # Code spans
+commonmark 349 # Code spans
+commonmark 350 # Emphasis and strong emphasis
+commonmark 351 # Emphasis and strong emphasis
+commonmark 352 # Emphasis and strong emphasis
+commonmark 353 # Emphasis and strong emphasis
+commonmark 354 # Emphasis and strong emphasis
+commonmark 355 # Emphasis and strong emphasis
+commonmark 356 # Emphasis and strong emphasis
+commonmark 357 # Emphasis and strong emphasis
+commonmark 358 # Emphasis and strong emphasis
+commonmark 359 # Emphasis and strong emphasis
+commonmark 360 # Emphasis and strong emphasis
+commonmark 361 # Emphasis and strong emphasis
+commonmark 362 # Emphasis and strong emphasis
+commonmark 363 # Emphasis and strong emphasis
+commonmark 364 # Emphasis and strong emphasis
+commonmark 365 # Emphasis and strong emphasis
+commonmark 366 # Emphasis and strong emphasis
+commonmark 367 # Emphasis and strong emphasis
+commonmark 368 # Emphasis and strong emphasis
+commonmark 369 # Emphasis and strong emphasis
+commonmark 370 # Emphasis and strong emphasis
+commonmark 371 # Emphasis and strong emphasis
+commonmark 372 # Emphasis and strong emphasis
+commonmark 373 # Emphasis and strong emphasis
+commonmark 374 # Emphasis and strong emphasis
+commonmark 375 # Emphasis and strong emphasis
+commonmark 376 # Emphasis and strong emphasis
+commonmark 377 # Emphasis and strong emphasis
+commonmark 378 # Emphasis and strong emphasis
+commonmark 379 # Emphasis and strong emphasis
+commonmark 380 # Emphasis and strong emphasis
+commonmark 381 # Emphasis and strong emphasis
+commonmark 382 # Emphasis and strong emphasis
+commonmark 383 # Emphasis and strong emphasis
+commonmark 384 # Emphasis and strong emphasis
+commonmark 385 # Emphasis and strong emphasis
+commonmark 386 # Emphasis and strong emphasis
+commonmark 387 # Emphasis and strong emphasis
+commonmark 388 # Emphasis and strong emphasis
+commonmark 389 # Emphasis and strong emphasis
+commonmark 390 # Emphasis and strong emphasis
+commonmark 391 # Emphasis and strong emphasis
+commonmark 392 # Emphasis and strong emphasis
+commonmark 393 # Emphasis and strong emphasis
+commonmark 394 # Emphasis and strong emphasis
+commonmark 395 # Emphasis and strong emphasis
+commonmark 396 # Emphasis and strong emphasis
+commonmark 397 # Emphasis and strong emphasis
+commonmark 398 # Emphasis and strong emphasis
+commonmark 399 # Emphasis and strong emphasis
+commonmark 400 # Emphasis and strong emphasis
+commonmark 401 # Emphasis and strong emphasis
+commonmark 402 # Emphasis and strong emphasis
+commonmark 403 # Emphasis and strong emphasis
+commonmark 404 # Emphasis and strong emphasis
+commonmark 405 # Emphasis and strong emphasis
+commonmark 406 # Emphasis and strong emphasis
+commonmark 407 # Emphasis and strong emphasis
+commonmark 408 # Emphasis and strong emphasis
+commonmark 409 # Emphasis and strong emphasis
+commonmark 410 # Emphasis and strong emphasis
+commonmark 411 # Emphasis and strong emphasis
+commonmark 412 # Emphasis and strong emphasis
+commonmark 413 # Emphasis and strong emphasis
+commonmark 414 # Emphasis and strong emphasis
+commonmark 415 # Emphasis and strong emphasis
+commonmark 416 # Emphasis and strong emphasis
+commonmark 417 # Emphasis and strong emphasis
+commonmark 418 # Emphasis and strong emphasis
+commonmark 419 # Emphasis and strong emphasis
+commonmark 420 # Emphasis and strong emphasis
+commonmark 421 # Emphasis and strong emphasis
+commonmark 422 # Emphasis and strong emphasis
+commonmark 423 # Emphasis and strong emphasis
+commonmark 424 # Emphasis and strong emphasis
+commonmark 425 # Emphasis and strong emphasis
+commonmark 426 # Emphasis and strong emphasis
+commonmark 427 # Emphasis and strong emphasis
+commonmark 428 # Emphasis and strong emphasis
+commonmark 429 # Emphasis and strong emphasis
+commonmark 430 # Emphasis and strong emphasis
+commonmark 431 # Emphasis and strong emphasis
+commonmark 432 # Emphasis and strong emphasis
+commonmark 433 # Emphasis and strong emphasis
+commonmark 434 # Emphasis and strong emphasis
+commonmark 435 # Emphasis and strong emphasis
+commonmark 436 # Emphasis and strong emphasis
+commonmark 437 # Emphasis and strong emphasis
+commonmark 438 # Emphasis and strong emphasis
+commonmark 439 # Emphasis and strong emphasis
+commonmark 440 # Emphasis and strong emphasis
+commonmark 441 # Emphasis and strong emphasis
+commonmark 442 # Emphasis and strong emphasis
+commonmark 443 # Emphasis and strong emphasis
+commonmark 444 # Emphasis and strong emphasis
+commonmark 445 # Emphasis and strong emphasis
+commonmark 446 # Emphasis and strong emphasis
+commonmark 447 # Emphasis and strong emphasis
+commonmark 448 # Emphasis and strong emphasis
+commonmark 449 # Emphasis and strong emphasis
+commonmark 450 # Emphasis and strong emphasis
+commonmark 451 # Emphasis and strong emphasis
+commonmark 452 # Emphasis and strong emphasis
+commonmark 453 # Emphasis and strong emphasis
+commonmark 454 # Emphasis and strong emphasis
+commonmark 455 # Emphasis and strong emphasis
+commonmark 456 # Emphasis and strong emphasis
+commonmark 457 # Emphasis and strong emphasis
+commonmark 458 # Emphasis and strong emphasis
+commonmark 459 # Emphasis and strong emphasis
+commonmark 460 # Emphasis and strong emphasis
+commonmark 461 # Emphasis and strong emphasis
+commonmark 462 # Emphasis and strong emphasis
+commonmark 463 # Emphasis and strong emphasis
+commonmark 464 # Emphasis and strong emphasis
+commonmark 465 # Emphasis and strong emphasis
+commonmark 466 # Emphasis and strong emphasis
+commonmark 467 # Emphasis and strong emphasis
+commonmark 468 # Emphasis and strong emphasis
+commonmark 469 # Emphasis and strong emphasis
+commonmark 470 # Emphasis and strong emphasis
+commonmark 471 # Emphasis and strong emphasis
+commonmark 472 # Emphasis and strong emphasis
+commonmark 473 # Emphasis and strong emphasis
+commonmark 474 # Emphasis and strong emphasis
+commonmark 475 # Emphasis and strong emphasis
+commonmark 476 # Emphasis and strong emphasis
+commonmark 477 # Emphasis and strong emphasis
+commonmark 478 # Emphasis and strong emphasis
+commonmark 479 # Emphasis and strong emphasis
+commonmark 480 # Emphasis and strong emphasis
+commonmark 481 # Emphasis and strong emphasis
+commonmark 482 # Links
+commonmark 483 # Links
+commonmark 484 # Links
+commonmark 485 # Links
+commonmark 486 # Links
+commonmark 487 # Links
+commonmark 488 # Links
+commonmark 489 # Links
+commonmark 490 # Links
+commonmark 491 # Links
+commonmark 492 # Links
+commonmark 493 # Links
+commonmark 494 # Links
+commonmark 495 # Links
+commonmark 496 # Links
+commonmark 497 # Links
+commonmark 498 # Links
+commonmark 499 # Links
+commonmark 500 # Links
+commonmark 501 # Links
+commonmark 502 # Links
+commonmark 503 # Links
+commonmark 504 # Links
+commonmark 505 # Links
+commonmark 506 # Links
+commonmark 507 # Links
+commonmark 508 # Links
+commonmark 509 # Links
+commonmark 510 # Links
+commonmark 511 # Links
+commonmark 512 # Links
+commonmark 513 # Links
+commonmark 514 # Links
+commonmark 515 # Links
+commonmark 516 # Links
+commonmark 517 # Links
+commonmark 518 # Links
+commonmark 519 # Links
+commonmark 520 # Links
+commonmark 521 # Links
+commonmark 522 # Links
+commonmark 523 # Links
+commonmark 524 # Links
+commonmark 525 # Links
+commonmark 526 # Links
+commonmark 527 # Links
+commonmark 528 # Links
+commonmark 529 # Links
+commonmark 530 # Links
+commonmark 531 # Links
+commonmark 532 # Links
+commonmark 533 # Links
+commonmark 534 # Links
+commonmark 535 # Links
+commonmark 536 # Links
+commonmark 537 # Links
+commonmark 538 # Links
+commonmark 539 # Links
+commonmark 540 # Links
+commonmark 541 # Links
+commonmark 542 # Links
+commonmark 543 # Links
+commonmark 544 # Links
+commonmark 545 # Links
+commonmark 546 # Links
+commonmark 547 # Links
+commonmark 548 # Links
+commonmark 549 # Links
+commonmark 550 # Links
+commonmark 551 # Links
+commonmark 552 # Links
+commonmark 553 # Links
+commonmark 554 # Links
+commonmark 555 # Links
+commonmark 556 # Links
+commonmark 557 # Links
+commonmark 558 # Links
+commonmark 559 # Links
+commonmark 560 # Links
+commonmark 561 # Links
+commonmark 562 # Links
+commonmark 563 # Links
+commonmark 564 # Links
+commonmark 565 # Links
+commonmark 566 # Links
+commonmark 567 # Links
+commonmark 568 # Links
+commonmark 569 # Links
+commonmark 570 # Links
+commonmark 571 # Links
+commonmark 572 # Images
+commonmark 573 # Images
+commonmark 574 # Images
+commonmark 575 # Images
+commonmark 576 # Images
+commonmark 577 # Images
+commonmark 578 # Images
+commonmark 579 # Images
+commonmark 580 # Images
+commonmark 581 # Images
+commonmark 582 # Images
+commonmark 583 # Images
+commonmark 584 # Images
+commonmark 585 # Images
+commonmark 586 # Images
+commonmark 587 # Images
+commonmark 588 # Images
+commonmark 589 # Images
+commonmark 590 # Images
+commonmark 591 # Images
+commonmark 592 # Images
+commonmark 593 # Images
+commonmark 594 # Autolinks
+commonmark 595 # Autolinks
+commonmark 596 # Autolinks
+commonmark 597 # Autolinks
+commonmark 598 # Autolinks
+commonmark 599 # Autolinks
+commonmark 600 # Autolinks
+commonmark 601 # Autolinks
+commonmark 602 # Autolinks
+commonmark 603 # Autolinks
+commonmark 604 # Autolinks
+commonmark 605 # Autolinks
+commonmark 606 # Autolinks
+commonmark 607 # Autolinks
+commonmark 608 # Autolinks
+commonmark 609 # Autolinks
+commonmark 610 # Autolinks
+commonmark 611 # Autolinks
+commonmark 612 # Autolinks
+commonmark 613 # Raw HTML
+commonmark 614 # Raw HTML
+commonmark 615 # Raw HTML
+commonmark 616 # Raw HTML
+commonmark 617 # Raw HTML
+commonmark 618 # Raw HTML
+commonmark 619 # Raw HTML
+commonmark 620 # Raw HTML
+commonmark 621 # Raw HTML
+commonmark 622 # Raw HTML
+commonmark 623 # Raw HTML
+commonmark 624 # Raw HTML
+commonmark 625 # Raw HTML
+commonmark 626 # Raw HTML
+commonmark 627 # Raw HTML
+commonmark 628 # Raw HTML
+commonmark 629 # Raw HTML
+commonmark 630 # Raw HTML
+commonmark 631 # Raw HTML
+commonmark 632 # Raw HTML
+commonmark 633 # Hard line breaks
+commonmark 634 # Hard line breaks
+commonmark 635 # Hard line breaks
+commonmark 636 # Hard line breaks
+commonmark 637 # Hard line breaks
+commonmark 638 # Hard line breaks
+commonmark 639 # Hard line breaks
+commonmark 640 # Hard line breaks
+commonmark 641 # Hard line breaks
+commonmark 642 # Hard line breaks
+commonmark 643 # Hard line breaks
+commonmark 644 # Hard line breaks
+commonmark 645 # Hard line breaks
+commonmark 646 # Hard line breaks
+commonmark 647 # Hard line breaks
+commonmark 648 # Soft line breaks
+commonmark 649 # Soft line breaks
+commonmark 650 # Textual content
+commonmark 651 # Textual content
+commonmark 652 # Textual content
+extensions 1 # Tables
+extensions 2 # Tables
+extensions 3 # Tables
+extensions 4 # Tables
+extensions 5 # Tables
+extensions 6 # Tables
+extensions 7 # Table cell count mismatches
+extensions 8 # Table cell count mismatches
+extensions 9 # Embedded pipes
+extensions 10 # Oddly-formatted markers
+extensions 11 # Escaping
+extensions 12 # Embedded HTML
+extensions 13 # Reference-style links
+extensions 14 # Sequential cells
+extensions 15 # Interaction with emphasis
+extensions 16 # a table can be recognised when separated from a paragraph of text without an empty line
+extensions 17 # Strikethroughs
+extensions 18 # Strikethroughs
+extensions 19 # Autolinks
+extensions 20 # Autolinks
+extensions 21 # Autolinks
