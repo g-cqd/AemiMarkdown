@@ -35,21 +35,25 @@ struct InlineParser {
     var openersBottom = [Int32](repeating: -1, count: 18)
     var references = ReferenceTable()
     var limits = MarkdownLimits.default
+    var extensions = MarkdownExtensions.all
     var work = 0
     var workLimit = 0
     var diagnostics: MarkdownDiagnostics = []
     var backticksExhausted = [Bool](repeating: false, count: 65)
     var source: ContiguousArray<UInt8> = []
+    /// Scratch indices of the `|` whose backslash was left out of the text (a table cell: `\|` is a pipe even in a code span), ascending.
+    var droppedBackslashes: ContiguousArray<Int> = []
 
     /// Parses `lines` of `source` and appends the leaf block's inline run, ending in a `runEnd` slot, to `inlines`. Returns the index of the run's first slot.
     mutating func parse(
         source: ContiguousArray<UInt8>, lines: ArraySlice<Range<Int>>, references: ReferenceTable,
-        limits: MarkdownLimits,
+        limits: MarkdownLimits, extensions: MarkdownExtensions, isTableCell: Bool = false,
         into inlines: inout ContiguousArray<UInt64>
     ) -> Int {
         self.source = source
         self.references = references
         self.limits = limits
+        self.extensions = extensions
         tree.reset()
         text.removeAll(keepingCapacity: true)
         lineScratchStart.removeAll(keepingCapacity: true)
@@ -59,6 +63,7 @@ struct InlineParser {
         delimiterTop = -1
         position = 0
         work = 0
+        droppedBackslashes.removeAll(keepingCapacity: true)
         for index in backticksExhausted.indices { backticksExhausted[index] = false }
         var remaining = lines.count
         for line in lines {
@@ -71,12 +76,17 @@ struct InlineParser {
             }
             lineScratchStart.append(text.count)
             lineSourceStart.append(range.lowerBound)
-            text.append(contentsOf: source[range])
+            if isTableCell {
+                appendTableCell(source[range])
+            } else {
+                text.append(contentsOf: source[range])
+            }
             if remaining > 0 { text.append(0x0A) }
         }
         workLimit = limits.maxInlineWorkPerByte * (text.count + 16)
         while position < text.count { parseInline() }
         processEmphasis(bottom: -1)
+        if extensions.contains(.autolinks) { autolinkBareLinks() }
         let run = inlines.count
         serialize(into: &inlines)
         inlines.append(Slot.make(.marker, .runEnd, payload: 0, low: 0))
@@ -91,7 +101,30 @@ struct InlineParser {
             let middle = (low + high + 1) / 2
             if lineScratchStart[middle] <= index { low = middle } else { high = middle - 1 }
         }
-        return lineSourceStart[low] + (index - lineScratchStart[low])
+        var offset = lineSourceStart[low] + (index - lineScratchStart[low])
+        if !droppedBackslashes.isEmpty {
+            var below = 0
+            var above = droppedBackslashes.count
+            while below < above {
+                let middle = (below + above) / 2
+                if droppedBackslashes[middle] <= index { below = middle + 1 } else { above = middle }
+            }
+            offset += below
+        }
+        return offset
+    }
+
+    /// Appends a table cell's bytes with the backslash taken out of each `\|`, which is how a table writes a pipe that does not divide cells.
+    private mutating func appendTableCell(_ bytes: ArraySlice<UInt8>) {
+        var previous: UInt8 = 0
+        for byte in bytes {
+            if byte == UInt8(ascii: "|"), previous == UInt8(ascii: "\\") {
+                text.removeLast()
+                droppedBackslashes.append(text.count)
+            }
+            text.append(byte)
+            previous = byte == UInt8(ascii: "\\") && previous == UInt8(ascii: "\\") ? 0 : byte
+        }
     }
 
     /// Counts a step of work against the leaf block's budget; false once it is spent (and `inlineWorkLimit` is noted).
@@ -115,18 +148,35 @@ struct InlineParser {
         tree.append(InlineNode(kind: kind, payload: payload, start: sourceOffset(start), length: length))
     }
 
-    /// Adds `text[start ..< end]`, which lies in one line, as text, joining it to the text before it when they touch.
-    mutating func appendText(_ start: Int, _ end: Int) {
-        guard end > start else { return }
-        let sourceStart = sourceOffset(start)
-        let last = tree.nodes[0].lastChild
-        if last >= 0, tree.nodes[Int(last)].kind == .text, tree.nodes[Int(last)].payload == 0,
-            tree.nodes[Int(last)].start + tree.nodes[Int(last)].length == sourceStart
-        {
-            tree.nodes[Int(last)].length += end - start
-            return
+    /// The first scratch index in `lower ..< upper` of a pipe whose backslash was left out, if any.
+    private func firstDroppedBackslash(in lower: Int, _ upper: Int) -> Int? {
+        var below = 0
+        var above = droppedBackslashes.count
+        while below < above {
+            let middle = (below + above) / 2
+            if droppedBackslashes[middle] < lower { below = middle + 1 } else { above = middle }
         }
-        tree.append(InlineNode(kind: .text, start: sourceStart, length: end - start))
+        return below < droppedBackslashes.count && droppedBackslashes[below] < upper ? droppedBackslashes[below] : nil
+    }
+
+    /// Adds `text[start ..< end]`, which lies in one line, as text under `parent`: split where a backslash was left out, so each piece names contiguous
+    /// source bytes. With `joining`, a piece that touches the text before it extends it.
+    mutating func appendText(_ start: Int, _ end: Int, to parent: Int32 = InlineTree.root, joining: Bool = true) {
+        var from = start
+        while from < end {
+            var upto = end
+            if !droppedBackslashes.isEmpty, let dropped = firstDroppedBackslash(in: from + 1, end) { upto = dropped }
+            let sourceStart = sourceOffset(from)
+            let last = tree.nodes[Int(parent)].lastChild
+            if joining, last >= 0, tree.nodes[Int(last)].kind == .text, tree.nodes[Int(last)].payload == 0,
+                tree.nodes[Int(last)].start + tree.nodes[Int(last)].length == sourceStart
+            {
+                tree.nodes[Int(last)].length += upto - from
+            } else {
+                tree.append(InlineNode(kind: .text, start: sourceStart, length: upto - from), to: parent)
+            }
+            from = upto
+        }
     }
 
     private mutating func parseInline() {
@@ -135,7 +185,8 @@ struct InlineParser {
             case 0x0A: newline()
             case 0x5C: backslash()
             case 0x60: backticks()
-            case 0x2A, 0x5F, 0x7E: delimiterRun(byte)
+            case 0x2A, 0x5F: delimiterRun(byte)
+            case 0x7E: if extensions.contains(.strikethrough) { delimiterRun(byte) } else { plain() }
             case 0x5B: openBracket(isImage: false)
             case 0x21:
                 if position + 1 < text.count, text[position + 1] == 0x5B { openBracket(isImage: true) } else { plain() }

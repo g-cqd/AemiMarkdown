@@ -10,13 +10,11 @@ set -eu
 root=$(cd "$(dirname "$0")/.." && pwd)
 file="$root/Tests/AemiMarkdownTests/Fixtures/known-failing.txt"
 proposal=$(mktemp)
-rm -f "$proposal"
 trap 'rm -f "$proposal"' EXIT
 
 cd "$root"
 # The suite fails while the ratchet is stale; the proposal is complete either way.
 AEMIMARKDOWN_RATCHET_PROPOSAL="$proposal" swift test -c release --enable-testable-imports --filter SpecConformanceTests >/dev/null 2>&1 || true
-[ -f "$proposal" ] || proposal=/dev/null
 
 header=$(grep '^#' "$file" | head -1)
 if [ "${1:-}" != "--init" ]; then

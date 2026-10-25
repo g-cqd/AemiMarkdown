@@ -1,17 +1,1 @@
 # Examples the parser is known to fail. Shrinks, never grows: Scripts/update-ratchet.sh rewrites it and refuses to add a line.
-extensions 1 # Tables
-extensions 2 # Tables
-extensions 3 # Tables
-extensions 4 # Tables
-extensions 5 # Tables
-extensions 6 # Tables
-extensions 8 # Table cell count mismatches
-extensions 9 # Embedded pipes
-extensions 10 # Oddly-formatted markers
-extensions 11 # Escaping
-extensions 12 # Embedded HTML
-extensions 13 # Reference-style links
-extensions 14 # Sequential cells
-extensions 15 # Interaction with emphasis
-extensions 16 # a table can be recognised when separated from a paragraph of text without an empty line
-extensions 19 # Autolinks

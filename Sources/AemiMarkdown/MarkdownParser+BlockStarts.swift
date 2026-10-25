@@ -115,6 +115,7 @@ extension MarkdownParser {
                     .indentedCode, to: container, slot: Slot.make(.container, .codeBlock, payload: 0, low: 0))
                 return
             } else {
+                _ = tryTable(container: &container, end)
                 return
             }
             switch state.open[container].kind {

@@ -1,6 +1,7 @@
 /// Parses Markdown from UTF-8 bytes into a ``MarkdownDocument``, all at once or as it streams in (ADR-0001).
 public struct MarkdownParser: Sendable {
     public let limits: MarkdownLimits
+    public let extensions: MarkdownExtensions
     var source: ContiguousArray<UInt8> = []
     var blocks: ContiguousArray<UInt64> = []
     var inlines: ContiguousArray<UInt64> = []
@@ -12,14 +13,17 @@ public struct MarkdownParser: Sendable {
     var lineStart = 0
     var isFinished = false
 
-    public init(limits: MarkdownLimits = .default) {
+    public init(extensions: MarkdownExtensions = .all, limits: MarkdownLimits = .default) {
+        self.extensions = extensions
         self.limits = limits
     }
 
     /// Parses `bytes` as a whole document. Reference definitions anywhere apply to every link.
     /// - Complexity: O(n) in `bytes.count`, within the limits.
-    public static func parse(_ bytes: [UInt8], limits: MarkdownLimits = .default) -> MarkdownDocument {
-        var parser = MarkdownParser(limits: limits)
+    public static func parse(
+        _ bytes: [UInt8], extensions: MarkdownExtensions = .all, limits: MarkdownLimits = .default
+    ) -> MarkdownDocument {
+        var parser = MarkdownParser(extensions: extensions, limits: limits)
         parser.append(bytes)
         parser.finish()
         return parser.document()

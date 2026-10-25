@@ -11,6 +11,7 @@ struct SpecHTMLRenderer {
     /// Open images, innermost last: each collects the plain text of its description.
     private var images: [(destination: [UInt8], title: [UInt8]?, alt: [UInt8])] = []
     private var imageContainers: [NodeKind] = []
+    private var tableBodyOpen = false
 
     init(_ document: MarkdownDocument) { self.document = document }
 
@@ -90,7 +91,22 @@ struct SpecHTMLRenderer {
             case .image:
                 images.append(([], nil, []))
                 imageContainers = [.image]
-            case .autolink, .table, .tableRow, .tableCell: break
+            case .table:
+                carriageReturn()
+                write("<table>\n")
+            case .tableRow:
+                if node.payload == 1 {
+                    write("<thead>\n<tr>\n")
+                } else {
+                    if !tableBodyOpen { write("<tbody>\n") }
+                    tableBodyOpen = true
+                    write("<tr>\n")
+                }
+            case .tableCell:
+                let tag = stack.last?.payload == 1 ? "th" : "td"
+                let align = ["", " align=\"left\"", " align=\"center\"", " align=\"right\""][node.payload & 3]
+                write("<\(tag)\(align)>")
+            case .autolink: break
             default: break
         }
         stack.append(node)
@@ -117,6 +133,12 @@ struct SpecHTMLRenderer {
             case .codeSpan: write("</code>")
             case .link: write("</a>")
             case .autolink: write("</a>")
+            case .tableRow: write(node.payload == 1 ? "</tr>\n</thead>\n" : "</tr>\n")
+            case .tableCell: write(stack.last?.payload == 1 ? "</th>\n" : "</td>\n")
+            case .table:
+                if tableBodyOpen { write("</tbody>\n") }
+                tableBodyOpen = false
+                write("</table>\n")
             default: break
         }
     }
@@ -173,7 +195,7 @@ struct SpecHTMLRenderer {
         let kind = stack.last.map { $0.payload } ?? 0
         let text = Array(document.source[node.range])
         write("<a href=\"")
-        if kind == 1 { write("mailto:") } else if kind == 2, !text.starts(with: Array("http".utf8)) { write("http://") }
+        if kind == 1 { write("mailto:") } else if kind == 2 { write("http://") }
         HTMLEscaping.href(text, into: &out)
         write("\">")
         HTMLEscaping.text(text, into: &out)

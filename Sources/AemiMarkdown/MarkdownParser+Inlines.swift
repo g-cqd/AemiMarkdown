@@ -5,7 +5,8 @@ extension MarkdownParser {
             let lines = state.lineRanges[leaf.firstLine ..< (leaf.firstLine + leaf.lineCount)]
             inlineParser.diagnostics = []
             let run = inlineParser.parse(
-                source: source, lines: lines, references: references, limits: limits, into: &inlines)
+                source: source, lines: lines, references: references, limits: limits, extensions: extensions,
+                isTableCell: Slot.kind(blocks[leaf.slot]) == .tableCell, into: &inlines)
             diagnostics.formUnion(inlineParser.diagnostics)
             blocks[leaf.slot] = Slot.withLow(blocks[leaf.slot], run)
         }

@@ -2,7 +2,8 @@
 struct BlockState: Sendable {
     /// The kinds of block that can be open. A leaf that takes one line (`heading`, `thematicBreak`) stays open until the next line, as in cmark.
     enum Kind: UInt8, Sendable {
-        case document, blockQuote, list, item, paragraph, heading, thematicBreak, indentedCode, fencedCode, htmlBlock
+        case document, blockQuote, list, item, paragraph, heading, thematicBreak, indentedCode, fencedCode, htmlBlock,
+            table
     }
 
     struct Open: Sendable {
@@ -30,6 +31,9 @@ struct BlockState: Sendable {
         var fenceOffset = 0
         // An HTML block.
         var htmlCondition = 0
+        // A table: its column count, and two bits of alignment per column.
+        var columns = 0
+        var alignments: UInt128 = 0
         // A paragraph or heading: where its lines start in `BlockState.lineRanges`.
         var firstLine = 0
         var lineCount = 0
@@ -52,6 +56,8 @@ struct BlockState: Sendable {
     var lineNumber = 0
     var lineRanges: ContiguousArray<Range<Int>> = []
     var pending: ContiguousArray<Pending> = []
+    /// The cells of the table row being read, as source ranges: scratch that is reused.
+    var cells: ContiguousArray<Range<Int>> = []
 
     // The cursor in the line being processed, as in cmark's parser.
     var offset = 0

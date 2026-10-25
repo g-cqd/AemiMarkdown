@@ -64,10 +64,7 @@ extension InlineParser {
         let container = tree.append(InlineNode(kind: .codeSpan, height: 1))
         for (index, piece) in pieces.enumerated() {
             if index > 0 { tree.append(InlineNode(kind: .softBreak), to: container) }
-            if !piece.isEmpty {
-                tree.append(
-                    InlineNode(kind: .text, start: sourceOffset(piece.lowerBound), length: piece.count), to: container)
-            }
+            appendText(piece.lowerBound, piece.upperBound, to: container, joining: false)
         }
     }
 }

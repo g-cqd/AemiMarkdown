@@ -24,7 +24,9 @@ struct SpecConformanceTests {
     @Test(arguments: examples)
     func `an example renders as the spec says, or is on the ratchet`(example: SpecExample) throws {
         let known = try SpecRatchet.knownFailing()
-        let document = MarkdownParser.parse(Array(example.markdown.utf8))
+        // The CommonMark file is CommonMark alone; the extensions file is read with the extensions on.
+        let document = MarkdownParser.parse(
+            Array(example.markdown.utf8), extensions: example.file == "commonmark" ? [] : .all)
         let html = SpecHTMLRenderer.html(of: document)
         // `<IGNORE>` marks a case that only has to not crash.
         let passes = html == example.html || example.html == "<IGNORE>\n"

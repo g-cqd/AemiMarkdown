@@ -47,3 +47,18 @@ public struct MarkdownDiagnostics: OptionSet, Sendable, Equatable {
     public static let tableColumnLimit = MarkdownDiagnostics(rawValue: 1 << 6)
     public static let inlineWorkLimit = MarkdownDiagnostics(rawValue: 1 << 7)
 }
+
+/// The syntax beyond CommonMark that the parser reads. All are on by default; with none, the parser is CommonMark 0.31.2 and nothing else.
+public struct MarkdownExtensions: OptionSet, Sendable {
+    public let rawValue: UInt8
+    public init(rawValue: UInt8) { self.rawValue = rawValue }
+
+    /// GitHub tables: `| a | b |` with a delimiter row `| --- | --- |`.
+    public static let tables = MarkdownExtensions(rawValue: 1 << 0)
+    /// `~~text~~` and `~text~`.
+    public static let strikethrough = MarkdownExtensions(rawValue: 1 << 1)
+    /// Bare `www.example.com`, `https://example.com` and `me@example.com` become links.
+    public static let autolinks = MarkdownExtensions(rawValue: 1 << 2)
+
+    public static let all: MarkdownExtensions = [.tables, .strikethrough, .autolinks]
+}
