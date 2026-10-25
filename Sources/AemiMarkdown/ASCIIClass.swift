@@ -18,4 +18,7 @@ enum ASCIIClass {
 
     @inline(__always)
     static func isDigit(_ byte: UInt8) -> Bool { byte >= 0x30 && byte <= 0x39 }
+
+    @inline(__always)
+    static func isAlphanumeric(_ byte: UInt8) -> Bool { isLetter(byte) || isDigit(byte) }
 }

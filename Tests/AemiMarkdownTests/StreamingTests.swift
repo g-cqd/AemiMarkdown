@@ -1,3 +1,4 @@
+import Foundation
 import Testing
 
 @testable import AemiMarkdown
@@ -63,5 +64,40 @@ struct StreamingTests {
         parser.append(Array("\nb".utf8))
         parser.finish()
         #expect(html(parser.snapshot()) == "<p>a\nb</p>\n")
+    }
+
+    /// Found by the model in docs/formal/LineSplitter.tla: a carriage return at the end of the input is a line ending, not a character of the last line.
+    @Test(arguments: ["a\r", "a\r\r", "a\n\r", "# h\r", "- a\r"])
+    func `a carriage return at the end of the input ends its line`(input: String) {
+        let whole = html(MarkdownParser.parse(Array(input.utf8)))
+        #expect(!whole.contains("\r"), "whole: \(whole.debugDescription)")
+        var parser = MarkdownParser()
+        parser.append(Array(input.utf8))
+        #expect(!html(parser.snapshot()).contains("\r"), "snapshot")
+        parser.finish()
+        #expect(html(parser.snapshot()) == whole)
+        #expect(html(MarkdownParser.parse(Array(input.replacingOccurrences(of: "\r", with: "\n").utf8))) == whole)
+    }
+}
+
+/// A snapshot shares the committed part of the tapes and writes nothing to it: a write to storage that a snapshot shares copies all of it, so a
+/// snapshot of a long document would cost the document (docs/formal/SnapshotProtocol.tla states the rule; the first implementation broke it).
+@Suite("A snapshot does not copy the closed part of the document")
+struct SnapshotSharingTests {
+    private func address(_ tape: SlotTape) -> UInt? {
+        tape.committed.withUnsafeBufferPointer { $0.baseAddress.map { UInt(bitPattern: $0) } }
+    }
+
+    @Test(arguments: ["  ", "\t", "> ", "# ", "- ", "```", "text"])
+    func `snapshots with a partial line share the committed tapes`(partial: String) {
+        var parser = MarkdownParser()
+        let closed = (0 ..< 200).map { "# heading \($0)\n\nparagraph \($0)\n\n" }.joined()
+        parser.append(Array((closed + "an open paragraph\n").utf8))
+        parser.append(Array(partial.utf8))
+        let before = address(parser.blocks)
+        #expect(before != nil)
+        let document = parser.snapshot()
+        #expect(address(document.blocks) == before, "the snapshot copied the committed block tape")
+        #expect(address(parser.blocks) == before, "the parser's own tape moved")
     }
 }

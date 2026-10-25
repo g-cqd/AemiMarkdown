@@ -46,6 +46,11 @@ extension MarkdownParser {
     private mutating func close() {
         guard !isFinished else { return }
         isFinished = true
+        // A carriage return that waited for a line feed has none coming: it ends its line (docs/formal/LineSplitter.tla found this).
+        if scanPosition < source.count, source[scanPosition] == 0x0D {
+            processLines(start: lineStart, end: scanPosition)
+            lineStart = scanPosition + 1
+        }
         if lineStart < source.count { processLines(start: lineStart, end: source.count) }
         lineStart = source.count
         closeAbove(0)
@@ -92,6 +97,7 @@ extension MarkdownParser {
             let byte = source[cursor]
             if byte == 0x0A {
                 processLines(start: lineStart, end: cursor)
+                commitClosedBlocks()
                 lineStart = cursor + 1
             } else if byte == 0x0D {
                 // A carriage return at the very end may be the first half of a line ending whose second half has not arrived.
@@ -100,6 +106,7 @@ extension MarkdownParser {
                     return
                 }
                 processLines(start: lineStart, end: cursor)
+                commitClosedBlocks()
                 lineStart = source[cursor + 1] == 0x0A ? cursor + 2 : cursor + 1
                 cursor = lineStart
                 continue
@@ -119,7 +126,11 @@ extension MarkdownParser {
             from += limits.maxLineBytes
         }
         processLine(from, end)
-        // A top-level block that has closed is final, and no later line can change it.
+    }
+
+    /// A top-level block that has closed is final, and no later line can change it. Only the parser itself commits: a snapshot works on a copy and must
+    /// write nothing to the tapes it shares (docs/formal/SnapshotProtocol.tla).
+    private mutating func commitClosedBlocks() {
         if state.open.count == 1 { blocks.commit() }
     }
 }

@@ -38,7 +38,11 @@ extension MarkdownParser {
             return sourceStarts[line] + index - scratchStarts[line]
         }
         var position = 0
-        while position < text.count, let definition = Self.definition(text, &position) {
+        var scan = LinkSyntax.Scan()
+        defer { if scan.tooLong { diagnostics.insert(.linkLengthLimit) } }
+        while position < text.count,
+            let definition = Self.definition(text, &position, limit: limits.maxLinkBytes, &scan)
+        {
             let destination =
                 sourceOffset(definition.destination.lowerBound) ..< sourceOffset(definition.destination.lowerBound)
                 + definition.destination.count
@@ -57,7 +61,7 @@ extension MarkdownParser {
 
     /// One definition at `position`: `[label]: destination "title"`, ending at a line end. The position moves past it (and its line ending) when it parses.
     private static func definition(
-        _ text: ContiguousArray<UInt8>, _ position: inout Int
+        _ text: ContiguousArray<UInt8>, _ position: inout Int, limit: Int, _ scan: inout LinkSyntax.Scan
     ) -> (label: Range<Int>, destination: Range<Int>, title: Range<Int>?)? {
         var cursor = position
         let labelStart = cursor
@@ -68,14 +72,16 @@ extension MarkdownParser {
         cursor += 1
         LinkSyntax.skipSpaceAndOneNewline(text, &cursor)
         let bracketed = cursor < text.count && text[cursor] == UInt8(ascii: "<")
-        guard let destination = LinkSyntax.destination(text, &cursor), bracketed || !destination.isEmpty else {
+        guard let destination = LinkSyntax.destination(text, &cursor, limit: limit, &scan),
+            bracketed || !destination.isEmpty
+        else {
             return nil
         }
         let afterDestination = cursor
         var title: Range<Int>?
         var afterTitle = cursor
         LinkSyntax.skipSpaceAndOneNewline(text, &afterTitle)
-        if afterTitle > afterDestination, let found = LinkSyntax.title(text, &afterTitle) {
+        if afterTitle > afterDestination, let found = LinkSyntax.title(text, &afterTitle, limit: limit, &scan) {
             title = found
             cursor = afterTitle
         }

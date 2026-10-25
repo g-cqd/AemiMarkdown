@@ -15,22 +15,38 @@ public struct MarkdownLimits: Sendable, Equatable {
     public var maxTableColumns: Int
     /// The most delimiter-stack steps the inline phase takes in one leaf block, as a multiple of its length. It bounds the quadratic cases.
     public var maxInlineWorkPerByte: Int
+    /// The most bytes in one leaf block (a paragraph, a heading, a table cell) that the inline phase will parse. A longer one is plain text: its inline tree
+    /// would take memory in proportion to its size, a few dozen bytes for each byte of it.
+    public var maxLeafBytes: Int
+    /// The most bytes in a link's destination or title. A longer one is not a link: a title can run over many lines, and a slot can name only 4 MiB.
+    public var maxLinkBytes: Int
 
+    /// The settings, brought inside what the tape format and the memory budget can hold: each is clamped to its floor and ceiling, so no setting traps.
     public init(
         maxContainerDepth: Int = 32, maxInlineDepth: Int = 32, maxLineBytes: Int = 1 << 20,
-        maxDocumentBytes: Int = 64 << 20, maxTableColumns: Int = 64, maxInlineWorkPerByte: Int = 64
+        maxDocumentBytes: Int = 64 << 20,
+        maxTableColumns: Int = 64, maxInlineWorkPerByte: Int = 64, maxLeafBytes: Int = 1 << 20,
+        maxLinkBytes: Int = 64 << 10
     ) {
-        self.maxContainerDepth = maxContainerDepth
-        self.maxInlineDepth = maxInlineDepth
-        self.maxLineBytes = maxLineBytes
-        self.maxDocumentBytes = maxDocumentBytes
-        self.maxTableColumns = maxTableColumns
-        self.maxInlineWorkPerByte = maxInlineWorkPerByte
+        // @dl:disable near-clone -- one clamp per setting, in one shape
+        self.maxContainerDepth = Self.clamp(maxContainerDepth, 1, 256)
+        self.maxInlineDepth = Self.clamp(maxInlineDepth, 1, 256)
+        self.maxLineBytes = Self.clamp(maxLineBytes, 1, Slot.maxRange)
+        self.maxDocumentBytes = Self.clamp(maxDocumentBytes, 0, 1 << 30)
+        // Two bits of alignment per column, in 128 bits.
+        self.maxTableColumns = Self.clamp(maxTableColumns, 1, 64)
+        self.maxInlineWorkPerByte = Self.clamp(maxInlineWorkPerByte, 1, 1024)
+        self.maxLeafBytes = Self.clamp(maxLeafBytes, 1, Slot.maxRange)
+        self.maxLinkBytes = Self.clamp(maxLinkBytes, 1, Slot.maxRange)
+        // @dl:enable near-clone
     }
+
+    private static func clamp(_ value: Int, _ low: Int, _ high: Int) -> Int { Swift.min(Swift.max(value, low), high) }
 
     public static let `default` = MarkdownLimits()
 }
 
+// @dl:disable near-clone -- two option sets: the same declarations, one per flag, by the shape of an OptionSet
 /// What the parser noticed about the input, for a renderer that must treat it as untrusted.
 public struct MarkdownDiagnostics: OptionSet, Sendable, Equatable {
     public let rawValue: UInt16
@@ -46,6 +62,8 @@ public struct MarkdownDiagnostics: OptionSet, Sendable, Equatable {
     public static let documentSizeLimit = MarkdownDiagnostics(rawValue: 1 << 5)
     public static let tableColumnLimit = MarkdownDiagnostics(rawValue: 1 << 6)
     public static let inlineWorkLimit = MarkdownDiagnostics(rawValue: 1 << 7)
+    public static let leafSizeLimit = MarkdownDiagnostics(rawValue: 1 << 8)
+    public static let linkLengthLimit = MarkdownDiagnostics(rawValue: 1 << 9)
 }
 
 /// The syntax beyond CommonMark that the parser reads. All are on by default; with none, the parser is CommonMark 0.31.2 and nothing else.
@@ -62,3 +80,4 @@ public struct MarkdownExtensions: OptionSet, Sendable {
 
     public static let all: MarkdownExtensions = [.tables, .strikethrough, .autolinks]
 }
+// @dl:enable near-clone

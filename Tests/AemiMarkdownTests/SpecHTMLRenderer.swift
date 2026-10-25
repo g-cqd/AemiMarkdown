@@ -215,6 +215,7 @@ struct SpecHTMLRenderer {
                     images[images.count - 1].alt.append(contentsOf: image.alt)
                     return
                 }
+                stack.removeLast()  // the outermost image was pushed in `enter`; the others were never
                 var tag: [UInt8] = Array("<img src=\"".utf8)
                 HTMLEscaping.href(image.destination, into: &tag)
                 tag.append(contentsOf: Array("\" alt=\"".utf8))

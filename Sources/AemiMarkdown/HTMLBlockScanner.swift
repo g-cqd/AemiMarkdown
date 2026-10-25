@@ -3,6 +3,7 @@ enum HTMLBlockScanner {
     typealias Bytes = ContiguousArray<UInt8>
 
     /// The block tag names of condition 6, lowercase and sorted, so a name is found by binary search.
+    // @dl:disable near-clone -- a table of tag names: rows of one shape, by design
     private static let blockNames: [[UInt8]] = [
         "address", "article", "aside", "base", "basefont", "blockquote", "body", "caption", "center", "col", "colgroup",
         "dd", "details",
@@ -15,6 +16,7 @@ enum HTMLBlockScanner {
         "track", "ul"
     ]
     .map { Array($0.utf8) }
+    // @dl:enable near-clone
 
     private static func lower(_ byte: UInt8) -> UInt8 { byte >= 0x41 && byte <= 0x5A ? byte + 0x20 : byte }
 

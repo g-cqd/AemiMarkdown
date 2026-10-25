@@ -51,17 +51,10 @@ enum Slot {
         (slot & ~TapeSlot.lowMask) | (UInt64(truncatingIfNeeded: low) & TapeSlot.lowMask)
     }
 
-    /// `slot` with a new payload: how a paragraph becomes a heading, and a list learns that it is tight.
+    /// `slot` with a new payload: how a list learns that it is tight.
     @inline(__always)
     static func withPayload(_ slot: UInt64, _ payload: Int) -> UInt64 {
         let aux = (TapeSlot.aux(slot) & ~payloadMask) | UInt64(payload)
-        return TapeSlot.make(tag: TapeSlot.tag(slot), aux: aux, low: TapeSlot.low(slot))
-    }
-
-    /// `slot` with a new kind: how a paragraph becomes a heading.
-    @inline(__always)
-    static func withKind(_ slot: UInt64, _ kind: NodeKind) -> UInt64 {
-        let aux = (TapeSlot.aux(slot) & payloadMask) | UInt64(kind.rawValue) << payloadBits
         return TapeSlot.make(tag: TapeSlot.tag(slot), aux: aux, low: TapeSlot.low(slot))
     }
 }

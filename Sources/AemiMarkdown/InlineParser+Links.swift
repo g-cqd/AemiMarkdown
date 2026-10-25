@@ -20,53 +20,19 @@ extension InlineParser {
             appendText(close, position)
             return
         }
+        let afterBracket = position
         var destination: Range<Int>?
         var title: Range<Int>?
-        var matched = false
-        let afterBracket = position
-        if position < text.count, text[position] == UInt8(ascii: "(") {
-            position += 1
-            LinkSyntax.skipSpaceAndOneNewline(text, &position)
-            if let found = LinkSyntax.destination(text, &position) {
-                destination = found
-                let afterDestination = position
-                LinkSyntax.skipSpaceAndOneNewline(text, &position)
-                if position > afterDestination { title = LinkSyntax.title(text, &position) }
-                LinkSyntax.skipSpaceAndOneNewline(text, &position)
-                if position < text.count, text[position] == UInt8(ascii: ")") {
-                    position += 1
-                    matched = true
-                }
-            }
-            if !matched {
-                position = afterBracket
-                destination = nil
-                title = nil
-            }
-        }
         var reference: ReferenceTable.Reference?
-        if !matched {
-            let labelStart = position
-            let length = LinkSyntax.labelLength(text, &position)
-            var label: Range<Int>?
-            if length > 2 {
-                label = (labelStart + 1) ..< (labelStart + length - 1)
-            } else if !opener.bracketAfter {
-                label = opener.index ..< close
-            }
-            if length == 0 { position = afterBracket }
-            if let label, spend(label.count), let found = references.find(label: text[label]) {
-                reference = found
-                matched = true
-            }
-        }
-        guard matched else {
-            brackets.removeLast()
+        if let inline = inlineLink() {
+            (destination, title) = inline
+        } else {
             position = afterBracket
-            appendText(close, close + 1)
-            return
+            reference = referenceLink(opener: opener, close: close)
         }
-        guard wrapLink(opener: opener, destination: destination, title: title, reference: reference) else {
+        guard destination != nil || reference != nil,
+            wrapLink(opener: opener, destination: destination, title: title, reference: reference)
+        else {
             brackets.removeLast()
             position = afterBracket
             appendText(close, close + 1)
@@ -75,16 +41,49 @@ extension InlineParser {
         brackets.removeLast()
     }
 
+    /// The `(destination "title")` at the position, which moves past it; nil if there is none. What the scans read is charged to the work budget, so many `](`
+    /// with no end cost a bounded total.
+    private mutating func inlineLink() -> (destination: Range<Int>, title: Range<Int>?)? {
+        guard position < text.count, text[position] == UInt8(ascii: "(") else { return nil }
+        var scan = LinkSyntax.Scan()
+        defer {
+            if scan.tooLong { diagnostics.insert(.linkLengthLimit) }
+        }
+        position += 1
+        LinkSyntax.skipSpaceAndOneNewline(text, &position)
+        guard let destination = LinkSyntax.destination(text, &position, limit: limits.maxLinkBytes, &scan) else {
+            return nil
+        }
+        let afterDestination = position
+        LinkSyntax.skipSpaceAndOneNewline(text, &position)
+        let title =
+            position > afterDestination ? LinkSyntax.title(text, &position, limit: limits.maxLinkBytes, &scan) : nil
+        LinkSyntax.skipSpaceAndOneNewline(text, &position)
+        guard position < text.count, text[position] == UInt8(ascii: ")"), spend(scan.bytes) else { return nil }
+        position += 1
+        return (destination, title)
+    }
+
+    /// The definition that `[label]`, `[]` or the text of the brackets themselves names; the position moves past a label that follows.
+    private mutating func referenceLink(opener: Bracket, close: Int) -> ReferenceTable.Reference? {
+        let afterBracket = position
+        let length = LinkSyntax.labelLength(text, &position)
+        var label: Range<Int>?
+        if length > 2 {
+            label = (afterBracket + 1) ..< (afterBracket + length - 1)
+        } else if !opener.bracketAfter {
+            label = opener.index ..< close
+        }
+        if length == 0 { position = afterBracket }
+        guard let label, spend(label.count) else { return nil }
+        return references.find(label: text[label])
+    }
+
     /// Builds the link or image node over what follows the opener on the tree. False if it would nest past the limit.
     private mutating func wrapLink(
         opener: Bracket, destination: Range<Int>?, title: Range<Int>?, reference: ReferenceTable.Reference?
     ) -> Bool {
-        var height: Int32 = 0
-        var node = tree.nodes[Int(opener.node)].next
-        while node >= 0 {
-            height = Swift.max(height, tree.nodes[Int(node)].height)
-            node = tree.nodes[Int(node)].next
-        }
+        let height = tree.height(after: opener.node, before: -1)
         guard Int(height) + 1 <= limits.maxInlineDepth else {
             diagnostics.insert(.inlineDepthLimit)
             return false
@@ -111,13 +110,7 @@ extension InlineParser {
             tree.append(
                 InlineNode(kind: .linkTitle, start: referenceTitle.lowerBound, length: referenceTitle.count), to: link)
         }
-        node = tree.nodes[Int(opener.node)].next
-        while node != link {
-            let next = tree.nodes[Int(node)].next
-            tree.unlink(node)
-            tree.link(node, lastChildOf: link)
-            node = next
-        }
+        tree.moveSiblings(after: opener.node, before: link, into: link)
         processEmphasis(bottom: opener.previousDelimiter)
         tree.unlink(opener.node)
         if !opener.isImage {

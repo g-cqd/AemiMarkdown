@@ -32,7 +32,7 @@ extension InlineParser {
         guard i < text.count, ASCIIClass.isLetter(text[i]) else { return emailAutolink(text, at: index) }
         let schemeStart = i
         while i < text.count,
-            ASCIIClass.isLetter(text[i]) || ASCIIClass.isDigit(text[i]) || [0x2B, 0x2E, 0x2D].contains(text[i])
+            ASCIIClass.isAlphanumeric(text[i]) || [0x2B, 0x2E, 0x2D].contains(text[i])
         { i += 1 }
         guard i - schemeStart >= 2, i - schemeStart <= 32, i < text.count, text[i] == UInt8(ascii: ":") else {
             return emailAutolink(text, at: index)
@@ -51,7 +51,7 @@ extension InlineParser {
         var i = index + 1
         let local = i
         let allowed = Array("!#$%&'*+/=?^_`{|}~-.".utf8)
-        while i < text.count, ASCIIClass.isLetter(text[i]) || ASCIIClass.isDigit(text[i]) || allowed.contains(text[i]) {
+        while i < text.count, ASCIIClass.isAlphanumeric(text[i]) || allowed.contains(text[i]) {
             i += 1
         }
         guard i > local, i < text.count, text[i] == UInt8(ascii: "@") else { return nil }
@@ -60,7 +60,7 @@ extension InlineParser {
         while true {
             let labelStart = i
             while i < text.count,
-                ASCIIClass.isLetter(text[i]) || ASCIIClass.isDigit(text[i]) || text[i] == UInt8(ascii: "-")
+                ASCIIClass.isAlphanumeric(text[i]) || text[i] == UInt8(ascii: "-")
             { i += 1 }
             let length = i - labelStart
             guard length >= 1, length <= 63, text[labelStart] != UInt8(ascii: "-"), text[i - 1] != UInt8(ascii: "-")

@@ -48,7 +48,8 @@ extension MarkdownParser {
     /// cmark's `open_new_blocks`: while the rest of the line starts a block, open it. `container` is the index of the last open block that matched, and
     /// becomes the innermost block opened.
     mutating func startNewBlocks(_ container: inout Int, _ end: Int) {
-        let maybeLazy = state.open[state.open.count - 1].kind == .paragraph
+        // Whether a line indented four columns could still continue the paragraph that is open: not once this line has opened a block of its own.
+        var maybeLazy = state.open[state.open.count - 1].kind == .paragraph
         while true {
             let kind = state.open[container].kind
             if kind == .fencedCode || kind == .indentedCode || kind == .htmlBlock { return }
@@ -84,7 +85,7 @@ extension MarkdownParser {
                 return
             } else if !indented, first == UInt8(ascii: "<"),
                 let condition = HTMLBlockScanner.startCondition(
-                    source, state.firstNonspace, end, interruptsParagraph: state.open[container].kind == .paragraph)
+                    source, state.firstNonspace, end, interruptsParagraph: maybeLazy)
             {
                 container = addChild(
                     .htmlBlock, to: container, slot: Slot.make(.container, .htmlBlock, payload: 0, low: 0))
@@ -118,6 +119,7 @@ extension MarkdownParser {
                 _ = tryTable(container: &container, end)
                 return
             }
+            maybeLazy = false
             switch state.open[container].kind {
                 case .heading, .paragraph, .thematicBreak, .fencedCode, .indentedCode, .htmlBlock: return
                 default: continue

@@ -4,8 +4,6 @@
 enum HTMLTagScanner {
     typealias Bytes = ContiguousArray<UInt8>
 
-    private static func isLetter(_ b: UInt8) -> Bool { (b >= 0x41 && b <= 0x5A) || (b >= 0x61 && b <= 0x7A) }
-    private static func isDigit(_ b: UInt8) -> Bool { b >= 0x30 && b <= 0x39 }
     private static func isSpace(_ b: UInt8) -> Bool { b == 0x20 || b == 0x09 || b == 0x0A || b == 0x0C || b == 0x0D }
 
     /// Whether `source[index ..< end]` is one complete open or closing tag (of a name other than the condition 1 names) followed only by spaces and tabs.
@@ -18,7 +16,7 @@ enum HTMLTagScanner {
         if source[nameStart] == UInt8(ascii: "/") { nameStart += 1 }
         var nameEnd = nameStart
         while nameEnd < end,
-            isLetter(source[nameEnd]) || isDigit(source[nameEnd]) || source[nameEnd] == UInt8(ascii: "-")
+            ASCIIClass.isAlphanumeric(source[nameEnd]) || source[nameEnd] == UInt8(ascii: "-")
         { nameEnd += 1 }
         let name = String(decoding: source[nameStart ..< nameEnd], as: UTF8.self).lowercased()
         return !["script", "style", "pre", "textarea"].contains(name)
@@ -32,9 +30,10 @@ enum HTMLTagScanner {
     }
 
     private static func tagName(_ source: Bytes, _ start: Int, _ end: Int) -> Int? {
-        guard start < end, isLetter(source[start]) else { return nil }
+        guard start < end, ASCIIClass.isLetter(source[start]) else { return nil }
         var i = start + 1
-        while i < end, isLetter(source[i]) || isDigit(source[i]) || source[i] == UInt8(ascii: "-") { i += 1 }
+        while i < end, ASCIIClass.isLetter(source[i]) || ASCIIClass.isDigit(source[i]) || source[i] == UInt8(ascii: "-")
+        { i += 1 }
         return i
     }
 
@@ -71,11 +70,12 @@ enum HTMLTagScanner {
 
     private static func attributeName(_ source: Bytes, _ start: Int, _ end: Int) -> Int? {
         guard start < end,
-            isLetter(source[start]) || source[start] == UInt8(ascii: "_") || source[start] == UInt8(ascii: ":")
+            ASCIIClass.isLetter(source[start]) || source[start] == UInt8(ascii: "_")
+                || source[start] == UInt8(ascii: ":")
         else { return nil }
         var i = start + 1
         while i < end,
-            isLetter(source[i]) || isDigit(source[i])
+            ASCIIClass.isLetter(source[i]) || ASCIIClass.isDigit(source[i])
                 || [UInt8(ascii: "_"), UInt8(ascii: "."), UInt8(ascii: ":"), UInt8(ascii: "-")].contains(source[i])
         { i += 1 }
         return i

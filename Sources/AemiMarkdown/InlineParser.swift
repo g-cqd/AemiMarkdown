@@ -86,13 +86,29 @@ struct InlineParser {
             if remaining > 0 { text.append(0x0A) }
         }
         workLimit = limits.maxInlineWorkPerByte * (text.count + 16)
-        while position < text.count { parseInline() }
-        processEmphasis(bottom: -1)
-        if extensions.contains(.autolinks) { autolinkBareLinks() }
+        if text.count > limits.maxLeafBytes {
+            // Memory for the tree would be in proportion to the block, so a block this large is shown as it was written.
+            diagnostics.insert(.leafSizeLimit)
+            appendPlainLines()
+        } else {
+            while position < text.count { parseInline() }
+            processEmphasis(bottom: -1)
+        }
+        if extensions.contains(.autolinks), text.count <= limits.maxLeafBytes { autolinkBareLinks() }
         let run = inlines.count
         serialize(into: &inlines)
         inlines.append(Slot.make(.marker, .runEnd, payload: 0, low: 0))
         return run
+    }
+
+    /// The leaf block as text and soft breaks, with no inline syntax read.
+    private mutating func appendPlainLines() {
+        for line in lineScratchStart.indices {
+            let start = lineScratchStart[line]
+            let end = line + 1 < lineScratchStart.count ? lineScratchStart[line + 1] - 1 : text.count
+            if line > 0 { tree.append(InlineNode(kind: .softBreak)) }
+            appendText(start, end, joining: false)
+        }
     }
 
     /// The source offset of the byte at `index` in the joined text.
@@ -208,16 +224,16 @@ struct InlineParser {
     }
 
     private mutating func newline() {
-        // Spaces before the line ending: two or more make a hard break, fewer a soft one, and either way they are not text.
+        // White space before the line ending is not text. Two spaces right before it make a hard break, anything less a soft one (a tab does not count).
         var spaces = 0
         let last = tree.nodes[0].lastChild
         if last >= 0, tree.nodes[Int(last)].kind == .text, tree.nodes[Int(last)].payload == 0 {
             let node = tree.nodes[Int(last)]
             var end = node.start + node.length
-            while end > node.start, source[end - 1] == 0x20 {
-                end -= 1
-                spaces += 1
-            }
+            while end > node.start, source[end - 1] == 0x20 || source[end - 1] == 0x09 { end -= 1 }
+            var run = node.start + node.length
+            while run > end, source[run - 1] == 0x20 { run -= 1 }
+            spaces = node.start + node.length - run
             tree.nodes[Int(last)].length = end - node.start
         }
         tree.append(InlineNode(kind: spaces >= 2 ? .hardBreak : .softBreak))

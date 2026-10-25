@@ -72,4 +72,26 @@ struct InlineTree {
         nodes[Int(anchor)].next = index
         if next >= 0 { nodes[Int(next)].previous = index } else { nodes[Int(parent)].lastChild = index }
     }
+
+    /// The greatest height among the siblings after `node` and before `end` (`-1` for all of them).
+    func height(after node: Int32, before end: Int32) -> Int32 {
+        var height: Int32 = 0
+        var next = nodes[Int(node)].next
+        while next != end, next >= 0 {
+            height = Swift.max(height, nodes[Int(next)].height)
+            next = nodes[Int(next)].next
+        }
+        return height
+    }
+
+    /// Moves the siblings after `node` and before `end` (`-1` for all of them) to the end of `container`'s children, in order.
+    mutating func moveSiblings(after node: Int32, before end: Int32, into container: Int32) {
+        var next = nodes[Int(node)].next
+        while next != end, next >= 0 {
+            let following = nodes[Int(next)].next
+            unlink(next)
+            link(next, lastChildOf: container)
+            next = following
+        }
+    }
 }

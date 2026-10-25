@@ -40,9 +40,6 @@ struct BlockState: Sendable {
 
         /// Whether the last child ends in a blank line, looking through lists and items (cmark's `S_ends_with_blank_line`).
         var lastChildEndsBlank: Bool { childSelfBlank || (childIsContainer && childInnerBlank) }
-
-        /// Whether the block ends in a blank line, which decides if a list is loose.
-        var endsWithBlankLine: Bool { lastLineBlank || ((kind == .list || kind == .item) && lastChildEndsBlank) }
     }
 
     /// A leaf block whose inlines are not parsed yet.

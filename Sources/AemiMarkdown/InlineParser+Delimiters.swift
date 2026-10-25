@@ -104,12 +104,7 @@ extension InlineParser {
         let open = delimiters[Int(opener)]
         let close = delimiters[Int(closer)]
         let used = close.character == UInt8(ascii: "~") ? close.count : (close.count >= 2 && open.count >= 2 ? 2 : 1)
-        var height: Int32 = 0
-        var node = tree.nodes[Int(open.node)].next
-        while node != close.node {
-            height = Swift.max(height, tree.nodes[Int(node)].height)
-            node = tree.nodes[Int(node)].next
-        }
+        let height = tree.height(after: open.node, before: close.node)
         guard Int(height) + 1 <= limits.maxInlineDepth else {
             diagnostics.insert(.inlineDepthLimit)
             return false
@@ -123,13 +118,7 @@ extension InlineParser {
         let kind: NodeKind = close.character == UInt8(ascii: "~") ? .strikethrough : (used == 1 ? .emphasis : .strong)
         let container = Int32(tree.nodes.count)
         tree.nodes.append(InlineNode(kind: kind, height: height + 1))
-        node = tree.nodes[Int(open.node)].next
-        while node != close.node {
-            let next = tree.nodes[Int(node)].next
-            tree.unlink(node)
-            tree.link(node, lastChildOf: container)
-            node = next
-        }
+        tree.moveSiblings(after: open.node, before: close.node, into: container)
         tree.insert(container, after: open.node)
         delimiters[Int(opener)].next = closer
         delimiters[Int(closer)].previous = opener

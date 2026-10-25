@@ -89,6 +89,7 @@ extension InlineParser {
 
     // MARK: - Matching, after cmark-gfm's autolink extension
 
+    // @dl:disable near-clone -- the three forms of an extended autolink are three functions that mirror cmark-gfm's, one rule each
     private func isSpace(_ byte: UInt8) -> Bool { ASCIIClass.isWhitespace(byte) }
 
     /// `www.` after the start of the text, a space, or one of `*_~(`; then a domain with a dot.
@@ -124,11 +125,12 @@ extension InlineParser {
         return end > index + 3 ? Found(start: start, end: end, payload: 0) : nil
     }
 
+    // @dl:enable near-clone
     /// `local@domain`, where the domain has a dot, optionally after `mailto:` or `xmpp:`.
     private func emailLink(at index: Int, _ lower: Int, _ upper: Int) -> Found? {
         var start = index
         while start > lower,
-            ASCIIClass.isLetter(source[start - 1]) || ASCIIClass.isDigit(source[start - 1])
+            ASCIIClass.isAlphanumeric(source[start - 1])
                 || [0x2E, 0x2B, 0x2D, 0x5F].contains(source[start - 1])
         {
             start -= 1
@@ -138,10 +140,10 @@ extension InlineParser {
         var dots = 0
         while end < upper {
             let byte = source[end]
-            if ASCIIClass.isLetter(byte) || ASCIIClass.isDigit(byte) {
+            if ASCIIClass.isAlphanumeric(byte) {
                 end += 1
             } else if byte == UInt8(ascii: "."), end + 1 < upper,
-                ASCIIClass.isLetter(source[end + 1]) || ASCIIClass.isDigit(source[end + 1])
+                ASCIIClass.isAlphanumeric(source[end + 1])
             {
                 dots += 1
                 end += 1
@@ -158,7 +160,7 @@ extension InlineParser {
             let bytes = Array(prefix.utf8)
             let before = start - bytes.count - 1
             if start - lower >= bytes.count, source[(start - bytes.count) ..< start].elementsEqual(bytes),
-                before < lower || !(ASCIIClass.isLetter(source[before]) || ASCIIClass.isDigit(source[before]))
+                before < lower || !(ASCIIClass.isAlphanumeric(source[before]))
             {
                 start -= bytes.count
                 payload = 0
@@ -185,7 +187,7 @@ extension InlineParser {
                 underscoresBefore = underscores
                 underscores = 0
                 dots += 1
-            } else if !(ASCIIClass.isLetter(byte) || ASCIIClass.isDigit(byte)) && byte != UInt8(ascii: "-")
+            } else if !(ASCIIClass.isAlphanumeric(byte)) && byte != UInt8(ascii: "-")
                 && byte < 0x80
             {
                 break
@@ -204,23 +206,25 @@ extension InlineParser {
     }
 
     /// Takes trailing punctuation, an unbalanced `)` and an entity-like `&…;` off the end of a link that starts at `start`.
+    /// - Complexity: O(link length): the parentheses are counted once and then adjusted as the end moves.
     private func trimmed(from start: Int, _ end: Int) -> Int {
         var end = end
+        var open = 0
+        var close = 0
+        for byte in source[start ..< end] {
+            if byte == UInt8(ascii: "(") { open += 1 } else if byte == UInt8(ascii: ")") { close += 1 }
+        }
         while end > start {
             let last = source[end - 1]
-            if Array("?!.,:*_~'\"".utf8).contains(last) {
+            if Self.trailingPunctuation.contains(last) {
                 end -= 1
             } else if last == UInt8(ascii: ";") {
                 var scan = end - 2
                 while scan > start, ASCIIClass.isLetter(source[scan]) { scan -= 1 }
                 end = scan < end - 2 && source[scan] == UInt8(ascii: "&") ? scan : end - 1
             } else if last == UInt8(ascii: ")") {
-                var open = 0
-                var close = 0
-                for byte in source[start ..< end] {
-                    if byte == UInt8(ascii: "(") { open += 1 } else if byte == UInt8(ascii: ")") { close += 1 }
-                }
                 if close <= open { break }
+                close -= 1
                 end -= 1
             } else {
                 break
@@ -228,4 +232,6 @@ extension InlineParser {
         }
         return end
     }
+
+    private static let trailingPunctuation: Set<UInt8> = Set(Array("?!.,:*_~'\"".utf8))
 }
