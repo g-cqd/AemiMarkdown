@@ -7,8 +7,9 @@ spec, 30 examples), and alerts (`> [!NOTE]`) and math (`$x$`, `$$x$$`), which Gi
 `.gfm` only the specified ones.
 
 **Status:** the parser is complete against both specifications: every CommonMark 0.31.2 example (652) and every GFM extension example (30) passes, and the
-ratchet of known failures is empty. The reading API for renderers (top-level blocks with stable identities, ADR-0002) is new; its first consumer, TerminalKit's
-Markdown renderer, is planned (TerminalKit roadmap 0022). Apple platforms only so far.
+ratchet of known failures is empty. Compared with cmark 0.31.2 and cmark-gfm 0.29 on random inputs, the differences left are classified in
+`DifferentialTests`: the references' own faults and spec-version differences, none owed. The reading API for renderers (top-level blocks with stable
+identities, ADR-0002) is used by TerminalKit's Markdown renderer (`TerminalKitMarkdown`), which draws ask's assistant messages. Apple platforms only so far.
 
 ```swift
 import AemiMarkdown
