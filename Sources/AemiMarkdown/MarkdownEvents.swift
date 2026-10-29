@@ -2,11 +2,11 @@
 ///
 /// - Complexity: O(1) per event, apart from the stack's growth, which is bounded by the nesting limits the parser applied.
 public struct MarkdownEvents: Sequence, IteratorProtocol, Sendable {
-    private let blocks: SlotTape
-    private let inlines: SlotTape
+    private var blocks: SlotTape
+    private var inlines: SlotTape
     private var blockIndex = 0
     /// Where the walk stops on the block tape: its end, or the end of one top-level block.
-    private let blockEnd: Int
+    private var blockEnd: Int
     private var blockStack: [(end: Int, node: MarkdownNode)] = []
     private var inlineIndex = 0
     private var inlineStack: [(end: Int, node: MarkdownNode)] = []
@@ -20,6 +20,19 @@ public struct MarkdownEvents: Sequence, IteratorProtocol, Sendable {
         blockEnd = Swift.min(blocks.count, slots.upperBound)
         blockStack.reserveCapacity(16)
         inlineStack.reserveCapacity(16)
+    }
+
+    /// Walks `block` of `document` from its start, keeping the memory the walk's stacks grew: a renderer that keeps one walker for the blocks it lays
+    /// out allocates nothing per walk once the stacks are as deep as its deepest block.
+    public mutating func restart(at block: MarkdownBlock, in document: MarkdownDocument) {
+        blocks = document.blocks
+        inlines = document.inlines
+        blockIndex = Swift.max(0, block.slots.lowerBound)
+        blockEnd = Swift.min(blocks.count, block.slots.upperBound)
+        blockStack.removeAll(keepingCapacity: true)
+        inlineStack.removeAll(keepingCapacity: true)
+        inlineIndex = 0
+        leafBlock = nil
     }
 
     public mutating func next() -> MarkdownEvent? {

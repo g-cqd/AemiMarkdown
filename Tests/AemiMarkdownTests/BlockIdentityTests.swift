@@ -93,4 +93,19 @@ struct BlockIdentityTests {
             #expect(streamed == blocks(MarkdownParser.parse(bytes, extensions: extensions)).map(\.id), "\(example.id)")
         }
     }
+
+    @Test func `a walker restarted at a block walks what events(of:) walks, from any state`() {
+        for example in SpecConformanceTests.examples {
+            let document = MarkdownParser.parse(
+                Array(example.markdown.utf8), extensions: example.file == "commonmark" ? [] : .gfm)
+            var walker = document.events
+            _ = walker.next()  // left mid-walk on purpose
+            for block in blocks(document) {
+                walker.restart(at: block, in: document)
+                var walked: [MarkdownEvent] = []
+                while let event = walker.next() { walked.append(event) }
+                #expect(walked == events(document, block), "\(example.id)")
+            }
+        }
+    }
 }

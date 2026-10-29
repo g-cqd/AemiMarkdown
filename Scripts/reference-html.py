@@ -5,7 +5,8 @@
   Scripts/reference-html.py ext  OUT.ndjson --corpus corpus.ndjson
 
 core: CMARK (default /tmp/cmark-up/build/src/cmark, cmark 0.31.2, the reference of CommonMark 0.31.2), no extensions.
-ext:  CMARK_GFM (default /tmp/cmark-gfm-src/build/src/cmark-gfm) with tables, strikethrough and autolinks. cmark-gfm implements spec 0.29, so only
+ext:  CMARK_GFM (default /tmp/cmark-gfm-src/build/src/cmark-gfm) with what `MarkdownExtensions.gfm` turns on: tables, strikethrough, autolinks,
+      task lists and footnotes. cmark-gfm implements spec 0.29, so only
       inputs that use an extension are meaningful there; the differences that 0.29 and 0.31 have between them are not parser faults.
 
 The corpus is NDJSON, one {"t": "..."} per line (never committed: it is made of private session logs). Each output line is {"t": input, "h": html}.
@@ -35,7 +36,7 @@ def main():
     if mode == "core":
         binary, args = os.environ.get("CMARK", "/tmp/cmark-up/build/src/cmark"), []
     else:
-        binary, args = os.environ.get("CMARK_GFM", "/tmp/cmark-gfm-src/build/src/cmark-gfm"), ["-e", "table", "-e", "strikethrough", "-e", "autolink"]
+        binary, args = os.environ.get("CMARK_GFM", "/tmp/cmark-gfm-src/build/src/cmark-gfm"), ["-e", "table", "-e", "strikethrough", "-e", "autolink", "-e", "tasklist", "-e", "footnotes"]
     if "--corpus" in options:
         texts = [json.loads(l)["t"] for l in open(options["--corpus"]) if l.strip()]
         limit = int(options.get("--limit", "0"))

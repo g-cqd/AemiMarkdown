@@ -246,7 +246,11 @@ struct InlineParser {
         guard text.count >= 3, text[0] == UInt8(ascii: "["), text[2] == UInt8(ascii: "]") else { return }
         let state = text[1]
         guard state == 0x20 || state == UInt8(ascii: "x") || state == UInt8(ascii: "X") else { return }
-        guard text.count == 3 || text[3] == 0x20 || text[3] == 0x09 || text[3] == 0x0A else { return }
+        // The marker needs a space or a tab after it on its own line, as in cmark-gfm: `- [x]` alone, or followed by a line ending, is text. The last
+        // line's trailing white space was trimmed from `text`, so at its end the source says whether one followed.
+        let after =
+            text.count > 3 ? text[3] : lineSourceStart[0] + 3 < source.count ? source[lineSourceStart[0] + 3] : 0
+        guard after == 0x20 || after == 0x09 else { return }
         tree.append(InlineNode(kind: .taskMarker, payload: state == 0x20 ? 0 : 1))
         position = 3
         while position < text.count, text[position] == 0x20 || text[position] == 0x09 { position += 1 }

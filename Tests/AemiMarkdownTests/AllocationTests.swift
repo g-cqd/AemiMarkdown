@@ -92,6 +92,26 @@ struct AllocationTests {
         #expect(allocations == 0, "\(markdown.debugDescription) allocated \(allocations) times")
     }
 
+    /// A renderer keeps one walker and restarts it at each block it lays out: once warm, a walk allocates nothing (a fresh walker reserves its two
+    /// stacks, two allocations per walk).
+    @Test func `a walker restarted at each block allocates nothing once warm`() throws {
+        let document = MarkdownParser.parse(Self.document)
+        let blocks = Array(document.topLevelBlocks)
+        var walker = document.events
+        for block in blocks {
+            walker.restart(at: block, in: document)
+            while walker.next() != nil {}
+        }
+        for block in blocks {
+            let allocations = try #require(
+                mallocDelta {
+                    walker.restart(at: block, in: document)
+                    while walker.next() != nil {}
+                })
+            #expect(allocations == 0, "walking \(block.node.kind) again allocated \(allocations) times")
+        }
+    }
+
     /// The one allocation a definition makes is its key, the normalized label in the table.
     @Test func `a link reference definition allocates its key, once`() throws {
         var parser = MarkdownParser()
