@@ -4,6 +4,8 @@ extension InlineParser {
         var start: Int
         var end: Int
         var payload: Int
+        /// For a `www.` or scheme link, the byte its match began at: such a link reads the source as written, through escapes and entities.
+        var trigger: Int?
     }
 
     /// GitHub's extended autolinks (`www.example.com`, `https://example.com`, `me@example.com`) in the text outside links and code, once emphasis is settled.
@@ -85,6 +87,7 @@ extension InlineParser {
             }
         }
         guard let first = bareLinks.first else { return node }
+        let swallowed = extendLastLink(past: start + length, after: node)
         // The node keeps the text before the first link; the rest is inserted after it.
         tree.nodes[Int(node)].length = first.start - start
         var anchor = node
@@ -99,7 +102,50 @@ extension InlineParser {
             cursor = link.end
         }
         if cursor < start + length { anchor = insertText(cursor, start + length, after: anchor) }
+        if let end = swallowed { trimSiblings(after: anchor, upTo: end) }
         return anchor
+    }
+
+    /// A `www.` or scheme link runs to a space or `<` in the source as written (GFM 6.9), as cmark-gfm matches it while it reads the inlines: through a
+    /// `\*`, an entity or a backtick that ended this text node, which split the text before links were looked for. When the last link reached the
+    /// node's end, it is matched again over the raw source of the text and entities that follow, each touching the one before or one backslash
+    /// away from it. Returns the end of the source it now covers past the node, which the nodes there give up.
+    private mutating func extendLastLink(past end: Int, after node: Int32) -> Int? {
+        guard let last = bareLinks.last, let trigger = last.trigger, pathEnd(last.start, end) == end else { return nil }
+        var upper = end
+        var sibling = tree.nodes[Int(node)].next
+        while sibling >= 0, tree.nodes[Int(sibling)].kind == .text || tree.nodes[Int(sibling)].kind == .entity {
+            let from = tree.nodes[Int(sibling)].start
+            guard from == upper || (from == upper + 1 && source[upper] == UInt8(ascii: "\\")) else { break }
+            upper = from + tree.nodes[Int(sibling)].length
+            sibling = tree.nodes[Int(sibling)].next
+        }
+        guard upper > end else { return nil }
+        let lower = tree.nodes[Int(node)].start
+        let again =
+            source[trigger] == UInt8(ascii: ":")
+            ? schemeLink(at: trigger, lower, upper) : wwwLink(at: trigger, lower, upper)
+        guard let again, again.end > end else { return nil }
+        bareLinks[bareLinks.count - 1] = again
+        return again.end
+    }
+
+    /// The siblings after `anchor` that lie before `end` in the source go, and one that runs past it keeps the source after it, as text.
+    private mutating func trimSiblings(after anchor: Int32, upTo end: Int) {
+        var sibling = tree.nodes[Int(anchor)].next
+        while sibling >= 0, tree.nodes[Int(sibling)].start < end {
+            let node = tree.nodes[Int(sibling)]
+            let next = node.next
+            guard node.start + node.length <= end else {
+                tree.nodes[Int(sibling)] = InlineNode(kind: .text, start: end, length: node.start + node.length - end)
+                tree.nodes[Int(sibling)].parent = node.parent
+                tree.nodes[Int(sibling)].previous = node.previous
+                tree.nodes[Int(sibling)].next = node.next
+                return
+            }
+            tree.unlink(sibling)
+            sibling = next
+        }
     }
 
     private mutating func insertText(_ from: Int, _ to: Int, after anchor: Int32) -> Int32 {
@@ -130,7 +176,7 @@ extension InlineParser {
         }
         guard let domainEnd = domain(source, index, upper, allowShort: false) else { return nil }
         let end = trimmed(from: index, pathEnd(domainEnd, upper))
-        return end > index ? BareLink(start: index, end: end, payload: 2) : nil
+        return end > index ? BareLink(start: index, end: end, payload: 2, trigger: index) : nil
     }
 
     /// `http://`, `https://` or `ftp://` and a domain.
@@ -146,7 +192,7 @@ extension InlineParser {
         }
         guard let domainEnd = domain(source, index + 3, upper, allowShort: true) else { return nil }
         let end = trimmed(from: start, pathEnd(domainEnd, upper))
-        return end > index + 3 ? BareLink(start: start, end: end, payload: 0) : nil
+        return end > index + 3 ? BareLink(start: start, end: end, payload: 0, trigger: index) : nil
     }
 
     // @dl:enable near-clone

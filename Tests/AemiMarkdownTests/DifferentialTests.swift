@@ -13,14 +13,15 @@ import Testing
 /// - in a fenced code block's info string cmark decodes entities before backslash escapes, so `\&amp;` reads `&`; in text it reads `&amp;`, and
 ///   AemiMarkdown reads both as text does.
 ///
-/// Against cmark-gfm 0.29.0.gfm.13 (`ext`, 2026-10-29, 5,000 random inputs, seed 3): 278 differ after the task-marker fix, and none is a fault in an extension
-/// as the GFM spec describes it:
+/// Against cmark-gfm 0.29.0.gfm.13 (`ext`, 2026-10-29, 5,000 random inputs, seed 3): 253 differ after the task-marker and bare-link extent fixes (343 to 320
+/// for seed 7), and none is a fault in an extension as the GFM spec describes it:
 /// - 150: cmark-gfm makes no bare autolink while a `[` or `![` is open, even one that never closes and so is plain text;
 /// - 68: cmark-gfm checks a `[ ]` item when the item holds a later `[x]`;
 /// - 44: the same input renders as cmark 0.31.2 renders it with the extensions off (cmark-gfm follows spec 0.29, and its task list extension takes the
 ///   marker at the block level, which ends a lazy continuation);
-/// - 15, owed: a bare link runs to white space or `<` (GFM 6.9), through a `\*` or a backtick; AemiMarkdown links bare URLs after the inline phase,
-///   where an escape or a code span has already split the text, so its link stops there;
+/// - 2: a bare link runs to white space or `<` (GFM 6.9) through a backtick that opens a code span: cmark-gfm matches the link while it reads the
+///   inlines, so the span never forms; AemiMarkdown links bare URLs once code spans are settled, and a link stops at a code span (it does run
+///   through an escape, an entity or a stray backtick, `BareLinkExtentTests`);
 /// - 1: a tab split across container indentation on a lazy line inside a code span, which cmark turns into spaces and a source range cannot hold.
 @Suite("The parser agrees with a reference implementation on generated and real input")
 struct DifferentialTests {
