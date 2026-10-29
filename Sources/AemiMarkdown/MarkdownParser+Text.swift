@@ -21,8 +21,10 @@ extension MarkdownParser {
 
         let tip = state.open.count - 1
         if container == lastMatched, tip != lastMatched, !blank, state.open[tip].kind == .paragraph {
-            // A lazy continuation: the line continues a paragraph although some of its containers did not match.
-            addLeafLine(to: tip, end)
+            // A lazy continuation: the line continues a paragraph although some of its containers did not match. As in cmark, it keeps its
+            // leading whitespace (the line is added from where matching stopped): the inline phase drops it after a soft or a trailing-space break,
+            // and a code span or a backslash break keeps it.
+            addLeafLine(to: tip, end, from: state.offset)
             return
         }
         closeAbove(container)
@@ -55,8 +57,8 @@ extension MarkdownParser {
     }
 
     /// A line of a paragraph or a heading: the rest of the line from its first non-blank byte.
-    private mutating func addLeafLine(to index: Int, _ end: Int) {
-        var range = state.firstNonspace ..< end
+    private mutating func addLeafLine(to index: Int, _ end: Int, from start: Int? = nil) {
+        var range = (start ?? state.firstNonspace) ..< end
         if state.open[index].kind == .heading, state.open[index].lineCount == 0 { range = trimmedHeading(range) }
         if state.open[index].lineCount == 0 { state.open[index].firstLine = state.lineRanges.count }
         state.lineRanges.append(range)

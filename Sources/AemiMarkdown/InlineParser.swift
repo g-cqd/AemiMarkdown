@@ -124,8 +124,10 @@ struct InlineParser {
     /// The leaf block as text and soft breaks, with no inline syntax read.
     private mutating func appendPlainLines() {
         for line in lineScratchStart.indices {
-            let start = lineScratchStart[line]
+            var start = lineScratchStart[line]
             let end = line + 1 < lineScratchStart.count ? lineScratchStart[line + 1] - 1 : text.count
+            // A lazy continuation line keeps its leading whitespace until here; plain text drops it, as a soft break does.
+            while line > 0, start < end, text[start] == 0x20 || text[start] == 0x09 { start += 1 }
             if line > 0 { tree.append(InlineNode(kind: .softBreak)) }
             appendText(start, end, joining: false)
         }
@@ -271,9 +273,9 @@ struct InlineParser {
     private mutating func backslash() {
         let next = position + 1 < text.count ? text[position + 1] : 0
         if next == 0x0A {
+            // The next line's leading spaces stay, as in cmark: only a lazy continuation line still has any.
             tree.append(InlineNode(kind: .hardBreak))
             position += 2
-            while position < text.count, text[position] == 0x20 || text[position] == 0x09 { position += 1 }
         } else if next != 0, ASCIIClass.isPunctuation(next) {
             tree.append(InlineNode(kind: .text, start: sourceOffset(position + 1), length: 1))
             position += 2
