@@ -32,7 +32,14 @@ rebuild rows per block. ADR-0001 made closed blocks final but gave a reader no w
 same identity and the same events in every later snapshot and in the finished document. Failed 673 checks with the snapshot-based rule; passes with
 the parser-based one.
 
-## Not decided
+## Decided later (2026-10-29)
 
-A source byte range per block (a renderer that copies Markdown source would want it; computing it walks the subtree), and a revision for the open
-block (a renderer lays it out again on every snapshot today).
+- **No revision for the open block.** The open block changes whenever bytes arrive (its source grows), so a revision would only restate
+  `document.source.count`, which a renderer already has. Not added.
+- **No source range per block, yet.** What a renderer needs for selection and copy is where each drawn row came from, and the leaves give that (text runs,
+  code lines and destinations name their bytes). A block range would serve "copy this block as written", including its markers (`>`, `-`, fences), which
+  the leaves do not cover. It needs the parser to record each top-level block's first and last line, and care with a paragraph that turned out to be
+  only reference definitions (removed from the tape, so its lines must not fall into the block before it). Built when a consumer asks for it; the first
+  candidate is the TerminalKit renderer's copy (its roadmap 0022).
+- **A walker can be reused** (`MarkdownEvents.restart(at:in:)`): a fresh walk allocates its two stacks, a restarted one nothing once warm (allocation
+  suite).
