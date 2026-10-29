@@ -23,11 +23,17 @@ let aemiDependency: Package.Dependency = .package(
 let regexDependency: Package.Dependency = .package(
     url: "https://github.com/g-cqd/AemiRegex.git", revision: "fe9b07f00f7b52d2d210ed4df43bd2b18f4ad674")
 
+// The DocC plugin is for contributors (`AEMIMARKDOWN_DEV=1 swift package generate-documentation --target AemiMarkdown`); packages that depend on
+// AemiMarkdown never resolve it.
+let documentationDependencies: [Package.Dependency] =
+    Context.environment["AEMIMARKDOWN_DEV"] != nil
+    ? [.package(url: "https://github.com/swiftlang/swift-docc-plugin", from: "1.5.0")] : []
+
 let package = Package(
     name: "AemiMarkdown",
     platforms: [.macOS(.v15), .iOS(.v18), .tvOS(.v18), .watchOS(.v11), .visionOS(.v2)],
     products: [.library(name: "AemiMarkdown", targets: ["AemiMarkdown"])],
-    dependencies: [aemiDependency, regexDependency],
+    dependencies: [aemiDependency, regexDependency] + documentationDependencies,
     targets: [
         .target(
             name: "AemiMarkdown",
