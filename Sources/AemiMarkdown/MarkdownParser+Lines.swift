@@ -42,12 +42,15 @@ extension MarkdownParser {
         inlines.commit()
         if state.open.allSatisfy({ $0.lineCount == 0 }) { state.lineRanges.removeAll(keepingCapacity: true) }
         updateIncrementalParagraph()
+        // The boundary is read from this parser, not from the copy: a partial last line parsed as if the input ended can close a block (a lone `*`
+        // starts a new list) that the complete line would not (`**` continues the paragraph).
+        let finalBefore = openBlocksStart
         // The rest is parsed on a copy, which owns the inline parser's buffers while it works and hands them back.
         var provisional = self
         inlineParser = InlineParser()
         provisional.close()
         inlineParser = provisional.inlineParser
-        return provisional.document()
+        return provisional.document(finalBefore: finalBefore)
     }
 
     /// Parses the last line, closes every open block and parses every inline run, without committing.

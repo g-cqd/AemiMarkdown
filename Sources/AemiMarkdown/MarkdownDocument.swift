@@ -8,19 +8,30 @@ public struct MarkdownDocument: Sendable {
     let blocks: SlotTape
     let inlines: SlotTape
     public let diagnostics: MarkdownDiagnostics
+    /// Where the top-level blocks that may still change begin on the block tape.
+    let finalBefore: Int
 
     init(
         source: ContiguousArray<UInt8>, blocks: SlotTape, inlines: SlotTape,
-        diagnostics: MarkdownDiagnostics
+        diagnostics: MarkdownDiagnostics, finalBefore: Int
     ) {
         self.source = source
         self.blocks = blocks
         self.inlines = inlines
         self.diagnostics = diagnostics
+        self.finalBefore = finalBefore
     }
 
     /// The document in order, as enter, exit and leaf events.
     public var events: MarkdownEvents { MarkdownEvents(blocks: blocks, inlines: inlines) }
+
+    /// The top-level blocks, each with an identity that does not change while the document grows and whether it is final.
+    public var topLevelBlocks: MarkdownBlocks { MarkdownBlocks(blocks: blocks, finalBefore: finalBefore) }
+
+    /// The walk over one top-level block, as ``events`` walks the whole document.
+    public func events(of block: MarkdownBlock) -> MarkdownEvents {
+        MarkdownEvents(blocks: blocks, inlines: inlines, slots: block.slots)
+    }
 
     /// How many slots the block tape holds. For tests and benchmarks.
     public var blockSlotCount: Int { blocks.count }

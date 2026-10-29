@@ -5,14 +5,19 @@ public struct MarkdownEvents: Sequence, IteratorProtocol, Sendable {
     private let blocks: SlotTape
     private let inlines: SlotTape
     private var blockIndex = 0
+    /// Where the walk stops on the block tape: its end, or the end of one top-level block.
+    private let blockEnd: Int
     private var blockStack: [(end: Int, node: MarkdownNode)] = []
     private var inlineIndex = 0
     private var inlineStack: [(end: Int, node: MarkdownNode)] = []
     private var leafBlock: MarkdownNode?
 
-    init(blocks: SlotTape, inlines: SlotTape) {
+    init(blocks: SlotTape, inlines: SlotTape, slots: Range<Int>? = nil) {
         self.blocks = blocks
         self.inlines = inlines
+        let slots = slots ?? 0 ..< blocks.count
+        blockIndex = Swift.max(0, slots.lowerBound)
+        blockEnd = Swift.min(blocks.count, slots.upperBound)
         blockStack.reserveCapacity(16)
         inlineStack.reserveCapacity(16)
     }
@@ -23,7 +28,7 @@ public struct MarkdownEvents: Sequence, IteratorProtocol, Sendable {
             blockStack.removeLast()
             return .exit(top.node)
         }
-        guard blockIndex < blocks.count else { return nil }
+        guard blockIndex < blockEnd else { return nil }
         let slot = blocks[blockIndex]
         blockIndex += 1
         let node = MarkdownNode(slot: slot)
