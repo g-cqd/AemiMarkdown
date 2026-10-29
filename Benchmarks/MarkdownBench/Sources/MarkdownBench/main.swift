@@ -146,6 +146,11 @@ for message in messages where message.count > 400 && message.contains(0x0A) {
     if answer.count >= 100_000 { break }
 }
 func stream(_ name: String, _ bytes: [UInt8], delta: Int = 40) {
+    // A corpus with no message long enough and of several lines gives no answer to stream: say so rather than index an empty list.
+    guard !bytes.isEmpty else {
+        print("stream \(name): no input in this corpus, skipped")
+        return
+    }
     var deltas: [Double] = []
     var parser = MarkdownParser()
     var offset = 0
