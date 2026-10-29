@@ -16,33 +16,18 @@ let strictSettings: [SwiftSetting] = [
 // `unsafe` and justified where it stands.
 let kernelSettings: [SwiftSetting] = strictSettings + [.strictMemorySafety()]
 
-// Test-only dependencies that are not published (AemiRegex has no remote yet) or that consumers should never resolve are
-// gated behind AEMIMARKDOWN_DEV, as AemiJSON gates its own. A plain `swift build` and `swift test` need none of them.
-let isDev = Context.environment["AEMIMARKDOWN_DEV"] != nil
-
-// One revision of Aemi for the whole graph: SwiftPM rejects one package identity at two revisions. ask, TerminalKit and
-// AemiJSON pin the same one, so they move together.
+// AemiRegex compiles the spec's own grammars for the differential tests of the hand-written scanners (ADR-0001, decision 7). A test-only
+// dependency: a package that depends on AemiMarkdown does not fetch it.
 let aemiDependency: Package.Dependency = .package(
     url: "https://github.com/Aemi-Studio/aemi.git", revision: "f6da05cd0efdf60700e854efb5b6092eae89b8c5")
-
-var packageDependencies: [Package.Dependency] = [aemiDependency]
-var devTargets: [Target] = []
-if isDev {
-    // The spec's raw-HTML and autolink grammars are regular; AemiRegex runs them as the oracle for the hand-written byte
-    // scanners (differential tests). It is never on the parse path: it takes an Array, and a search costs more than a scan.
-    packageDependencies.append(.package(path: "../aemiregex"))
-    devTargets.append(
-        .testTarget(
-            name: "AemiMarkdownGrammarTests",
-            dependencies: ["AemiMarkdown", .product(name: "AemiRegex", package: "aemiregex")],
-            swiftSettings: strictSettings))
-}
+let regexDependency: Package.Dependency = .package(
+    url: "https://github.com/g-cqd/AemiRegex.git", revision: "fe9b07f00f7b52d2d210ed4df43bd2b18f4ad674")
 
 let package = Package(
     name: "AemiMarkdown",
     platforms: [.macOS(.v15), .iOS(.v18), .tvOS(.v18), .watchOS(.v11), .visionOS(.v2)],
     products: [.library(name: "AemiMarkdown", targets: ["AemiMarkdown"])],
-    dependencies: packageDependencies,
+    dependencies: [aemiDependency, regexDependency],
     targets: [
         .target(
             name: "AemiMarkdown",
@@ -59,6 +44,10 @@ let package = Package(
                 .product(name: "AemiTestKit", package: "aemi")
             ],
             resources: [.copy("Fixtures")],
+            swiftSettings: strictSettings),
+        .testTarget(
+            name: "AemiMarkdownGrammarTests",
+            dependencies: ["AemiMarkdown", .product(name: "AemiRegex", package: "AemiRegex")],
             swiftSettings: strictSettings)
-    ] + devTargets
+    ]
 )

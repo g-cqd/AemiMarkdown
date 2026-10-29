@@ -5,7 +5,7 @@ import Testing
 
 /// The spec defines autolinks and raw HTML tags by regular grammars. The parser reads them with hand-written byte scanners, because a scan of an 80-byte line is cheaper than a
 /// regular-expression search; these tests run the spec's own grammar, as AemiRegex compiles it, over generated and mutated inputs and require the same answer
-/// (ADR-0001, decision 7). They build only with `AEMIMARKDOWN_DEV=1`, because AemiRegex has no remote to depend on yet.
+/// (ADR-0001, decision 7).
 @Suite("The hand-written scanners agree with the spec's grammars")
 struct GrammarDifferentialTests {
     // CommonMark 0.31.2, 6.4 and 6.6: an absolute URI, an email address, an open tag, a closing tag.

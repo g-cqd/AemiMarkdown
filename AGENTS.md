@@ -2,8 +2,9 @@
 
 A Markdown parser for terminals and streams: UTF-8 bytes in, two flat tapes out, incremental, bounded, never failing. Read `docs/adr/0001-*.md` first.
 
-- **Build and test in release**: `swift test -c release --enable-testable-imports`. A debug build measures a program nobody ships. `AEMIMARKDOWN_DEV=1` adds the AemiRegex
-  differential tests.
+- **Build and test in release**: `swift test -c release --enable-testable-imports`. A debug build measures a program nobody ships. A plain `swift test` (debug) skips the allocation ceilings, which
+  describe the optimized parser. The AemiRegex grammar tests run in both. The cmark-gfm comparison runs when `AEMIMARKDOWN_DIFFERENTIAL` names a corpus
+  from `Scripts/reference-html.py`.
 - **The spec is the test.** `Tests/AemiMarkdownTests/Fixtures/` holds CommonMark 0.31.2 and the GFM extensions (CC BY-SA, see `LICENSE.md` there). The ratchet
   (`Fixtures/known-failing.txt`) shrinks and never gains an entry. `Scripts/update-ratchet.sh` rewrites it after a fix and refuses to add one.
 - **No recursion, no failure.** Nesting is an explicit stack with a limit; any bytes give a document. A new loop needs its bound.

@@ -5,7 +5,19 @@ import Testing
 
 /// A parser that is used again allocates nothing for a document no larger than one it has parsed: the buffers it grew are kept, and nothing is allocated per node
 /// (ADR-0001, goals). `mallocDelta` counts the allocations of the calling thread, so the work is synchronous and on this thread.
-@Suite("A reused parser does not allocate", .serialized)
+/// The ceilings describe the optimized parser: an unoptimized build allocates where release does not (unspecialised generics, retained
+/// temporaries), so `swift test` in debug skips them and `swift test -c release` runs them (AGENTS.md).
+private let isDebugBuild: Bool = {
+    #if DEBUG
+        true
+    #else
+        false
+    #endif
+}()
+
+@Suite(
+    "A reused parser does not allocate", .serialized,
+    .disabled(if: isDebugBuild, "the ceilings describe the optimized parser; run them with -c release"))
 struct AllocationTests {
     static let document = Array(
         """
