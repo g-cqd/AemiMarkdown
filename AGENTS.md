@@ -12,4 +12,4 @@ A Markdown parser for terminals and streams: UTF-8 bytes in, two flat tapes out,
 - **Measure.** Throughput, allocations per KB and the streamed-delta cost are compared with the swift-markdown baseline in ask's diary 2026-10-25-01. A change that
   can affect them is benchmarked before and after, median and spread, release build.
 - **One Aemi revision** for the graph (`Package.swift`): ask, TerminalKit and AemiJSON pin the same one and move together.
-- Style: `.swift-format` and `.swiftlint.yml` are Aemi's canonical files (`../aemi/scripts/sync-config.sh`); one primary type per file; files under 250 lines.
+- Style: `.swift-format` and `.swiftlint.yml` are Aemi's canonical files (`../aemi/Scripts/sync-config.sh`); one primary type per file; files under 250 lines.
