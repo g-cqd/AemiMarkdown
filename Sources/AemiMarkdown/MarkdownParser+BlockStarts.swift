@@ -82,7 +82,10 @@ extension MarkdownParser {
         guard !maybeLazy, !state.blank else { return .none }
         advance(4, columns: true, end)
         container = addChild(
-            .indentedCode, to: container, slot: Slot.make(.container, .codeBlock, payload: 0, low: 0))
+            .indentedCode,
+            to: container,
+            slot: Slot.make(.container, .codeBlock, payload: 0, low: 0)
+        )
         return .leaf
     }
 
@@ -105,7 +108,11 @@ extension MarkdownParser {
         }
         if first == UInt8(ascii: "<"),
             let condition = HTMLBlockScanner.startCondition(
-                source, state.firstNonspace, end, interruptsParagraph: maybeLazy)
+                source,
+                state.firstNonspace,
+                end,
+                interruptsParagraph: maybeLazy
+            )
         {
             container = addChild(.htmlBlock, to: container, slot: Slot.make(.container, .htmlBlock, payload: 0, low: 0))
             state.open[container].htmlCondition = condition
@@ -125,13 +132,19 @@ extension MarkdownParser {
         }
         if BlockScanner.isThematicBreak(source, state.firstNonspace, end) {
             container = addChild(
-                .thematicBreak, to: container, slot: Slot.make(.marker, .thematicBreak, payload: 0, low: 0))
+                .thematicBreak,
+                to: container,
+                slot: Slot.make(.marker, .thematicBreak, payload: 0, low: 0)
+            )
             advance(end - state.offset, columns: false, end)
             return .leaf
         }
         if let marker = BlockScanner.listMarker(
-            source, state.firstNonspace, end, interruptsParagraph: kind == .paragraph)
-        {
+            source,
+            state.firstNonspace,
+            end,
+            interruptsParagraph: kind == .paragraph
+        ) {
             guard !atContainerLimit else { return containerLimitReached() }
             openListItem(marker, container: &container, end)
             return .container
@@ -208,7 +221,10 @@ extension MarkdownParser {
             if marker.isOrdered { flags.insert(.ordered) }
             if marker.isOrdered, marker.character == UInt8(ascii: ")") { flags.insert(.parenthesis) }
             container = addChild(
-                .list, to: container, slot: Slot.make(.container, .list, payload: flags.rawValue, low: 0))
+                .list,
+                to: container,
+                slot: Slot.make(.container, .list, payload: flags.rawValue, low: 0)
+            )
             state.open[container].isOrdered = marker.isOrdered
             state.open[container].markerCharacter = marker.character
             if marker.isOrdered { blocks.append(Slot.make(.marker, .listStart, payload: 0, low: marker.start)) }

@@ -22,7 +22,9 @@ struct BlockIdentityTests {
     @Test func `walking every block in turn is walking the document`() {
         for example in SpecConformanceTests.examples {
             let document = MarkdownParser.parse(
-                Array(example.markdown.utf8), extensions: example.file == "commonmark" ? [] : .gfm)
+                Array(example.markdown.utf8),
+                extensions: example.file == "commonmark" ? [] : .gfm
+            )
             let joined = blocks(document).flatMap { events(document, $0) }
             #expect(joined == Array(document.events), "\(example.id)")
         }
@@ -65,7 +67,8 @@ struct BlockIdentityTests {
                     if let earlier = final[block.id] {
                         #expect(
                             walked == earlier && block.isFinal,
-                            "\(example.id): block \(block.id) changed after it was final")
+                            "\(example.id): block \(block.id) changed after it was final"
+                        )
                     } else if block.isFinal {
                         final[block.id] = walked
                     }
@@ -97,7 +100,9 @@ struct BlockIdentityTests {
     @Test func `a walker restarted at a block walks what events(of:) walks, from any state`() {
         for example in SpecConformanceTests.examples {
             let document = MarkdownParser.parse(
-                Array(example.markdown.utf8), extensions: example.file == "commonmark" ? [] : .gfm)
+                Array(example.markdown.utf8),
+                extensions: example.file == "commonmark" ? [] : .gfm
+            )
             var walker = document.events
             _ = walker.next()  // left mid-walk on purpose
             for block in blocks(document) {

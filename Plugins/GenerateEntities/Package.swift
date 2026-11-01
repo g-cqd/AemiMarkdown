@@ -10,6 +10,7 @@ let package = Package(
     targets: [
         .executableTarget(
             name: "GenerateEntities",
-            dependencies: [.product(name: "AemiJSONCore", package: "AemiJSON")])
+            dependencies: [.product(name: "AemiJSONCore", package: "AemiJSON")]
+        )
     ]
 )

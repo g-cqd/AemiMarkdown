@@ -23,9 +23,13 @@ public struct MarkdownLimits: Sendable, Equatable {
 
     /// The settings, brought inside what the tape format and the memory budget can hold: each is clamped to its floor and ceiling, so no setting traps.
     public init(
-        maxContainerDepth: Int = 32, maxInlineDepth: Int = 32, maxLineBytes: Int = 1 << 20,
+        maxContainerDepth: Int = 32,
+        maxInlineDepth: Int = 32,
+        maxLineBytes: Int = 1 << 20,
         maxDocumentBytes: Int = 64 << 20,
-        maxTableColumns: Int = 64, maxInlineWorkPerByte: Int = 64, maxLeafBytes: Int = 1 << 20,
+        maxTableColumns: Int = 64,
+        maxInlineWorkPerByte: Int = 64,
+        maxLeafBytes: Int = 1 << 20,
         maxLinkBytes: Int = 64 << 10
     ) {
         // @dl:disable near-clone -- one clamp per setting, in one shape

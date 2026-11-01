@@ -30,7 +30,9 @@ public struct MarkdownParser: Sendable {
     /// Parses `bytes` as a whole document. Reference definitions anywhere apply to every link.
     /// - Complexity: O(n) in `bytes.count`, within the limits.
     public static func parse(
-        _ bytes: [UInt8], extensions: MarkdownExtensions = .github, limits: MarkdownLimits = .default
+        _ bytes: [UInt8],
+        extensions: MarkdownExtensions = .github,
+        limits: MarkdownLimits = .default
     ) -> MarkdownDocument {
         var parser = MarkdownParser(extensions: extensions, limits: limits)
         parser.append(bytes)
@@ -59,8 +61,12 @@ public struct MarkdownParser: Sendable {
     /// The document as the tapes stand. `finalBefore` is where the blocks that may still change begin; a finished document has none.
     func document(finalBefore: Int? = nil) -> MarkdownDocument {
         MarkdownDocument(
-            source: source, blocks: blocks, inlines: inlines, diagnostics: diagnostics,
-            finalBefore: finalBefore ?? blocks.count)
+            source: source,
+            blocks: blocks,
+            inlines: inlines,
+            diagnostics: diagnostics,
+            finalBefore: finalBefore ?? blocks.count
+        )
     }
 
     /// Where the top-level blocks that may still change begin on the block tape: the slot of the open top-level block, or the end of the tape

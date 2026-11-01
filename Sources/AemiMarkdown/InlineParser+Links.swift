@@ -82,7 +82,10 @@ extension InlineParser {
 
     /// Builds the link or image node over what follows the opener on the tree. False if it would nest past the limit.
     private mutating func wrapLink(
-        opener: Bracket, destination: Range<Int>?, title: Range<Int>?, reference: ReferenceTable.Reference?
+        opener: Bracket,
+        destination: Range<Int>?,
+        title: Range<Int>?,
+        reference: ReferenceTable.Reference?
     ) -> Bool {
         let height = tree.height(after: opener.node, before: -1)
         guard Int(height) + 1 <= limits.maxInlineDepth else {
@@ -91,7 +94,8 @@ extension InlineParser {
         }
         let hasTitle = title != nil || reference?.title != nil
         let link = tree.append(
-            InlineNode(kind: opener.isImage ? .image : .link, payload: hasTitle ? 1 : 0, height: height + 1))
+            InlineNode(kind: opener.isImage ? .image : .link, payload: hasTitle ? 1 : 0, height: height + 1)
+        )
         // The destination and the title come first among the children, as source ranges.
         let destinationNode = InlineNode(kind: .linkDestination, start: 0, length: 0)
         var leaf = destinationNode
@@ -109,7 +113,9 @@ extension InlineParser {
             tree.append(InlineNode(kind: .linkTitle, start: lower, length: Swift.max(0, upper - lower)), to: link)
         } else if let referenceTitle = reference?.title {
             tree.append(
-                InlineNode(kind: .linkTitle, start: referenceTitle.lowerBound, length: referenceTitle.count), to: link)
+                InlineNode(kind: .linkTitle, start: referenceTitle.lowerBound, length: referenceTitle.count),
+                to: link
+            )
         }
         tree.moveSiblings(after: opener.node, before: link, into: link)
         processEmphasis(bottom: opener.previousDelimiter)

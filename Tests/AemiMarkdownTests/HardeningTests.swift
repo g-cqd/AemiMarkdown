@@ -32,9 +32,13 @@ struct HardeningTests {
 
     @Test func `limits that would break the tape format are brought inside it`() {
         let limits = MarkdownLimits(
-            maxContainerDepth: .max, maxInlineDepth: .max, maxLineBytes: .max, maxDocumentBytes: .max,
+            maxContainerDepth: .max,
+            maxInlineDepth: .max,
+            maxLineBytes: .max,
+            maxDocumentBytes: .max,
             maxTableColumns: .max,
-            maxInlineWorkPerByte: .max)
+            maxInlineWorkPerByte: .max
+        )
         #expect(limits.maxLineBytes <= Slot.maxRange)
         #expect(limits.maxDocumentBytes <= 1 << 30)
         #expect(limits.maxTableColumns <= 64)
@@ -42,11 +46,17 @@ struct HardeningTests {
         #expect(limits.maxInlineDepth <= 256)
         #expect(limits.maxInlineWorkPerByte <= 1024)
         let floor = MarkdownLimits(
-            maxContainerDepth: -5, maxInlineDepth: 0, maxLineBytes: 0, maxDocumentBytes: -1, maxTableColumns: 0,
-            maxInlineWorkPerByte: -1)
+            maxContainerDepth: -5,
+            maxInlineDepth: 0,
+            maxLineBytes: 0,
+            maxDocumentBytes: -1,
+            maxTableColumns: 0,
+            maxInlineWorkPerByte: -1
+        )
         #expect(
             floor.maxLineBytes >= 1 && floor.maxContainerDepth >= 1 && floor.maxInlineDepth >= 1
-                && floor.maxTableColumns >= 1)
+                && floor.maxTableColumns >= 1
+        )
         #expect(floor.maxDocumentBytes >= 0 && floor.maxInlineWorkPerByte >= 1)
         // and a parse with the extremes does not trap
         let document = MarkdownParser.parse(Array("# a\n\n| a |\n|---|\n| b |\n".utf8), limits: limits)

@@ -37,7 +37,10 @@ enum LinkSyntax {
 
     /// A link destination at the position, as a range of the text, at most `limit` bytes long; the position moves past it. Nil leaves the position where it was.
     static func destination(
-        _ text: ContiguousArray<UInt8>, _ position: inout Int, limit: Int, _ scan: inout Scan
+        _ text: ContiguousArray<UInt8>,
+        _ position: inout Int,
+        limit: Int,
+        _ scan: inout Scan
     ) -> Range<Int>? {
         let start = position
         guard start < text.count else { return nil }
@@ -82,7 +85,10 @@ enum LinkSyntax {
 
     /// A link title at the position: `"…"`, `'…'` or `(…)`, at most `limit` bytes long. Nil leaves the position where it was.
     static func title(
-        _ text: ContiguousArray<UInt8>, _ position: inout Int, limit: Int, _ scan: inout Scan
+        _ text: ContiguousArray<UInt8>,
+        _ position: inout Int,
+        limit: Int,
+        _ scan: inout Scan
     ) -> Range<Int>? {
         let start = position
         guard start < text.count else { return nil }

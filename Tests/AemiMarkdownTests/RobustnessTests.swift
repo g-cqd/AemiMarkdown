@@ -46,7 +46,8 @@ struct RobustnessTests {
                 let snapshot = parser.snapshot()
                 #expect(
                     TapeValidator.problem(in: snapshot) == nil,
-                    "seed \(seed) snapshot: \(TapeValidator.problem(in: snapshot) ?? "")")
+                    "seed \(seed) snapshot: \(TapeValidator.problem(in: snapshot) ?? "")"
+                )
             }
             parser.finish()
             let streamed = parser.snapshot()

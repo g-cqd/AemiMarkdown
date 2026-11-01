@@ -12,8 +12,11 @@ public struct MarkdownDocument: Sendable {
     let finalBefore: Int
 
     init(
-        source: ContiguousArray<UInt8>, blocks: SlotTape, inlines: SlotTape,
-        diagnostics: MarkdownDiagnostics, finalBefore: Int
+        source: ContiguousArray<UInt8>,
+        blocks: SlotTape,
+        inlines: SlotTape,
+        diagnostics: MarkdownDiagnostics,
+        finalBefore: Int
     ) {
         self.source = source
         self.blocks = blocks

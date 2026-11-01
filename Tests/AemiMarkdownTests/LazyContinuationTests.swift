@@ -28,6 +28,7 @@ struct LazyContinuationTests {
         parser.finish()
         #expect(
             SpecHTMLRenderer.html(of: parser.snapshot())
-                == SpecHTMLRenderer.html(of: MarkdownParser.parse(bytes, extensions: [])))
+                == SpecHTMLRenderer.html(of: MarkdownParser.parse(bytes, extensions: []))
+        )
     }
 }

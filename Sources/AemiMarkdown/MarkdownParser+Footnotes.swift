@@ -20,7 +20,10 @@ extension MarkdownParser {
     mutating func openFootnote(label: Range<Int>, container: Int, _ end: Int) -> Int {
         references.insertFootnote(label: source[label])
         let index = addChild(
-            .footnote, to: container, slot: Slot.make(.container, .footnoteDefinition, payload: 0, low: 0))
+            .footnote,
+            to: container,
+            slot: Slot.make(.container, .footnoteDefinition, payload: 0, low: 0)
+        )
         blocks.append(Slot.make(.range, .footnoteLabel, payload: label.count, low: label.lowerBound))
         state.open[index].markerOffset = 0
         state.open[index].padding = 4

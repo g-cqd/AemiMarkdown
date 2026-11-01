@@ -33,9 +33,16 @@ extension InlineParser {
         guard canOpen || canClose else { return }
         delimiters.append(
             Delimiter(
-                node: node, character: character, count: count, originalCount: count, canOpen: canOpen,
+                node: node,
+                character: character,
+                count: count,
+                originalCount: count,
+                canOpen: canOpen,
                 canClose: canClose,
-                previous: delimiterTop, next: -1))
+                previous: delimiterTop,
+                next: -1
+            )
+        )
         let index = Int32(delimiters.count - 1)
         if delimiterTop >= 0 { delimiters[Int(delimiterTop)].next = index }
         delimiterTop = index

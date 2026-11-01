@@ -49,7 +49,10 @@ extension MarkdownParser {
                 let firstInItem = kind == .item && !state.open[container].hasChild
                 let firstInQuote = kind == .blockQuote && !state.open[container].hasChild
                 let paragraph = addChild(
-                    .paragraph, to: container, slot: Slot.make(.leafBlock, .paragraph, payload: 0, low: 0))
+                    .paragraph,
+                    to: container,
+                    slot: Slot.make(.leafBlock, .paragraph, payload: 0, low: 0)
+                )
                 state.open[paragraph].taskCandidate = firstInItem && extensions.contains(.taskLists)
                 state.open[paragraph].alertCandidate = firstInQuote && extensions.contains(.alerts)
                 addLeafLine(to: paragraph, end)

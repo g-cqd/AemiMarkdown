@@ -16,7 +16,9 @@ extension InlineParser {
                     descended = node.firstChild >= 0
                     if !descended {
                         inlines[serializeStack.removeLast().slot] = Slot.withLow(
-                            inlines[inlines.count - 1], inlines.count)
+                            inlines[inlines.count - 1],
+                            inlines.count
+                        )
                     }
                 case .text:
                     if node.length > 0 {

@@ -20,6 +20,10 @@ public struct MarkdownBlocks: Sequence, IteratorProtocol, Sendable {
         let end = Slot.shape(slot) == .container ? Slot.low(slot) : start + 1
         index = end > start && end <= blocks.count ? end : start + 1
         return MarkdownBlock(
-            id: start, node: MarkdownNode(slot: slot), isFinal: index <= finalBefore, slots: start ..< index)
+            id: start,
+            node: MarkdownNode(slot: slot),
+            isFinal: index <= finalBefore,
+            slots: start ..< index
+        )
     }
 }

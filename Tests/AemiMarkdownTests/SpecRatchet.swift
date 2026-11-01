@@ -12,6 +12,7 @@ enum SpecRatchet {
         return Set(
             text.split(separator: "\n")
                 .filter { !$0.hasPrefix("#") && !$0.trimmingCharacters(in: .whitespaces).isEmpty }
-                .map { String($0.split(separator: "#", maxSplits: 1)[0]).trimmingCharacters(in: .whitespaces) })
+                .map { String($0.split(separator: "#", maxSplits: 1)[0]).trimmingCharacters(in: .whitespaces) }
+        )
     }
 }

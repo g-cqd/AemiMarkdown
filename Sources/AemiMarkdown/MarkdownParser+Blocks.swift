@@ -39,7 +39,11 @@ extension MarkdownParser {
                 case .fencedCode:
                     if state.indent <= 3, peek(state.firstNonspace, end) == block.fenceCharacter,
                         let length = BlockScanner.codeFenceClosing(
-                            source, state.firstNonspace, end, character: block.fenceCharacter),
+                            source,
+                            state.firstNonspace,
+                            end,
+                            character: block.fenceCharacter
+                        ),
                         length >= block.fenceLength
                     {
                         advance(end - state.offset, columns: false, end)

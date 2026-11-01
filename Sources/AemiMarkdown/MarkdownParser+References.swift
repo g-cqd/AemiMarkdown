@@ -2,7 +2,9 @@ extension MarkdownParser {
     /// Takes the link reference definitions off the start of the open paragraph at `index`, records them, and leaves the lines after them.
     mutating func resolveReferenceDefinitions(in index: Int) {
         let consumed = consumeDefinitions(
-            firstLine: state.open[index].firstLine, lineCount: state.open[index].lineCount)
+            firstLine: state.open[index].firstLine,
+            lineCount: state.open[index].lineCount
+        )
         state.open[index].firstLine += consumed
         state.open[index].lineCount -= consumed
     }
@@ -19,7 +21,8 @@ extension MarkdownParser {
                 blocks.removeLast()
             } else {
                 state.pending.append(
-                    .init(slot: block.slot, firstLine: block.firstLine + 1, lineCount: block.lineCount - 1))
+                    .init(slot: block.slot, firstLine: block.firstLine + 1, lineCount: block.lineCount - 1)
+                )
             }
             return
         }
@@ -30,8 +33,12 @@ extension MarkdownParser {
         }
         state.pending.append(
             .init(
-                slot: block.slot, firstLine: block.firstLine + consumed, lineCount: block.lineCount - consumed,
-                taskCandidate: block.taskCandidate && consumed == 0))
+                slot: block.slot,
+                firstLine: block.firstLine + consumed,
+                lineCount: block.lineCount - consumed,
+                taskCandidate: block.taskCandidate && consumed == 0
+            )
+        )
     }
 
     /// Parses definitions from the start of the lines and returns how many lines they used.
@@ -89,7 +96,10 @@ extension MarkdownParser {
 
     /// One definition at `position`: `[label]: destination "title"`, ending at a line end. The position moves past it (and its line ending) when it parses.
     private static func definition(
-        _ text: ContiguousArray<UInt8>, _ position: inout Int, limit: Int, _ scan: inout LinkSyntax.Scan
+        _ text: ContiguousArray<UInt8>,
+        _ position: inout Int,
+        limit: Int,
+        _ scan: inout LinkSyntax.Scan
     ) -> (label: Range<Int>, destination: Range<Int>, title: Range<Int>?)? {
         var cursor = position
         let labelStart = cursor

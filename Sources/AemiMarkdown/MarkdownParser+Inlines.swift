@@ -59,9 +59,15 @@ extension MarkdownParser {
                 openParagraphParsedUpTo = 0
             } else {
                 _ = inlineParser.parse(
-                    source: source, lines: lines, references: references, limits: limits, extensions: extensions,
-                    isTableCell: Slot.kind(blocks[leaf.slot]) == .tableCell, isTaskCandidate: leaf.taskCandidate,
-                    into: &inlines)
+                    source: source,
+                    lines: lines,
+                    references: references,
+                    limits: limits,
+                    extensions: extensions,
+                    isTableCell: Slot.kind(blocks[leaf.slot]) == .tableCell,
+                    isTaskCandidate: leaf.taskCandidate,
+                    into: &inlines
+                )
             }
             diagnostics.formUnion(inlineParser.diagnostics)
             inlineSteps += inlineParser.work

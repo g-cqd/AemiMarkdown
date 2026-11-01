@@ -26,7 +26,8 @@ struct StreamingTests {
             parser.finish()
             #expect(
                 html(parser.snapshot()) == html(MarkdownParser.parse(bytes, extensions: extensions(example))),
-                "\(example.id) in pieces of \(size)")
+                "\(example.id) in pieces of \(size)"
+            )
         }
     }
 
@@ -41,7 +42,8 @@ struct StreamingTests {
                 arrived += piece
                 #expect(
                     html(parser.snapshot()) == html(MarkdownParser.parse(arrived, extensions: extensions(example))),
-                    "\(example.id) after \(arrived.count) of \(bytes.count) bytes")
+                    "\(example.id) after \(arrived.count) of \(bytes.count) bytes"
+                )
             }
         }
     }

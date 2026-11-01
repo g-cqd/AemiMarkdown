@@ -57,8 +57,14 @@ enum SpecFile {
                         phase = .outside
                         examples.append(
                             SpecExample(
-                                file: file, number: examples.count + 1, chapter: chapter, section: section,
-                                markdown: Self.join(markdown), html: Self.join(html)))
+                                file: file,
+                                number: examples.count + 1,
+                                chapter: chapter,
+                                section: section,
+                                markdown: Self.join(markdown),
+                                html: Self.join(html)
+                            )
+                        )
                     } else {
                         html.append(line)
                     }

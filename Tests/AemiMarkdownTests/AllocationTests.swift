@@ -16,8 +16,10 @@ private let isDebugBuild: Bool = {
 }()
 
 @Suite(
-    "A reused parser does not allocate", .serialized,
-    .disabled(if: isDebugBuild, "the ceilings describe the optimized parser; run them with -c release"))
+    "A reused parser does not allocate",
+    .serialized,
+    .disabled(if: isDebugBuild, "the ceilings describe the optimized parser; run them with -c release")
+)
 struct AllocationTests {
     static let document = Array(
         """
@@ -47,7 +49,8 @@ struct AllocationTests {
         Text with ~~strikethrough~~ and a [broken](/url link.
         ***
         """
-        .utf8)
+        .utf8
+    )
 
     @Test func `parsing a document again allocates nothing`() throws {
         var parser = MarkdownParser()
@@ -61,7 +64,8 @@ struct AllocationTests {
                 parser.reset()
                 parser.append(Self.document)
                 parser.finish()
-            })
+            }
+        )
         #expect(allocations == 0, "a reused parser allocated \(allocations) times")
     }
 
@@ -88,7 +92,8 @@ struct AllocationTests {
                 parser.reset()
                 parser.append(bytes)
                 parser.finish()
-            })
+            }
+        )
         #expect(allocations == 0, "\(markdown.debugDescription) allocated \(allocations) times")
     }
 
@@ -107,7 +112,8 @@ struct AllocationTests {
                 mallocDelta {
                     walker.restart(at: block, in: document)
                     while walker.next() != nil {}
-                })
+                }
+            )
             #expect(allocations == 0, "walking \(block.node.kind) again allocated \(allocations) times")
         }
     }
@@ -126,7 +132,8 @@ struct AllocationTests {
                 parser.reset()
                 parser.append(bytes)
                 parser.finish()
-            })
+            }
+        )
         #expect(allocations == 1)
     }
 
@@ -146,7 +153,8 @@ struct AllocationTests {
                 parser.reset()
                 for piece in pieces { parser.append(piece) }
                 parser.finish()
-            })
+            }
+        )
         #expect(allocations == 0, "streaming without snapshots allocated \(allocations) times")
     }
 }

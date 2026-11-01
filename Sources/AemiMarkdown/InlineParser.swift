@@ -59,8 +59,12 @@ struct InlineParser {
 
     /// Parses `lines` of `source` and appends the leaf block's inline run, ending in a `runEnd` slot, to `inlines`. Returns the index of the run's first slot.
     mutating func parse(
-        source: ContiguousArray<UInt8>, lines: ArraySlice<Range<Int>>, references: ReferenceTable,
-        limits: MarkdownLimits, extensions: MarkdownExtensions, isTableCell: Bool = false,
+        source: ContiguousArray<UInt8>,
+        lines: ArraySlice<Range<Int>>,
+        references: ReferenceTable,
+        limits: MarkdownLimits,
+        extensions: MarkdownExtensions,
+        isTableCell: Bool = false,
         isTaskCandidate: Bool = false,
         into inlines: inout SlotTape
     ) -> Int {

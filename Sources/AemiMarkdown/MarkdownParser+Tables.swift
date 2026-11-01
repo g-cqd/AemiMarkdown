@@ -74,7 +74,10 @@ extension MarkdownParser {
             blocks.removeLast()
         }
         let table = addChild(
-            .table, to: container - 1, slot: Slot.make(.container, .table, payload: delimiter.columns, low: 0))
+            .table,
+            to: container - 1,
+            slot: Slot.make(.container, .table, payload: delimiter.columns, low: 0)
+        )
         state.open[table].columns = delimiter.columns
         state.open[table].alignments = delimiter.alignments
         appendRow(header: true, table: table, cells: header)

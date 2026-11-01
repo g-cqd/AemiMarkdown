@@ -31,7 +31,9 @@ struct SpecConformanceTests {
         let known = try SpecRatchet.knownFailing()
         // The CommonMark file is CommonMark alone; the extensions file is read with the extensions on.
         let document = MarkdownParser.parse(
-            Array(example.markdown.utf8), extensions: example.file == "commonmark" ? [] : .gfm)
+            Array(example.markdown.utf8),
+            extensions: example.file == "commonmark" ? [] : .gfm
+        )
         let html = SpecHTMLRenderer.html(of: document, tagFilter: example.file != "commonmark")
         // `<IGNORE>` marks a case that only has to not crash.
         let passes = html == example.html || example.html == "<IGNORE>\n"
@@ -41,7 +43,8 @@ struct SpecConformanceTests {
         if let report = ProcessInfo.processInfo.environment["AEMIMARKDOWN_REPORT"], !passes {
             try Self.record(
                 "## \(example.id) (\(example.section))\n\(example.markdown.debugDescription)\nexpected \(example.html.debugDescription)\nactual   \(html.debugDescription)\n\n",
-                in: report)
+                in: report
+            )
         }
         #expect(
             passes == !known.contains(example.id),

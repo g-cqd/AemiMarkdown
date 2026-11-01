@@ -186,7 +186,9 @@ struct SpecHTMLRenderer {
                 write(" class=\"language-")
                 HTMLEscaping.text(
                     document.decode(
-                        Range(uncheckedBounds: (node.range.lowerBound, node.range.lowerBound + word.count))), into: &out
+                        Range(uncheckedBounds: (node.range.lowerBound, node.range.lowerBound + word.count))
+                    ),
+                    into: &out
                 )
                 write("\"")
             case .codeLine:
@@ -201,7 +203,8 @@ struct SpecHTMLRenderer {
                 write(
                     node.payload == 1
                         ? "<input type=\"checkbox\" checked=\"\" disabled=\"\" /> "
-                        : "<input type=\"checkbox\" disabled=\"\" /> ")
+                        : "<input type=\"checkbox\" disabled=\"\" /> "
+                )
             case .footnoteReference: writeFootnoteReference(node)
             case .virtualSpaces:
                 closeCodeTag()
