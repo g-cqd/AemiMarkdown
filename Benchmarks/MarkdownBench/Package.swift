@@ -8,7 +8,7 @@ let package = Package(
     platforms: [.macOS(.v15)],
     dependencies: [
         .package(path: "../.."),
-        .package(url: "https://github.com/Aemi-Studio/aemi.git", revision: "6d8e8624ff08f7cab3c7d4feb71e3e5650f9c4b1")
+        .package(url: "https://github.com/Aemi-Studio/aemi.git", revision: "0ef4279dce0c90ecb234c0a10e56c189608f343e")
     ],
     targets: [
         .executableTarget(
@@ -16,6 +16,7 @@ let package = Package(
             dependencies: [
                 .product(name: "AemiMarkdown", package: "AemiMarkdown"),
                 .product(name: "CAemiTestKitMalloc", package: "aemi")
-            ])
+            ]
+        )
     ]
 )
