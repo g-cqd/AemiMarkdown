@@ -8,7 +8,7 @@ let package = Package(
     platforms: [.macOS(.v15)],
     dependencies: [
         .package(path: "../.."),
-        .package(url: "https://github.com/Aemi-Studio/aemi.git", revision: "00f8ea22a0a373685e62bff0aa86eac7fdfd8972")
+        .package(url: "https://github.com/Aemi-Studio/aemi.git", revision: "ebe456e455fd0c0b3d315d39a5d5dadbde3ca300")
     ],
     targets: [
         .executableTarget(
