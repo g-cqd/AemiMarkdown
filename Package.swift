@@ -19,9 +19,9 @@ let kernelSettings: [SwiftSetting] = strictSettings + [.strictMemorySafety()]
 // AemiRegex compiles the spec's own grammars for the differential tests of the hand-written scanners (ADR-0001, decision 7). A test-only
 // dependency: a package that depends on AemiMarkdown does not fetch it.
 let aemiDependency: Package.Dependency = .package(
-    url: "https://github.com/Aemi-Studio/aemi.git", revision: "ebe456e455fd0c0b3d315d39a5d5dadbde3ca300")
+    url: "https://github.com/Aemi-Studio/aemi.git", revision: "6d8e8624ff08f7cab3c7d4feb71e3e5650f9c4b1")
 let regexDependency: Package.Dependency = .package(
-    url: "https://github.com/g-cqd/AemiRegex.git", revision: "5fbe41649f74b073af2d21236b5287897beaf762")
+    url: "https://github.com/g-cqd/AemiRegex.git", revision: "5c0354242ef3783c784bd44ad7237f76b5c585f9")
 
 // The DocC plugin is for contributors (`AEMIMARKDOWN_DEV=1 swift package generate-documentation --target AemiMarkdown`); packages that depend on
 // AemiMarkdown never resolve it.
