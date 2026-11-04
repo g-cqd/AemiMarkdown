@@ -5,7 +5,7 @@ import PackageDescription
 // (Xcode projects made by XcodeGen from project.yml) link this and nothing else of ours. Paths while the packages are developed side by side; revisions at landing.
 let package = Package(
     name: "MarkdownLook",
-    platforms: [.macOS(.v15)],
+    platforms: [.macOS(.v26)],
     products: [
         .library(name: "MarkdownLookKit", targets: ["MarkdownLookKit"]),
         .executable(name: "markdown-look-html", targets: ["markdown-look-html"])
@@ -20,6 +20,7 @@ let package = Package(
             name: "MarkdownLookKit",
             dependencies: [
                 .product(name: "AemiMarkdown", package: "AemiMarkdown"),
+                .product(name: "AemiLexers", package: "aemi"),
                 .product(name: "AemiMermaidSyntax", package: "AemiMermaid"),
                 .product(name: "AemiMermaidScene", package: "AemiMermaid"),
                 .product(name: "AemiMermaidLayout", package: "AemiMermaid"),

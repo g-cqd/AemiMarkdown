@@ -22,6 +22,8 @@ struct HTMLWriter {
     var codeDepth = 0
     var codeLines: [String] = []
     var language = ""
+    /// The info word as the document wrote it, to find the language by; `language` is the same, escaped, for the class.
+    var rawLanguage = ""
     var inCode = false
     var tableBody = false
     var headerRow = false
@@ -122,6 +124,7 @@ struct HTMLWriter {
                 inCode = true
                 codeLines = []
                 language = ""
+                rawLanguage = ""
                 stack.append(Frame(kind: node.kind, closing: ""))
             case .table:
                 tableBody = false

@@ -34,9 +34,8 @@ extension HTMLWriter {
             case .footnoteLabel: out += "<span class=\"label\">\(HTMLText.escaped(text(node.range)))</span>"
             case .infoString:
                 let word = document.source[node.range].prefix { $0 != 0x20 && $0 != 0x09 }
-                language = HTMLText.escaped(
-                    String(decoding: document.decode(word.startIndex ..< word.endIndex), as: UTF8.self)
-                )
+                rawLanguage = String(decoding: document.decode(word.startIndex ..< word.endIndex), as: UTF8.self)
+                language = HTMLText.escaped(rawLanguage)
             case .virtualSpaces: pendingSpaces = node.value
             case .codeLine:
                 codeLines.append(String(repeating: " ", count: pendingSpaces) + text(node.range))
@@ -75,6 +74,11 @@ extension HTMLWriter {
             return
         }
         let classes = isHTML ? " class=\"source\"" : (language.isEmpty ? "" : " class=\"language-\(language)\"")
-        out += "<pre><code\(classes)>" + HTMLText.escaped(code) + (code.isEmpty ? "" : "\n") + "</code></pre>\n"
+        var body = HTMLText.escaped(code)
+        if !isHTML, code.utf8.count <= CodeHighlighter.byteLimit, let known = CodeHighlighter.language(for: rawLanguage)
+        {
+            body = CodeHighlighter.html(Array(code.utf8), language: known)
+        }
+        out += "<pre><code\(classes)>" + body + (code.isEmpty ? "" : "\n") + "</code></pre>\n"
     }
 }

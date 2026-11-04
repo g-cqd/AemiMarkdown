@@ -67,10 +67,10 @@ struct MarkdownHTMLTests {
 
     @Test func `code is escaped, tagged with its language, and keeps its quotes straight`() {
         let out = html("```swift\nlet a = \"x\" < 2 && true\n```")
+        #expect(out.contains("<pre><code class=\"language-swift\">"))
         #expect(
-            out.contains(
-                "<pre><code class=\"language-swift\">let a = &quot;x&quot; &lt; 2 &amp;&amp; true\n</code></pre>"
-            )
+            out.contains("<span class=\"k\">let</span>")
+                && out.contains("&quot;x&quot;</span> &lt; <span class=\"n\">2</span> &amp;&amp;")
         )
         let span = html("say `\"hi\" it's...`")
         #expect(
@@ -307,5 +307,69 @@ struct TableLayoutTests {
         let table = "| a | b |\n|---|---|\n| 1 | 2 |\n\n"
         let out = html(String(repeating: table, count: 3000))
         #expect(out.components(separatedBy: "<div class=\"table-wrap\">").count == 3001)
+    }
+}
+
+@Suite("Syntax colour")
+struct CodeHighlightTests {
+    private func html(_ source: String) -> String {
+        MarkdownHTMLRenderer().body(MarkdownParser.parse(Array(source.utf8)))
+    }
+
+    @Test(arguments: [
+        ("swift", "let x = 1 // note", "k"), ("Swift", "func f() {}", "k"), ("js", "const a = 'x'", "s"),
+        ("javascript", "let n = 42", "n"), ("ts", "interface A {}", "k"),
+        ("python", "def f(): pass", "k"), ("py", "# hello", "c"), ("bash", "echo \"hi\"", "s"), ("sh", "# c", "c"),
+        ("json", "{\"a\": 1}", "n"), ("yml", "a: true", "k"),
+        ("html", "<div class=\"a\"></div>", "g"), ("css", "a { color: red; }", "p"), ("rust", "fn main() {}", "k"),
+        ("go", "func main() {}", "k"), ("c++", "int x = 3;", "n")
+    ])
+    func `a known language gets spans`(info: String, code: String, kind: String) {
+        let out = html("```\(info)\n\(code)\n```")
+        #expect(out.contains("<span class=\"\(kind)\">"), "\(info): \(out)")
+        #expect(TagBalance.problem(in: out) == nil)
+    }
+
+    @Test func `an unknown language, plain text and no language stay uncoloured`() {
+        for info in ["", "text", "plain", "klingon", "mermaidish"] {
+            #expect(!html("```\(info)\nlet x = 1\n```").contains("<span"), "\(info)")
+        }
+    }
+
+    @Test func `the code in the spans is the code, escaped, and nothing a string held acts`() {
+        let out = html("```swift\nlet s = \"<script>alert(1)</script> & 'x'\" // <b>\n```")
+        #expect(
+            !out.contains("<script") && !out.contains("<b>") && out.contains("&lt;script&gt;") && out.contains("&amp;")
+        )
+        #expect(TagBalance.problem(in: out) == nil)
+        let text = out.replacing(/<[^>]+>/, with: "")
+        #expect(
+            text.contains("let s = &quot;&lt;script&gt;alert(1)&lt;/script&gt; &amp; &#39;x&#39;&quot; // &lt;b&gt;")
+        )
+    }
+
+    @Test func `a block over the limit is left plain, and one under it is coloured`() {
+        let line = "let aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa = 1\n"
+        let big = String(repeating: line, count: CodeHighlighter.byteLimit / line.utf8.count + 10)
+        #expect(!html("```swift\n\(big)```").contains("<span"))
+        #expect(html("```swift\n\(line)```").contains("<span"))
+    }
+
+    @Test func `source that is not valid for its language still comes out whole and balanced`() {
+        let sources = [
+            "let \"unterminated", "/* open comment", "'''", "<div", "{\"a\": [1, 2", "a: [", "\\\\\\", "`${`",
+            String(repeating: "(", count: 5000)
+        ]
+        for source in sources {
+            for info in ["swift", "js", "python", "html", "json", "yaml", "css", "shell", "rust"] {
+                let out = html("```\(info)\n\(source)\n```")
+                #expect(TagBalance.problem(in: out) == nil, "\(info) \(source.prefix(20))")
+            }
+        }
+    }
+
+    @Test func `a code span and a diagram are not touched`() {
+        #expect(!html("`let x = 1`").contains("<span"))
+        #expect(html("```mermaid\nflowchart TD\n  A --> B\n```").contains("<svg"))
     }
 }
