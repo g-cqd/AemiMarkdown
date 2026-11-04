@@ -15,7 +15,7 @@
     {
       "id": "tla-models",
       "title": "Verification · TLA+ Models",
-      "run": "Scripts/tlc.sh",
+      "tla": { "models": "docs/formal" },
       "after": "macos-debug"
     }
   ]
