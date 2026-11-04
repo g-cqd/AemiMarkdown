@@ -1,12 +1,13 @@
 # Formal models
 
-Two TLA+ models of the parts of the parser where a protocol, not a function, decides what is right. `Scripts/tlc.sh` runs TLC on each and checks the verdicts:
+Three TLA+ models of the parts of the parser where a protocol, not a function, decides what is right. `Scripts/tlc.sh` runs TLC on each and checks the verdicts:
 a model must pass, and its `.buggy.cfg` (the behaviour of the first implementation) must fail, so that the model is known to be able to catch what it is for.
 
 | Model | What it states | Found |
 |---|---|---|
 | `LineSplitter.tla` | The lines the parser finds are CommonMark's lines for every way of cutting the input into pieces, at every snapshot and after the end. Positions, pieces of up to 3 bytes, 8 bytes in all: 19,682 distinct states. | A carriage return that ends the input was part of the last line, in `finish()` and in `snapshot()` (`Fixed = FALSE`). Fixed in `MarkdownParser+Lines.swift` (`close()`), with a regression test. |
 | `SnapshotProtocol.tla` | Only closed slots are committed; a committed slot never changes; removing a slot touches the tail; a snapshot writes nothing to the committed part it shares; every container of a snapshot is closed. 7,563 distinct states. | The first implementation committed on the snapshot's copy, which wrote to storage that the snapshot shared and so copied the whole committed tape (`ProbeCommits = TRUE`). Fixed (`commitClosedBlocks` is called only on the real path); `SnapshotSharingTests` checks the storage is shared. |
+| `EditResync.tla` | The edit by restart and resync (`MarkdownEditor+Resync.swift`, ADR-0003) gives the blocks of a fresh parse of the new text: every document of up to 5 lines over 5 kinds of line (text, blank, fence, list item, table delimiter), every replacement of a run of lines by up to 2 lines. One invariant over all of them (about 10^6 cases, checked in one state: TLC's state count says nothing here), a minute of checking. | `Variant = "noBack"` (restart at the block that holds the edit, not the one above it): a table's delimiter row takes the line above it out of a paragraph. The random differential test found it first on the implementation; the model is that rule stated. |
 
 What the models do not cover: the block structure rules (containers, lazy continuation, list looseness), which the specification examples and the differential tests
 against cmark and commonmark.js check on real input instead; and the inline algorithms.
