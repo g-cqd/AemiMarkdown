@@ -20,11 +20,11 @@ let kernelSettings: [SwiftSetting] = strictSettings + [.strictMemorySafety()]
 // dependency: a package that depends on AemiMarkdown does not fetch it.
 let aemiDependency: Package.Dependency = .package(
     url: "https://github.com/Aemi-Studio/aemi.git",
-    revision: "b31f49916261927be86db82edee8541fcfc19a64"
+    revision: "1eb94c225237812c3af947969e8a238b01a2f88b"
 )
 let regexDependency: Package.Dependency = .package(
     url: "https://github.com/g-cqd/AemiRegex.git",
-    revision: "687fa0b735af5f982a69270e8b98c65d42d50455"
+    revision: "7beba31743b994afd99263d28a19d64dedca0144"
 )
 
 // The DocC plugin is for contributors (`AEMIMARKDOWN_DEV=1 swift package generate-documentation --target AemiMarkdown`); packages that depend on
