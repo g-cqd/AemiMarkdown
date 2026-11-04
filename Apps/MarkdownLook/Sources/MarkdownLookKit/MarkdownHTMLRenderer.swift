@@ -25,9 +25,27 @@ public struct MarkdownHTMLRenderer: Sendable {
 
     /// A whole HTML page for `document`: the viewer's style sheet, the diagrams' once, and the content in a column of readable width.
     public func page(_ document: MarkdownDocument, title: String) -> String {
-        let content = body(document, embedsDiagramStyle: false)
-        return
-            "<!DOCTYPE html>\n<html lang=\"en\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">"
+        wrap(body(document, embedsDiagramStyle: false), title: title)
+    }
+
+    /// A whole page for the bytes of a Markdown file.
+    public func page(markdown bytes: [UInt8], title: String) -> String {
+        page(MarkdownParser.parse(bytes), title: title)
+    }
+
+    /// A page for a Mermaid file: the diagram alone, or its source as code when the engine does not draw it.
+    public func diagramPage(_ source: [UInt8], title: String) -> String {
+        let content: String
+        if drawsDiagrams, let svg = MermaidFence.svg(source, embedsStyle: false) {
+            content = "<figure>" + svg + "</figure>\n"
+        } else {
+            content = "<pre><code>" + HTMLText.escaped(String(decoding: source, as: UTF8.self)) + "</code></pre>\n"
+        }
+        return wrap(content, title: title)
+    }
+
+    private func wrap(_ content: String, title: String) -> String {
+        "<!DOCTYPE html>\n<html lang=\"en\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">"
             + "<title>\(HTMLText.escaped(title))</title><style>\(ViewerStyle.sheet)\n\(SVGStyle.sheet)</style></head><body><main>\n\(content)</main></body></html>\n"
     }
 }

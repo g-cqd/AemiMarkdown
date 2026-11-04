@@ -1,4 +1,5 @@
 import AemiMarkdown
+import CoreGraphics
 import Foundation
 import Testing
 
@@ -219,5 +220,43 @@ struct MarkdownHTMLTests {
             }
             #expect(!out.contains("<script") && !out.contains("javascript:"))
         }
+    }
+}
+
+@Suite("A Mermaid file as a page")
+struct DiagramPageTests {
+    @Test func `a diagram is drawn, and one the engine refuses is shown as text`() {
+        let drawn = MarkdownHTMLRenderer().diagramPage(Array("flowchart TD\n  A --> B".utf8), title: "d.mmd")
+        #expect(drawn.contains("<figure><svg") && TagBalance.problem(in: drawn) == nil)
+        let refused = MarkdownHTMLRenderer().diagramPage(Array("<script>alert(1)</script>".utf8), title: "d.mmd")
+        #expect(!refused.contains("<svg") && !refused.contains("<script>") && refused.contains("&lt;script&gt;"))
+    }
+}
+
+@Suite("A diagram as a thumbnail")
+struct DiagramThumbnailTests {
+    private func render(_ source: String) -> (drawn: Bool, inked: Int) {
+        let size = CGSize(width: 200, height: 256)
+        guard
+            let context = CGContext(
+                data: nil,
+                width: 200,
+                height: 256,
+                bitsPerComponent: 8,
+                bytesPerRow: 0,
+                space: CGColorSpaceCreateDeviceGray(),
+                bitmapInfo: CGImageAlphaInfo.none.rawValue
+            )
+        else { return (false, 0) }
+        let drawn = DiagramThumbnail.draw(Array(source.utf8), in: context, size: size)
+        guard let data = context.data else { return (drawn, 0) }
+        let pixels = unsafe UnsafeBufferPointer(start: data.assumingMemoryBound(to: UInt8.self), count: 200 * 256)
+        return (drawn, pixels.count { $0 < 200 })
+    }
+
+    @Test func `a flowchart puts ink on the page, and a text that is no diagram does not`() {
+        let flowchart = render("flowchart TD\n  A --> B")
+        #expect(flowchart.drawn && flowchart.inked > 200)
+        #expect(!render("this is prose, not a diagram").drawn)
     }
 }
