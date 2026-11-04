@@ -12,7 +12,7 @@ let package = Package(
     ],
     dependencies: [
         .package(path: "../.."),
-        .package(path: "../../../AemiMermaid"),
+        .package(url: "https://github.com/g-cqd/AemiMermaid.git", revision: "6c86aedf0ead7ddf71c843ad56eb56cc940e71dd"),
         .package(url: "https://github.com/Aemi-Studio/aemi.git", revision: "4879ca7522a6277e9425c69309a801de43b57771")
     ],
     targets: [
