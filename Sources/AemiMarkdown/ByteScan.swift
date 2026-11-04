@@ -30,44 +30,27 @@ enum ByteScan {
         }
     }
 
-    /// A pipe and a backslash: what ends a table cell, or hides the pipe that would.
-    static let cellStops: AemiKernels.ByteSet = {
-        guard let set = AemiKernels.ByteSet(Array("|\\".utf8)) else {
-            preconditionFailure("the cell stops do not fit in nibble tables")
-        }
+    /// The set of `bytes`: a set the nibble tables cannot hold is a mistake in this file, found by the first test that runs.
+    private static func nibbleSet(_ bytes: [UInt8], _ name: String) -> AemiKernels.ByteSet {
+        guard let set = AemiKernels.ByteSet(bytes) else { preconditionFailure("\(name) do not fit in nibble tables") }
         return set
-    }()
+    }
+
+    /// A pipe and a backslash: what ends a table cell, or hides the pipe that would.
+    static let cellStops: AemiKernels.ByteSet = nibbleSet(Array("|\\".utf8), "cell stops")
 
     /// The bytes that start something in a leaf block: a line ending, a backslash, a backtick, `*`, `_`, `~`, `[`, `]`, `!`, `<` and `&`. Six rows of nibbles, so the tables hold it exactly.
-    static let inlineSpecials: AemiKernels.ByteSet = {
-        guard let set = AemiKernels.ByteSet(Array("\n\\`*_~[]!<&$".utf8)) else {
-            preconditionFailure("the inline specials do not fit in nibble tables")
-        }
-        return set
-    }()
+    static let inlineSpecials: AemiKernels.ByteSet = nibbleSet(Array("\n\\`*_~[]!<&$".utf8), "inline specials")
 
     /// The bytes a bare link can start at: the `:` of a scheme, the `@` of an address, and the `w` of `www.`.
-    static let autolinkStarts: AemiKernels.ByteSet = {
-        guard let set = AemiKernels.ByteSet(Array(":@w".utf8)) else {
-            preconditionFailure("the link starts do not fit in nibble tables")
-        }
-        return set
-    }()
+    static let autolinkStarts: AemiKernels.ByteSet = nibbleSet(Array(":@w".utf8), "link starts")
 
     /// Line feed and carriage return.
-    static let lineEndings: AemiKernels.ByteSet = {
-        guard let set = AemiKernels.ByteSet([0x0A, 0x0D]) else {
-            preconditionFailure("the line endings do not fit in nibble tables")
-        }
-        return set
-    }()
+    static let lineEndings: AemiKernels.ByteSet = nibbleSet([0x0A, 0x0D], "line endings")
 
     /// The C0 controls other than tab, line feed and carriage return, and DEL: what a renderer must neutralise.
-    static let unsafeControls: AemiKernels.ByteSet = {
-        let bytes = (0 ..< 0x20).filter { $0 != 0x09 && $0 != 0x0A && $0 != 0x0D }.map { UInt8($0) } + [0x7F]
-        guard let set = AemiKernels.ByteSet(bytes) else {
-            preconditionFailure("the controls do not fit in nibble tables")
-        }
-        return set
-    }()
+    static let unsafeControls: AemiKernels.ByteSet = nibbleSet(
+        (0 ..< 0x20).filter { $0 != 0x09 && $0 != 0x0A && $0 != 0x0D }.map { UInt8($0) } + [0x7F],
+        "the controls"
+    )
 }
