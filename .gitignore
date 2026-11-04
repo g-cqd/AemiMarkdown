@@ -7,3 +7,5 @@ DerivedData/
 .DS_Store
 *.profraw
 *.profdata
+# TLC state directories, should a model be run by hand beside the specifications
+docs/formal/states/

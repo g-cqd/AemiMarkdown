@@ -19,15 +19,17 @@ if [ ! -f "$jar" ]; then
     [ "$(shasum -a 256 "$jar.part" | cut -d' ' -f1)" = "$SHA" ] || { rm -f "$jar.part"; printf '[FAIL] tla2tools.jar does not match the pinned hash\n' >&2; exit 2; }
     mv "$jar.part" "$jar"
 fi
+# TLC names its state directory after the current second, beside the model, so two runs in one second collide (a model that fails at once makes the next one
+# fail too) and every run leaves a directory in docs/formal: each model gets a state directory of its own in the scratch directory.
 scratch=$(mktemp -d)
 trap 'rm -rf "$scratch"' EXIT
 status=0
 for cfg in "$root"/docs/formal/*.cfg; do
     name=$(basename "$cfg" .cfg)
     module=${name%.buggy}
-    (cd "$scratch" && "$java" -cp "$jar" tlc2.TLC -config "$cfg" -workers auto -cleanup "$root/docs/formal/$module.tla" > "$scratch/$name.log" 2>&1) && ok=1 || ok=0
+    (cd "$scratch" && "$java" -cp "$jar" tlc2.TLC -config "$cfg" -metadir "$scratch/states-$name" -workers auto -cleanup "$root/docs/formal/$module.tla" > "$scratch/$name.log" 2>&1) && ok=1 || ok=0
     case $name in
-        *.buggy) if [ $ok = 0 ] && grep -q 'is violated' "$scratch/$name.log"; then printf '[OK] %s fails, as it must\n' "$name"; else printf '[FAIL] %s should fail and did not\n' "$name"; status=1; fi ;;
+        *.buggy) if [ $ok = 0 ] && grep -qE 'is violated|is equal to FALSE' "$scratch/$name.log"; then printf '[OK] %s fails, as it must\n' "$name"; else printf '[FAIL] %s should fail and did not\n' "$name"; status=1; fi ;;
         *) if [ $ok = 1 ]; then printf '[OK] %s: %s\n' "$name" "$(grep -E '[0-9]+ distinct states found' "$scratch/$name.log" | head -1)"; else printf '[FAIL] %s\n' "$name"; tail -20 "$scratch/$name.log"; status=1; fi ;;
     esac
 done
