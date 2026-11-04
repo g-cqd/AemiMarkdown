@@ -436,23 +436,28 @@ struct ViewerSettingsTests {
     }
 
     @Test func `settings are read from preferences, defaults for what is missing or wrong`() {
-        let domain = ViewerSettings.domain as CFString
-        let keys = [
-            ViewerSettings.Key.fullWidth, ViewerSettings.Key.tabSize, ViewerSettings.Key.textSize,
-            ViewerSettings.Key.rowLines, ViewerSettings.Key.backdrop, ViewerSettings.Key.outerBorder
-        ]
-        for key in keys { CFPreferencesSetAppValue(key as CFString, nil, domain) }
-        #expect(ViewerSettings.current() == ViewerSettings())
+        // A domain of the test's own: the reader's real choices are never touched.
+        let name = "studio.aemi.MarkdownLook.tests.\(UUID().uuidString)"
+        let domain = name as CFString
+        defer {
+            CFPreferencesSetMultiple(
+                nil,
+                ["fullWidth", "tabSize", "textSize", "rowLines", "backdrop"] as CFArray,
+                domain,
+                kCFPreferencesCurrentUser,
+                kCFPreferencesAnyHost
+            )
+        }
+        #expect(ViewerSettings.current(domain: name) == ViewerSettings())
         CFPreferencesSetAppValue(ViewerSettings.Key.tabSize as CFString, "wide" as CFString, domain)
         CFPreferencesSetAppValue(ViewerSettings.Key.fullWidth as CFString, kCFBooleanTrue, domain)
         CFPreferencesSetAppValue(ViewerSettings.Key.backdrop as CFString, "sparkly" as CFString, domain)
         CFPreferencesSetAppValue(ViewerSettings.Key.rowLines as CFString, kCFBooleanFalse, domain)
         CFPreferencesSetAppValue(ViewerSettings.Key.textSize as CFString, 99 as CFNumber, domain)
-        let read = ViewerSettings.current()
+        let read = ViewerSettings.current(domain: name)
         #expect(
             read.fullWidth && read.tabSize == 4 && read.backdrop == .blurred && !read.rowLines && read.textSize == 20
         )
-        for key in keys { CFPreferencesSetAppValue(key as CFString, nil, domain) }
     }
 
     @Test func `a page allows no request of its own`() {

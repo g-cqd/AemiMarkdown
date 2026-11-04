@@ -73,7 +73,7 @@ public struct ViewerSettings: Sendable, Equatable {
     }
 
     /// The settings in the preferences domain; the default for what is not set or not of the right kind.
-    public static func current() -> ViewerSettings {
+    public static func current(domain: String = ViewerSettings.domain) -> ViewerSettings {
         func value(_ key: String) -> Any? { CFPreferencesCopyAppValue(key as CFString, domain as CFString) }
         var settings = ViewerSettings()
         settings.fullWidth = value(Key.fullWidth) as? Bool ?? settings.fullWidth
