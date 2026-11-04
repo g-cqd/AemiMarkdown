@@ -1,0 +1,22 @@
+{
+  "swift": {
+    "versions": ["6.4.1"],
+    "environment": { "AEMIMARKDOWN_DEV": "1", "AD_TYPECHECK_BUDGET_MS": "250" }
+  },
+  "quality": {
+    "paths": ["Sources", "Tests", "Plugins/GenerateEntities/Sources"],
+    "discipline": {
+      "shipped": ["Sources/AemiMarkdown"],
+      "forceUnwrap": true,
+      "rules": ["strtod", "inline-prng", "untyped-throws", "wall-clock"]
+    }
+  },
+  "commands": [
+    {
+      "id": "tla-models",
+      "title": "Verification · TLA+ Models",
+      "run": "Scripts/tlc.sh",
+      "after": "macos-debug"
+    }
+  ]
+}
