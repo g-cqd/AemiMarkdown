@@ -10,6 +10,9 @@ func percentile(_ sorted: [Double], _ p: Double) -> Double {
 }
 
 // `--corpus`: the public documents of Benchmarks/Corpus (downloaded by its setup phase, never part of the repository), by size.
+if CommandLine.arguments.count > 1, CommandLine.arguments[1] == "--edits" {
+    exit(runEditBenchmark(arguments: CommandLine.arguments))
+}
 if CommandLine.arguments.count > 1, CommandLine.arguments[1] == "--corpus" {
     exit(runCorpusBenchmark(arguments: Array(CommandLine.arguments.dropFirst(2))))
 }
