@@ -100,10 +100,12 @@ public struct ViewerSettings: Sendable, Equatable {
         if !rowLines { rules += "th::after, td::after { display: none; }\n" }
         if columnLines {
             rules +=
-                "th + th::before, td + td::before { content: ''; position: absolute; left: 0; top: 0.5em; bottom: 0.5em; width: var(--hair); border-radius: 1px; background: var(--rule); }\n"
+                "th + th::before, td + td::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: var(--hair); border-radius: 1px; background: var(--rule); }\n"
         }
         if outerBorder {
-            rules += ".table-wrap { border: var(--hair) solid var(--rule); border-radius: var(--radius); }\n"
+            rules +=
+                ".table-wrap { border: var(--hair) solid var(--rule); border-radius: var(--radius); width: fit-content; max-width: 100%; }\n"
+            rules += ".table-wrap.wide { max-width: min(68em, 100vw - 5em); margin-inline: auto; }\n"
             rules +=
                 "th:first-child, td:first-child { padding-left: 1.4em; } th:last-child, td:last-child { padding-right: 1.4em; }\n"
             rules += "tbody tr:last-child td::after { display: none; }\n"

@@ -18,7 +18,6 @@ struct MarkdownLookApp: App {
                 settings: store.settings
             )
             .ignoresSafeArea()
-            .scrollEdgeEffectStyle(.soft, for: .top)
             .toolbar {
                 ToolbarItem(placement: .automatic) {
                     SettingsLink { Label("Settings", systemImage: "slider.horizontal.3") }
@@ -135,81 +134,53 @@ struct SettingsView: View {
     }
 }
 
-/// The page, over the backdrop the setting asks for: the window's own opaque background, the system's blurred material, or nothing.
-struct PageView: NSViewRepresentable {
-    let document: SourceDocument
-    let title: String
-    let settings: ViewerSettings
-
-    func makeCoordinator() -> Coordinator { Coordinator() }
-
-    func makeNSView(context: Context) -> PageContainer {
-        let container = PageContainer()
-        container.web.navigationDelegate = context.coordinator
-        return container
-    }
-
-    func updateNSView(_ container: PageContainer, context: Context) {
-        container.apply(settings.backdrop)
-        let html = document.page(title: title, settings: settings)
-        guard html != context.coordinator.loaded else { return }
-        context.coordinator.loaded = html
-        container.web.loadHTMLString(html, baseURL: nil)
-    }
-
-    /// The page is loaded once per change; a link a reader follows opens in the browser, never in the window.
-    final class Coordinator: NSObject, WKNavigationDelegate {
-        var loaded = ""
-
-        func webView(_ webView: WKWebView, decidePolicyFor action: WKNavigationAction) async -> WKNavigationActionPolicy
-        {
-            guard action.navigationType == .linkActivated, let url = action.request.url else { return .allow }
-            if ["http", "https", "mailto"].contains(url.scheme?.lowercased() ?? "") { NSWorkspace.shared.open(url) }
-            return .cancel
-        }
+/// Links a reader follows open in the browser, never in the window, and nothing else navigates.
+@MainActor final class LinkDecider: WebPage.NavigationDeciding {
+    func decidePolicy(for action: WebPage.NavigationAction, preferences: inout WebPage.NavigationPreferences) async
+        -> WKNavigationActionPolicy
+    {
+        guard action.navigationType == .linkActivated, let url = action.request.url else { return .allow }
+        if ["http", "https", "mailto"].contains(url.scheme?.lowercased() ?? "") { NSWorkspace.shared.open(url) }
+        return .cancel
     }
 }
 
-/// The material behind a transparent web view, and the window made to let it show.
-final class PageContainer: NSView {
-    let web: WKWebView
-    private let material = NSVisualEffectView()
-    private var backdrop = Backdrop.blurred
+/// The page, in SwiftUI's own web view: transparent, so the window's backdrop shows, with the system's soft scroll edge under the title bar that appears only while text is scrolled beneath it.
+struct PageView: View {
+    let document: SourceDocument
+    let title: String
+    let settings: ViewerSettings
+    @State private var page: WebPage
 
-    init() {
-        let configuration = WKWebViewConfiguration()
-        configuration.defaultWebpagePreferences.allowsContentJavaScript = false
-        web = WKWebView(frame: .zero, configuration: configuration)
-        super.init(frame: .zero)
-        material.material = .underWindowBackground
-        material.blendingMode = .behindWindow
-        material.state = .followsWindowActiveState
-        for view in [material, web] {
-            view.translatesAutoresizingMaskIntoConstraints = false
-            addSubview(view)
-            NSLayoutConstraint.activate([
-                view.leadingAnchor.constraint(equalTo: leadingAnchor),
-                view.trailingAnchor.constraint(equalTo: trailingAnchor),
-                view.topAnchor.constraint(equalTo: topAnchor), view.bottomAnchor.constraint(equalTo: bottomAnchor)
-            ])
+    init(document: SourceDocument, title: String, settings: ViewerSettings) {
+        self.document = document
+        self.title = title
+        self.settings = settings
+        var configuration = WebPage.Configuration()
+        configuration.defaultNavigationPreferences.allowsContentJavaScript = false
+        configuration.loadsSubresources = false
+        _page = State(initialValue: WebPage(configuration: configuration, navigationDecider: LinkDecider()))
+    }
+
+    var body: some View {
+        let html = document.page(title: title, settings: settings)
+        WebView(page)
+            .webViewContentBackground(.hidden)
+            .scrollEdgeEffectStyle(.soft, for: .top)
+            .containerBackground(for: .window) { WindowBackdrop(mode: settings.backdrop) }
+            .task(id: html) { _ = page.load(html: html, baseURL: URL(string: "about:blank") ?? URL(filePath: "/")) }
+    }
+}
+
+/// Behind the page: the window's own opaque background, the system's blurred material, or nothing.
+struct WindowBackdrop: View {
+    let mode: Backdrop
+
+    var body: some View {
+        switch mode {
+            case .solid: Color(nsColor: .windowBackgroundColor)
+            case .blurred: Rectangle().fill(.thinMaterial)
+            case .clear: Color.clear
         }
-        web.setValue(false, forKey: "drawsBackground")
-    }
-
-    @available(*, unavailable) required init?(coder: NSCoder) { fatalError("not from a nib") }
-
-    override func viewDidMoveToWindow() {
-        super.viewDidMoveToWindow()
-        apply(backdrop)
-    }
-
-    func apply(_ backdrop: Backdrop) {
-        self.backdrop = backdrop
-        material.isHidden = backdrop != .blurred
-        guard let window else { return }
-        window.styleMask.insert(.fullSizeContentView)
-        window.titlebarAppearsTransparent = true
-        window.isOpaque = backdrop == .solid
-        window.backgroundColor = backdrop == .solid ? .windowBackgroundColor : .clear
     }
 }
