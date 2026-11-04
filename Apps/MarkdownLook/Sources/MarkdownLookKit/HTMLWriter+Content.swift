@@ -30,7 +30,12 @@ extension HTMLWriter {
             case .hardBreak: out += "<br>\n"
             case .thematicBreak: out += "<hr>\n"
             case .taskMarker: out += "<input type=\"checkbox\" disabled\(node.payload == 1 ? " checked" : "")> "
-            case .footnoteReference: out += "<sup class=\"fn\">\(HTMLText.escaped(text(node.range)))</sup>"
+            case .footnoteReference:
+                let label = text(node.range)
+                let anchor = Self.anchor(label)
+                // The first reference to a footnote is where its definition links back to.
+                let id = referenced.insert(label).inserted ? " id=\"fnref-\(anchor)\"" : ""
+                out += "<sup class=\"fn\"><a href=\"#fn-\(anchor)\"\(id)>\(HTMLText.escaped(label))</a></sup>"
             case .footnoteLabel: out += "<span class=\"label\">\(HTMLText.escaped(text(node.range)))</span>"
             case .infoString:
                 let word = document.source[node.range].prefix { $0 != 0x20 && $0 != 0x09 }
@@ -79,6 +84,10 @@ extension HTMLWriter {
         {
             body = CodeHighlighter.html(Array(code.utf8), language: known)
         }
-        out += "<pre><code\(classes)>" + body + (code.isEmpty ? "" : "\n") + "</code></pre>\n"
+        let block = "<pre><code\(classes)>" + body + (code.isEmpty ? "" : "\n") + "</code></pre>\n"
+        // The language the fence names, shown in the corner: a label for the eye that a selection does not take.
+        out +=
+            isHTML || language.isEmpty
+            ? block : "<div class=\"code\"><span class=\"lang\">\(language)</span>" + block + "</div>\n"
     }
 }

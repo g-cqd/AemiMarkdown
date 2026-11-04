@@ -1,4 +1,5 @@
 import AemiMarkdown
+import CoreFoundation
 import CoreGraphics
 import Foundation
 import Testing
@@ -60,7 +61,10 @@ struct MarkdownHTMLTests {
         #expect(alert.contains("class=\"alert warning\"") && alert.contains(">Warning<") && alert.contains("careful"))
         #expect(html("> plain").contains("<blockquote>"))
         let note = html("a[^1]\n\n[^1]: text")
-        #expect(note.contains("<sup class=\"fn\">1</sup>") && note.contains("class=\"footnote\""))
+        #expect(
+            note.contains("<sup class=\"fn\"><a href=\"#fn-1\" id=\"fnref-1\">1</a></sup>")
+                && note.contains("class=\"footnote\"")
+        )
         balanced(alert)
         balanced(note)
     }
@@ -332,7 +336,7 @@ struct CodeHighlightTests {
 
     @Test func `an unknown language, plain text and no language stay uncoloured`() {
         for info in ["", "text", "plain", "klingon", "mermaidish"] {
-            #expect(!html("```\(info)\nlet x = 1\n```").contains("<span"), "\(info)")
+            #expect(!html("```\(info)\nlet x = 1\n```").contains(/<span class="[a-z]">/), "\(info)")
         }
     }
 
@@ -351,8 +355,8 @@ struct CodeHighlightTests {
     @Test func `a block over the limit is left plain, and one under it is coloured`() {
         let line = "let aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa = 1\n"
         let big = String(repeating: line, count: CodeHighlighter.byteLimit / line.utf8.count + 10)
-        #expect(!html("```swift\n\(big)```").contains("<span"))
-        #expect(html("```swift\n\(line)```").contains("<span"))
+        #expect(!html("```swift\n\(big)```").contains(/<span class="[a-z]">/))
+        #expect(html("```swift\n\(line)```").contains(/<span class="[a-z]">/))
     }
 
     @Test func `source that is not valid for its language still comes out whole and balanced`() {
@@ -369,7 +373,122 @@ struct CodeHighlightTests {
     }
 
     @Test func `a code span and a diagram are not touched`() {
-        #expect(!html("`let x = 1`").contains("<span"))
+        #expect(!html("`let x = 1`").contains(/<span class="[a-z]">/))
         #expect(html("```mermaid\nflowchart TD\n  A --> B\n```").contains("<svg"))
+    }
+}
+
+@Suite("Viewer settings")
+struct ViewerSettingsTests {
+    private func page(_ settings: ViewerSettings) -> String {
+        var renderer = MarkdownHTMLRenderer()
+        renderer.settings = settings
+        return renderer.page(MarkdownParser.parse(Array("# T\n\n\tcode".utf8)), title: "t")
+    }
+
+    @Test func `the tab size is a number of spaces within bounds`() {
+        #expect(
+            ViewerSettings(tabSize: 0).tabSize == 1 && ViewerSettings(tabSize: 99).tabSize == 8
+                && ViewerSettings(tabSize: -3).tabSize == 1
+        )
+        #expect(
+            page(ViewerSettings(tabSize: 2)).contains("tab-size: 2;") && page(ViewerSettings()).contains("tab-size: 4;")
+        )
+    }
+
+    @Test func `full width lifts the measure, and the default keeps it`() {
+        #expect(page(ViewerSettings(fullWidth: true)).contains("main { max-width: none; }"))
+        #expect(!page(ViewerSettings()).contains("main { max-width: none; }"))
+    }
+
+    @Test func `settings are read from preferences, defaults for what is missing or wrong`() {
+        let domain = ViewerSettings.domain as CFString
+        for key in [ViewerSettings.fullWidthKey, ViewerSettings.tabSizeKey] {
+            CFPreferencesSetAppValue(key as CFString, nil, domain)
+        }
+        #expect(ViewerSettings.current() == ViewerSettings())
+        CFPreferencesSetAppValue(ViewerSettings.tabSizeKey as CFString, "wide" as CFString, domain)
+        CFPreferencesSetAppValue(ViewerSettings.fullWidthKey as CFString, kCFBooleanTrue, domain)
+        #expect(ViewerSettings.current() == ViewerSettings(fullWidth: true, tabSize: 4))
+        for key in [ViewerSettings.fullWidthKey, ViewerSettings.tabSizeKey] {
+            CFPreferencesSetAppValue(key as CFString, nil, domain)
+        }
+    }
+
+    @Test func `a page allows no request of its own`() {
+        #expect(page(ViewerSettings()).contains("default-src 'none'"))
+    }
+}
+
+@Suite("Footnotes")
+struct FootnoteTests {
+    private func html(_ source: String) -> String {
+        MarkdownHTMLRenderer().body(MarkdownParser.parse(Array(source.utf8)))
+    }
+
+    @Test func `a reference links to its definition, which links back to the first reference`() {
+        let out = html("a[^n] b[^n]\n\n[^n]: note")
+        #expect(out.contains("<a href=\"#fn-n\" id=\"fnref-n\">n</a>") && out.contains("<a href=\"#fn-n\">n</a>"))
+        #expect(out.components(separatedBy: "id=\"fnref-n\"").count == 2, "only the first reference has the id")
+        #expect(out.contains("id=\"fn-n\"") && out.contains("href=\"#fnref-n\""))
+        #expect(TagBalance.problem(in: out) == nil)
+    }
+
+    @Test func `definitions sit in one section, and what follows them is outside it`() {
+        let out = html("a[^1] b[^2]\n\n[^1]: one\n[^2]: two\n\nafter")
+        #expect(out.components(separatedBy: "<section class=\"footnotes\">").count == 2)
+        #expect(out.range(of: "</section>")!.upperBound <= out.range(of: "<p>after</p>")!.lowerBound)
+        #expect(TagBalance.problem(in: out) == nil)
+    }
+
+    @Test func `anchors never collide and never need escaping`() {
+        #expect(HTMLWriter.anchor("a b") != HTMLWriter.anchor("a_b") && HTMLWriter.anchor("a\"<>&") == "a_22_3C_3E_26")
+        let out = html("x[^a\"b]\n\n[^a\"b]: t")
+        #expect(!out.contains("fn-a\"") && TagBalance.problem(in: out) == nil)
+    }
+
+    @Test func `a definition nobody references has no way back`() {
+        #expect(!html("[^z]: orphan").contains("class=\"back\""))
+    }
+}
+
+@Suite("Code block label")
+struct CodeLabelTests {
+    private func html(_ source: String) -> String {
+        MarkdownHTMLRenderer().body(MarkdownParser.parse(Array(source.utf8)))
+    }
+
+    @Test func `a fence with a language shows it, as text a selection does not take`() {
+        let out = html("```swift\nlet x = 1\n```")
+        #expect(out.contains("<div class=\"code\"><span class=\"lang\">swift</span><pre>"))
+        #expect(!html("```\nplain\n```").contains("class=\"lang\""))
+        #expect(!html("<div>x</div>").contains("class=\"lang\""))
+    }
+
+    @Test func `the label is escaped like all text`() {
+        let out = html("```a<b>\nx\n```")
+        #expect(!out.contains("<b>") && out.contains("a&lt;b&gt;"))
+    }
+}
+
+@Suite("Style policy")
+struct StylePolicyTests {
+    @Test func `prose boxes hug their text so a selection does, and strokes are rounded`() {
+        #expect(ViewerStyle.sheet.contains("width: fit-content; max-width: 100%;"))
+        #expect(ViewerStyle.sheet.contains("::selection"))
+        // Every drawn bar or rule has a radius.
+        for rule in ["hr { border", "blockquote::before", ".footnotes::before", "th:first-child::after"] {
+            let lines = ViewerStyle.sheet.split(separator: "\n").filter { $0.contains(rule) }
+            #expect(lines.contains { $0.contains("radius") }, "\(rule)")
+        }
+    }
+
+    @Test func `one indent and one scale drive every nesting and gap`() {
+        let sheet = ViewerStyle.sheet
+        #expect(sheet.contains("--indent:") && sheet.components(separatedBy: "var(--indent)").count >= 4)
+        #expect(
+            !sheet.contains("margin: 1.4em") && !sheet.contains("margin: 0.85em"),
+            "no stray margin values outside the scale"
+        )
     }
 }

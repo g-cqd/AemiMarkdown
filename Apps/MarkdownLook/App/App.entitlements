@@ -6,5 +6,11 @@
 	<true/>
 	<key>com.apple.security.files.user-selected.read-only</key>
 	<true/>
+	<key>com.apple.security.network.client</key>
+	<true/>
+	<key>com.apple.security.temporary-exception.shared-preference.read-write</key>
+	<array>
+		<string>studio.aemi.MarkdownLook.shared</string>
+	</array>
 </dict>
 </plist>

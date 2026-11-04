@@ -15,7 +15,8 @@ final class PreviewProvider: QLPreviewProvider, QLPreviewingController {
         let title = request.fileURL.lastPathComponent
         let name = title.lowercased()
         let isDiagram = name.hasSuffix(".mmd") || name.hasSuffix(".mermaid")
-        let renderer = MarkdownHTMLRenderer()
+        var renderer = MarkdownHTMLRenderer()
+        renderer.settings = ViewerSettings.current()
         let page = isDiagram ? renderer.diagramPage(bytes, title: title) : renderer.page(markdown: bytes, title: title)
         let reply = QLPreviewReply(dataOfContentType: .html, contentSize: CGSize(width: 800, height: 800)) { reply in
             reply.stringEncoding = .utf8

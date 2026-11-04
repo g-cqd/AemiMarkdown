@@ -13,6 +13,8 @@ public struct MarkdownHTMLRenderer: Sendable {
     public var smartPunctuation = true
     /// Draw `mermaid` fences as diagrams.
     public var drawsDiagrams = true
+    /// The reader's choices: width of the text, width of a tab.
+    public var settings = ViewerSettings()
 
     public init() {}
 
@@ -45,7 +47,7 @@ public struct MarkdownHTMLRenderer: Sendable {
     }
 
     private func wrap(_ content: String, title: String) -> String {
-        "<!DOCTYPE html>\n<html lang=\"en\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">"
-            + "<title>\(HTMLText.escaped(title))</title><style>\(ViewerStyle.sheet)\n\(SVGStyle.sheet)</style></head><body><main>\n\(content)</main></body></html>\n"
+        "<!DOCTYPE html>\n<html lang=\"en\"><head><meta charset=\"utf-8\"><meta http-equiv=\"Content-Security-Policy\" content=\"default-src 'none'; style-src 'unsafe-inline'; img-src data:\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">"
+            + "<title>\(HTMLText.escaped(title))</title><style>\(ViewerStyle.sheet)\n\(settings.css)\(SVGStyle.sheet)</style></head><body><main>\n\(content)</main></body></html>\n"
     }
 }
