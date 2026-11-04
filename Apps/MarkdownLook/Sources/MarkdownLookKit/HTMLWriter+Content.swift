@@ -31,7 +31,7 @@ extension HTMLWriter {
             case .thematicBreak: out += "<hr>\n"
             case .taskMarker: out += "<input type=\"checkbox\" disabled\(node.payload == 1 ? " checked" : "")> "
             case .footnoteReference: out += "<sup class=\"fn\">\(HTMLText.escaped(text(node.range)))</sup>"
-            case .footnoteLabel: out += "<span class=\"label\">[^\(HTMLText.escaped(text(node.range)))]</span> "
+            case .footnoteLabel: out += "<span class=\"label\">\(HTMLText.escaped(text(node.range)))</span>"
             case .infoString:
                 let word = document.source[node.range].prefix { $0 != 0x20 && $0 != 0x09 }
                 language = HTMLText.escaped(

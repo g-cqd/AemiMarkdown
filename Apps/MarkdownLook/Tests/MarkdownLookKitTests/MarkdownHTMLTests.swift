@@ -25,7 +25,7 @@ struct MarkdownHTMLTests {
     @Test func `headings, paragraphs and emphasis`() {
         let out = html("# One\n\n###### Six\n\nA *b* **c** ~~d~~ `e`")
         #expect(out.contains("<h1>One</h1>") && out.contains("<h6>Six</h6>"))
-        #expect(out.contains("<p>A <em>b</em> <strong>c</strong> <del>d</del> <code>e</code></p>"))
+        #expect(out.contains("<p>A <em>b</em> <strong>c</strong> <del>d</del> <code data-n>e</code></p>"))
         balanced(out)
     }
 
@@ -48,7 +48,8 @@ struct MarkdownHTMLTests {
     @Test func `tables keep their alignment and their header`() {
         let out = html("| a | b | c |\n|:--|:-:|--:|\n| 1 | 2 | 3 |")
         #expect(
-            out.contains("<thead>") && out.contains("<th class=\"c\">b</th>") && out.contains("<td class=\"r\">3</td>")
+            out.contains("<thead>") && out.contains("<th data-f class=\"c\">b</th>")
+                && out.contains("<td data-f class=\"r\">3</td>")
                 && out.contains("<tbody>")
         )
         balanced(out)
@@ -73,7 +74,7 @@ struct MarkdownHTMLTests {
         )
         let span = html("say `\"hi\" it's...`")
         #expect(
-            span.contains("<code>\"hi\" it's...</code>".replacing("\"", with: "&quot;").replacing("'", with: "&#39;"))
+            span.contains("<code data-n>&quot;hi&quot; it&#39;s...</code>")
         )
     }
 
@@ -258,5 +259,53 @@ struct DiagramThumbnailTests {
         let flowchart = render("flowchart TD\n  A --> B")
         #expect(flowchart.drawn && flowchart.inked > 200)
         #expect(!render("this is prose, not a diagram").drawn)
+        let pie = render("pie\n  \"a\" : 3\n  \"b\" : 1")
+        #expect(pie.drawn && pie.inked > 1000)
+    }
+}
+
+@Suite("Table columns")
+struct TableLayoutTests {
+    private func html(_ source: String) -> String {
+        MarkdownHTMLRenderer().body(MarkdownParser.parse(Array(source.utf8)))
+    }
+
+    @Test func `a short column stays on one line and a long one may wrap but not below a word`() {
+        let long = String(repeating: "word ", count: 30)
+        let out = html("| id | text |\n|---|---|\n| UTF-8 | \(long) |")
+        #expect(out.contains("<td data-f>UTF-8</td>") && out.contains("<th data-f>id</th>"))
+        #expect(out.contains("<td style=\"min-width:12ch\">word"))
+    }
+
+    @Test func `the minimum of a long column follows its longest word, within bounds`() {
+        let word = String(repeating: "x", count: 50)
+        let out = html("| a |\n|---|\n| \(word) \(String(repeating: "y ", count: 20)) |")
+        #expect(out.contains("min-width:28ch"))
+    }
+
+    @Test func `a table in a box, wide only when its columns need the room`() {
+        #expect(html("| a | b |\n|---|---|\n| 1 | 2 |").hasPrefix("<div class=\"table-wrap\"><table>"))
+        let wide = html(
+            "| \(String(repeating: "a", count: 40)) | \(String(repeating: "b", count: 40)) |\n|---|---|\n| 1 | 2 |"
+        )
+        #expect(wide.hasPrefix("<div class=\"table-wrap wide\">"))
+        #expect(TagBalance.problem(in: wide) == nil)
+    }
+
+    @Test func `cells are measured by what shows, not by markup or entities`() {
+        let (length, word) = TableLayout.measure("<code data-n>a&amp;b</code> <em>cd</em>".utf8, from: 0)
+        #expect(length == 6 && word == 3)
+        #expect(TableLayout.measure("héllo wörld".utf8, from: 0) == (11, 5))
+    }
+
+    @Test func `rows with fewer or more cells than the header are still sized and balanced`() {
+        let out = html("| a | b |\n|---|---|\n| 1 |\n| 1 | 2 | 3 |")
+        #expect(TagBalance.problem(in: out) == nil)
+    }
+
+    @Test func `many tables stay linear`() {
+        let table = "| a | b |\n|---|---|\n| 1 | 2 |\n\n"
+        let out = html(String(repeating: table, count: 3000))
+        #expect(out.components(separatedBy: "<div class=\"table-wrap\">").count == 3001)
     }
 }

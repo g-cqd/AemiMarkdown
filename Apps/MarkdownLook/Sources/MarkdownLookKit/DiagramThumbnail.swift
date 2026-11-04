@@ -16,11 +16,43 @@ public struct DiagramThumbnail {
     /// Draws `source` centred in `size` on a white page, as large as fits. False when the source is not a diagram this engine draws (a pie chart is not drawn here yet).
     public static func draw(_ source: [UInt8], in context: CGContext, size: CGSize) -> Bool {
         let parse = MermaidParse.parse(source, limits: .default)
+        if case .pie(let pie) = parse.result { return drawPie(pie, in: context, size: size) }
         var scene = DiagramScene()
         guard case .drawn = MermaidLayout.lay(parse.result, limits: .default, into: &scene), scene.width > 0,
             scene.height > 0
         else { return false }
         DiagramThumbnail(scene: scene, context: context).draw(size: size)
+        return true
+    }
+
+    /// The muted tones of the vector style's pie, in order.
+    private static let tones: [CGColor] = [
+        (0.42, 0.50, 0.60), (0.56, 0.68, 0.62), (0.80, 0.73, 0.56), (0.75, 0.56, 0.53), (0.64, 0.58, 0.74),
+        (0.53, 0.68, 0.75), (0.85, 0.80, 0.65), (0.66, 0.62, 0.58)
+    ]
+    .map { CGColor(red: $0.0, green: $0.1, blue: $0.2, alpha: 1) }
+
+    /// A pie chart as sectors, no legend (a thumbnail is too small to read one).
+    private static func drawPie(_ pie: PieDiagram, in context: CGContext, size: CGSize) -> Bool {
+        let total = pie.slices.reduce(0) { $0 + $1.value }
+        guard total > 0 else { return false }
+        context.setFillColor(CGColor(gray: 1, alpha: 1))
+        context.fill(CGRect(origin: .zero, size: size))
+        let radius = Swift.min(size.width, size.height) * 0.36
+        let centre = CGPoint(x: size.width / 2, y: size.height / 2)
+        var angle = Double.pi / 2
+        for (index, slice) in pie.slices.enumerated() {
+            let sweep = slice.value / total * 2 * Double.pi
+            context.beginPath()
+            context.move(to: centre)
+            context.addArc(center: centre, radius: radius, startAngle: angle, endAngle: angle - sweep, clockwise: true)
+            context.closePath()
+            context.setFillColor(tones[index % tones.count])
+            context.setStrokeColor(CGColor(gray: 1, alpha: 1))
+            context.setLineWidth(1.5)
+            context.drawPath(using: .fillStroke)
+            angle -= sweep
+        }
         return true
     }
 
@@ -80,10 +112,16 @@ public struct DiagramThumbnail {
         context.move(to: CGPoint(x: px(first.x), y: py(first.y)))
         for point in points.dropFirst() { context.addLine(to: CGPoint(x: px(point.x), y: py(point.y))) }
         context.strokePath()
-        guard path.endMarker != .none else { return }
         let before = points[points.endIndex - 2]
         let (dx, dy) = (CGFloat((last.x - before.x).signum()), CGFloat((last.y - before.y).signum()))
         let tip = CGPoint(x: px(last.x) + dx * cell.width, y: py(last.y) + dy * cell.height)
+        if path.role == .edge {
+            context.beginPath()
+            context.move(to: CGPoint(x: px(last.x), y: py(last.y)))
+            context.addLine(to: tip)
+            context.strokePath()
+        }
+        guard path.endMarker != .none else { return }
         context.beginPath()
         context.move(to: tip)
         context.addLine(to: CGPoint(x: tip.x - dx * 8 - dy * 4, y: tip.y - dy * 8 + dx * 4))

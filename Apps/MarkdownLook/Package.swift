@@ -6,7 +6,10 @@ import PackageDescription
 let package = Package(
     name: "MarkdownLook",
     platforms: [.macOS(.v15)],
-    products: [.library(name: "MarkdownLookKit", targets: ["MarkdownLookKit"])],
+    products: [
+        .library(name: "MarkdownLookKit", targets: ["MarkdownLookKit"]),
+        .executable(name: "markdown-look-html", targets: ["markdown-look-html"])
+    ],
     dependencies: [
         .package(path: "../.."),
         .package(path: "../../../AemiMermaid"),
@@ -28,6 +31,7 @@ let package = Package(
                 .strictMemorySafety()
             ]
         ),
+        .executableTarget(name: "markdown-look-html", dependencies: ["MarkdownLookKit"]),
         .testTarget(
             name: "MarkdownLookKitTests",
             dependencies: [

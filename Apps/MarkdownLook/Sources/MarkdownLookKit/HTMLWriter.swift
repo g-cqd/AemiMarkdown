@@ -26,6 +26,9 @@ struct HTMLWriter {
     var tableBody = false
     var headerRow = false
     var cellTag = "td"
+    /// The text written before the table in progress, and the table's measurements; the table is written on its own so its columns can be sized when it ends.
+    var beforeTable = ""
+    var tableLayout = TableLayout()
     /// The kind of the autolink being written (the payload of its node), or nil outside one.
     var autolinkKind: Int?
     var pendingSpaces = 0
@@ -53,6 +56,10 @@ struct HTMLWriter {
     func text(_ range: Range<Int>) -> String { String(decoding: document.source[range], as: UTF8.self) }
 
     mutating func handle(_ event: MarkdownEvent) {
+        if case .leaf(let node) = event, node.kind == .text, headOpen, stack.last?.kind == .codeSpan {
+            // A short code span is kept on one line: it would break at a hyphen, in `--flag`.
+            if node.range.count <= 40 { out += " data-n" }
+        }
         if case .leaf(let node) = event, [.listStart, .linkDestination, .linkTitle].contains(node.kind) {
             attribute(node)
             return
@@ -118,9 +125,13 @@ struct HTMLWriter {
                 stack.append(Frame(kind: node.kind, closing: ""))
             case .table:
                 tableBody = false
+                beforeTable = out
+                out = ""
+                tableLayout = TableLayout()
                 open(.table, "table", closing: "</table>\n")
                 out += "\n"
             case .tableRow:
+                tableLayout.column = 0
                 headerRow = node.payload == 1
                 if headerRow {
                     out += "<thead>"
@@ -133,14 +144,21 @@ struct HTMLWriter {
                 smart = SmartPunctuation()
                 let tag = headerRow ? "th" : "td"
                 let alignment = [1: "", 2: " class=\"c\"", 3: " class=\"r\""][node.payload] ?? ""
+                tableLayout.startCell(at: out.utf8.count + 1 + tag.utf8.count)
                 open(.tableCell, tag, attributes: alignment)
+                tableLayout.cellStart = out.utf8.count
             case .footnoteDefinition: open(.footnoteDefinition, "div", attributes: " class=\"footnote\"")
             case .emphasis: open(.emphasis, "em")
             case .strong: open(.strong, "strong")
             case .strikethrough: open(.strikethrough, "del")
             case .codeSpan, .math:
                 codeDepth += 1
-                open(node.kind, "code", attributes: node.kind == .math ? " class=\"math\"" : "")
+                open(
+                    node.kind,
+                    "code",
+                    attributes: node.kind == .math ? " class=\"math\"" : "",
+                    headOpen: node.kind == .codeSpan
+                )
             case .link: open(.link, "a", closing: "</a>", headOpen: true)
             case .image: open(.image, "span", attributes: " class=\"image\"", closing: "</span>", headOpen: true)
             case .autolink: autolinkKind = node.payload
@@ -155,10 +173,15 @@ struct HTMLWriter {
             case .table:
                 if tableBody { out += "</tbody>" }
                 closeFrame()
+                out =
+                    beforeTable + "<div class=\"table-wrap\(tableLayout.isWide ? " wide" : "")\">"
+                    + tableLayout.apply(to: out) + "</div>\n"
+                beforeTable = ""
             case .codeSpan, .math:
                 codeDepth -= 1
                 closeFrame()
             case .listItem, .list, .blockQuote, .footnoteDefinition, .tableRow, .tableCell, .heading, .paragraph:
+                if node.kind == .tableCell { tableLayout.endCell(markup: out.utf8, from: tableLayout.cellStart) }
                 closeFrame()
                 if [.listItem, .blockQuote, .tableRow, .tableCell, .heading].contains(node.kind) { out += "\n" }
             default: closeFrame()
