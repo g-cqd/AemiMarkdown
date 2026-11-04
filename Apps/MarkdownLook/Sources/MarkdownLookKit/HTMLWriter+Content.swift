@@ -80,14 +80,15 @@ extension HTMLWriter {
         }
         let classes = isHTML ? " class=\"source\"" : (language.isEmpty ? "" : " class=\"language-\(language)\"")
         var body = HTMLText.escaped(code)
-        if !isHTML, code.utf8.count <= CodeHighlighter.byteLimit, let known = CodeHighlighter.language(for: rawLanguage)
+        if !isHTML, options.settings.highlightsCode, code.utf8.count <= CodeHighlighter.byteLimit,
+            let known = CodeHighlighter.language(for: rawLanguage)
         {
             body = CodeHighlighter.html(Array(code.utf8), language: known)
         }
         let block = "<pre><code\(classes)>" + body + (code.isEmpty ? "" : "\n") + "</code></pre>\n"
         // The language the fence names, shown in the corner: a label for the eye that a selection does not take.
         out +=
-            isHTML || language.isEmpty
+            isHTML || language.isEmpty || !options.settings.showsLanguage
             ? block : "<div class=\"code\"><span class=\"lang\">\(language)</span>" + block + "</div>\n"
     }
 }

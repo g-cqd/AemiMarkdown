@@ -67,7 +67,7 @@ public struct DiagramThumbnail {
         context.translateBy(x: (size.width - natural.width * fit) / 2, y: (size.height + natural.height * fit) / 2)
         context.scaleBy(x: fit, y: -fit)
         context.setStrokeColor(ink)
-        context.setLineWidth(1.25 / Swift.min(1, fit))
+        context.setLineWidth(1.5 / Swift.min(1, fit))
         context.setLineJoin(.round)
         scene.shapes.forEach(drawShape)
         scene.paths.forEach(drawPath)

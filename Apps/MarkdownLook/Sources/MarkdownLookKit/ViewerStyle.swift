@@ -11,7 +11,7 @@ public enum ViewerStyle {
            gap: between blocks of prose. gap-s: between items and inside a group. gap-box: around code, figures, tables, quotes. gap-sect: before a heading, a rule, the notes.
            gap-head: under a heading. indent: every nesting level, for lists, quotes, alerts. pad: inside a box. cell: inside a table cell. */
         :root { --gap: 1em; --gap-s: 0.4em; --gap-box: 1.5em; --gap-sect: 2.2em; --gap-head: 0.6em; --pad: 1.1em 1.3em; --cell: 0.6em 1.4em; --radius: 0.6em; --radius-s: 0.3em;
-          --hair: 1.5px; --bar: 2px; --page: 3.5em 2.5em 5em; --measure: 40em; }
+          --stroke: 1.5px; --hair: var(--stroke); --bar: var(--stroke); --page: 3.5em 2.5em 5em; --measure: 40em; }
         html { font: 13px/1.6 -apple-system, system-ui, 'SF Pro Text', sans-serif; font-optical-sizing: auto; -webkit-text-size-adjust: 100%; -webkit-font-smoothing: antialiased; }
         body { margin: 0; padding: var(--page); background: transparent; color: var(--text); font-kerning: normal; }
         main { max-width: var(--measure); margin: 0 auto; }
@@ -46,16 +46,20 @@ public enum ViewerStyle {
         blockquote { color: var(--secondary); } .alert::before { background: var(--note); }
         .alert-title { font-weight: 500; font-size: 0.85em; letter-spacing: 0.06em; text-transform: uppercase; color: var(--secondary); }
         .alert > .alert-title + * { margin-block-start: var(--gap-s); }
-        ul, ol { padding-left: var(--indent); } ol { font-variant-numeric: tabular-nums; }
-        li { position: relative; } li + li { margin-block-start: var(--gap-s); }
-        :is(ul, ol):not(.tight) > li + li { margin-block-start: var(--gap); }
-        li > :is(ul, ol) { margin-block-start: var(--gap-s); }
+        ul, ol { padding-left: var(--indent); --item: var(--gap); } ul.tight, ol.tight { --item: var(--gap-s); } ol { font-variant-numeric: tabular-nums; }
+        /* Items of a list are --item apart (tight or loose), and a list inside an item starts the same distance below its parent's text, so a child never sits farther from its parent than the next item does. */
+        li { position: relative; --above: var(--item); } li + li { margin-block-start: var(--item); }
+        li > :is(ul, ol) { margin-block-start: var(--above); }
+        :is(ul, ol).tight > li > :where(* + *) { margin-block-start: var(--gap-s); }
         li::marker { color: var(--tertiary); }
         li:has(> input:first-child), li:has(> p > input:first-child) { list-style: none; }
         li input[type=checkbox] { position: absolute; left: calc(-1 * var(--indent)); top: 0.35em; margin: 0; accent-color: var(--secondary); }
         hr { border: 0; height: var(--hair); border-radius: 1px; background: var(--rule); }
         .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+        .table-wrap::-webkit-scrollbar { height: 8px; } .table-wrap::-webkit-scrollbar-track { background: transparent; }
+        .table-wrap::-webkit-scrollbar-thumb { background: var(--mark); border-radius: 4px; border: 2px solid transparent; background-clip: content-box; }
         .table-wrap.wide { margin-inline: calc((100% - min(68em, 100vw - 5em)) / 2); }
+        .table-wrap.wide table { margin-inline: auto; }
         table { border-collapse: collapse; font-variant-numeric: tabular-nums; line-height: 1.45; font-size: 0.96em; }
         th, td { position: relative; padding: var(--cell); text-align: left; vertical-align: top; }
         th::after, td::after { content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: var(--hair); background: var(--rule); }

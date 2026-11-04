@@ -31,7 +31,7 @@ struct MarkdownHTMLTests {
     }
 
     @Test func `lists are tight or loose, ordered lists keep their start, and tasks have checkboxes`() {
-        #expect(html("- a\n- b").contains("<ul class=\"tight\"><li>a"))
+        #expect(html("- a\n- b").contains("<ul class=\"tight\"><li><p>a</p>"))
         let loose = html("- a\n\n- b")
         #expect(loose.contains("<ul><li><p>a</p>") && !loose.contains("tight"))
         #expect(html("3. x\n4. y").contains(" start=\"3\""))
@@ -381,19 +381,18 @@ struct CodeHighlightTests {
 @Suite("Viewer settings")
 struct ViewerSettingsTests {
     private func page(_ settings: ViewerSettings) -> String {
-        var renderer = MarkdownHTMLRenderer()
-        renderer.settings = settings
-        return renderer.page(MarkdownParser.parse(Array("# T\n\n\tcode".utf8)), title: "t")
+        MarkdownHTMLRenderer(settings: settings).page(MarkdownParser.parse(Array("# T\n\n\tcode".utf8)), title: "t")
     }
 
-    @Test func `the tab size is a number of spaces within bounds`() {
-        #expect(
-            ViewerSettings(tabSize: 0).tabSize == 1 && ViewerSettings(tabSize: 99).tabSize == 8
-                && ViewerSettings(tabSize: -3).tabSize == 1
-        )
+    @Test func `numbers are within bounds`() {
+        var settings = ViewerSettings()
+        settings.tabSize = 99
+        settings.textSize = 2
+        #expect(settings.tabSize == 8 && settings.textSize == 11)
         #expect(
             page(ViewerSettings(tabSize: 2)).contains("tab-size: 2;") && page(ViewerSettings()).contains("tab-size: 4;")
         )
+        #expect(page(settings).contains("font-size: 11px;"))
     }
 
     @Test func `full width lifts the measure, and the default keeps it`() {
@@ -401,18 +400,59 @@ struct ViewerSettingsTests {
         #expect(!page(ViewerSettings()).contains("main { max-width: none; }"))
     }
 
+    @Test func `table lines are each a choice`() {
+        var settings = ViewerSettings()
+        #expect(!page(settings).contains("display: none") && !page(settings).contains("td + td::before"))
+        settings.rowLines = false
+        settings.columnLines = true
+        settings.outerBorder = true
+        let css = page(settings)
+        #expect(
+            css.contains("th::after, td::after { display: none; }") && css.contains("td + td::before")
+                && css.contains(".table-wrap { border:")
+        )
+    }
+
+    @Test func `the backdrop is solid only when asked, and a page is transparent otherwise`() {
+        var settings = ViewerSettings()
+        for mode in [Backdrop.blurred, .clear] {
+            settings.backdrop = mode
+            #expect(!page(settings).contains("html, body { background: Canvas; }"))
+        }
+        settings.backdrop = .solid
+        #expect(page(settings).contains("html, body { background: Canvas; }"))
+    }
+
+    @Test func `code and diagrams follow their switches`() {
+        var settings = ViewerSettings()
+        settings.highlightsCode = false
+        settings.showsLanguage = false
+        settings.drawsDiagrams = false
+        let out = MarkdownHTMLRenderer(settings: settings)
+            .body(
+                MarkdownParser.parse(Array("```swift\nlet x = 1\n```\n\n```mermaid\nflowchart TD\n  A --> B\n```".utf8))
+            )
+        #expect(!out.contains(/<span class="[a-z]">/) && !out.contains("class=\"lang\"") && !out.contains("<svg"))
+    }
+
     @Test func `settings are read from preferences, defaults for what is missing or wrong`() {
         let domain = ViewerSettings.domain as CFString
-        for key in [ViewerSettings.fullWidthKey, ViewerSettings.tabSizeKey] {
-            CFPreferencesSetAppValue(key as CFString, nil, domain)
-        }
+        let keys = [
+            ViewerSettings.Key.fullWidth, ViewerSettings.Key.tabSize, ViewerSettings.Key.textSize,
+            ViewerSettings.Key.rowLines, ViewerSettings.Key.backdrop, ViewerSettings.Key.outerBorder
+        ]
+        for key in keys { CFPreferencesSetAppValue(key as CFString, nil, domain) }
         #expect(ViewerSettings.current() == ViewerSettings())
-        CFPreferencesSetAppValue(ViewerSettings.tabSizeKey as CFString, "wide" as CFString, domain)
-        CFPreferencesSetAppValue(ViewerSettings.fullWidthKey as CFString, kCFBooleanTrue, domain)
-        #expect(ViewerSettings.current() == ViewerSettings(fullWidth: true, tabSize: 4))
-        for key in [ViewerSettings.fullWidthKey, ViewerSettings.tabSizeKey] {
-            CFPreferencesSetAppValue(key as CFString, nil, domain)
-        }
+        CFPreferencesSetAppValue(ViewerSettings.Key.tabSize as CFString, "wide" as CFString, domain)
+        CFPreferencesSetAppValue(ViewerSettings.Key.fullWidth as CFString, kCFBooleanTrue, domain)
+        CFPreferencesSetAppValue(ViewerSettings.Key.backdrop as CFString, "sparkly" as CFString, domain)
+        CFPreferencesSetAppValue(ViewerSettings.Key.rowLines as CFString, kCFBooleanFalse, domain)
+        CFPreferencesSetAppValue(ViewerSettings.Key.textSize as CFString, 99 as CFNumber, domain)
+        let read = ViewerSettings.current()
+        #expect(
+            read.fullWidth && read.tabSize == 4 && read.backdrop == .blurred && !read.rowLines && read.textSize == 20
+        )
+        for key in keys { CFPreferencesSetAppValue(key as CFString, nil, domain) }
     }
 
     @Test func `a page allows no request of its own`() {

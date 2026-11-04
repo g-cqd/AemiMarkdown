@@ -10,13 +10,21 @@ internal import AemiMermaidSVG
 /// ```
 public struct MarkdownHTMLRenderer: Sendable {
     /// Curly quotes and ellipses in prose (not in code).
-    public var smartPunctuation = true
+    public var smartPunctuation: Bool {
+        get { settings.smartPunctuation }
+        set { settings.smartPunctuation = newValue }
+    }
     /// Draw `mermaid` fences as diagrams.
-    public var drawsDiagrams = true
+    public var drawsDiagrams: Bool {
+        get { settings.drawsDiagrams }
+        set { settings.drawsDiagrams = newValue }
+    }
     /// The reader's choices: width of the text, width of a tab.
     public var settings = ViewerSettings()
 
     public init() {}
+
+    public init(settings: ViewerSettings) { self.settings = settings }
 
     /// The document's content as HTML, with no page around it. `embedsDiagramStyle` puts the diagrams' style sheet in each SVG; a page that carries it once turns it off.
     public func body(_ document: MarkdownDocument, embedsDiagramStyle: Bool = true) -> String {

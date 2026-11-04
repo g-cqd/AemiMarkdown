@@ -121,9 +121,6 @@ struct HTMLWriter {
         return result
     }
 
-    /// Whether the innermost open block is a tight list's item: its paragraphs are bare.
-    private var inTightItem: Bool { stack.last?.kind == .listItem && stack.last?.tight == true }
-
     private mutating func open(
         _ node: NodeKind,
         _ tag: String,
@@ -141,7 +138,7 @@ struct HTMLWriter {
         switch node.kind {
             case .paragraph:
                 smart = SmartPunctuation()
-                if inTightItem { stack.append(Frame(kind: .paragraph, closing: "\n")) } else { open(.paragraph, "p") }
+                open(.paragraph, "p")
             case .heading:
                 smart = SmartPunctuation()
                 open(.heading, "h\(Swift.min(6, Swift.max(1, node.payload)))")

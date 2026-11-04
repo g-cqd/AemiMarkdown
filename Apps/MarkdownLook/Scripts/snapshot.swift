@@ -16,6 +16,13 @@ let selectAll = arguments.contains("select")
     let view: WKWebView
     init(view: WKWebView) { self.view = view }
     func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
+        if let probe = arguments.first(where: { $0.hasPrefix("probe=") }) {
+            webView.evaluateJavaScript(String(probe.dropFirst(6))) { result, error in
+                print(result ?? error ?? "nil")
+                exit(0)
+            }
+            return
+        }
         if selectAll { webView.evaluateJavaScript("document.execCommand('selectAll')") { _, _ in } }
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
             webView.takeSnapshot(with: nil) { image, _ in
