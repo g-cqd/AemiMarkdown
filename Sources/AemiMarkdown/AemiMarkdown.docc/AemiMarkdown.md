@@ -46,3 +46,10 @@ for event in document.events {
 - <doc:RenderingBlockByBlock>
 - ``MarkdownBlock``
 - ``MarkdownBlocks``
+
+### Editing
+
+- <doc:EditingADocument>
+- ``MarkdownEditor``
+- ``MarkdownChange``
+- ``MarkdownFenceReader``

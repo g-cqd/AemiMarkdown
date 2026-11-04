@@ -11,6 +11,8 @@ ratchet of known failures is empty. Compared with cmark 0.31.2 and cmark-gfm 0.2
 `DifferentialTests`: the references' own faults and spec-version differences, none owed. The reading API for renderers (top-level blocks with stable
 identities, ADR-0002) is used by TerminalKit's Markdown renderer (`TerminalKitMarkdown`), which draws ask's assistant messages. Apple platforms only so far.
 
+A document can also be **edited**: `MarkdownEditor.replace(_:with:)` takes bytes in place of a range anywhere and returns which blocks differ, in time that follows the edit (ADR-0003); each top-level block has a source range, a content hash and an ordinal, and `MarkdownFenceReader` reads a code block's language and lines without copying them.
+
 ```swift
 import AemiMarkdown
 
@@ -39,6 +41,17 @@ each, release builds, 2026-10-29 (`Benchmarks/MarkdownBench`, and ask's `develop
 
 The clocks differ: swift-markdown's probe reads `CLOCK_UPTIME_RAW` (wall time), AemiMarkdown's the thread's CPU time; the machine's load average was 1.8 to
 1.9. The worst case is one paragraph of 100 KB with no line breaks: 148 to 150 µs per delta at p50, O(the paragraph) by design.
+
+## Edits
+
+On the public corpus (below), one byte put in a paragraph and taken out, instructions of the thread: 23 KB document 0.07 to 0.12 million, 1 MB 0.1 to 1.1 million, 5 MB 0.07 to 3.7 million (the end
+to the start), against 1.8, 72.9 and 367 million for parsing the edited source whole. A warm editor allocates nothing for an edit in a paragraph. `MarkdownBench --edits` prints the position series.
+
+## Corpus
+
+Benchmarks and some tests run on public documents that are **not in the repository**: `Benchmarks/Corpus/manifest.json` lists 998 of them (URL, size, SHA-256) and
+`python3 Benchmarks/Corpus/fetch.py setup` downloads them into `~/Library/Caches/AemiMarkdownCorpus`. Without them those tests are disabled, with the reason.
+`MarkdownBench --corpus` parses them by size and prints instructions and cycles per byte (the figures that do not depend on what else the machine is doing).
 
 ## Licence
 

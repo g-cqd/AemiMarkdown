@@ -53,4 +53,16 @@ struct DocumentationExampleTests {
         _ = draw(parser.snapshot())
         #expect(layouts == 4, "only the open paragraph was laid out again")
     }
+
+    @Test func `the editing article's edit names the block and the fence reader reads the code`() throws {
+        var editor = MarkdownEditor(Array("# Title\n\nfirst\n\nsecond\n".utf8))
+        let change = editor.replace(16 ..< 22, with: Array("2nd".utf8))
+        #expect(change.changedBlocks == 2 ..< 3 && editor.document.block(at: 2) != nil)
+        let fenced = MarkdownEditor(Array("```swift\nlet a = 1\n```\n".utf8))
+        var reader = MarkdownFenceReader()
+        let block = try #require(fenced.document.block(at: 0))
+        let found = reader.read(block, in: fenced.document)
+        let header = try #require(found)
+        #expect(header.isClosed == true && reader.lines.count == 1)
+    }
 }
