@@ -2,6 +2,7 @@ extension MarkdownParser {
     /// Parses one line, `source[start ..< end]`, without its ending: cmark's `process_line`, writing slots as blocks open and close.
     mutating func processLine(_ start: Int, _ end: Int) {
         state.lineNumber += 1
+        state.lineStartOffset = start
         state.offset = start
         state.column = 0
         state.partiallyConsumedTab = false
@@ -9,6 +10,7 @@ extension MarkdownParser {
         var container = lastMatched
         startNewBlocks(&container, end)
         addText(container: container, lastMatched: lastMatched, end)
+        state.consumedEnd = lineEndOffset(after: end)
     }
 
     /// Walks the open blocks from the outermost and lets each take its prefix of the line. Returns the index of the last one that matched, or nil if the
@@ -47,6 +49,9 @@ extension MarkdownParser {
                         length >= block.fenceLength
                     {
                         advance(end - state.offset, columns: false, end)
+                        state.open[index].markerClosed = true
+                        // The closing fence is the last line of the block it closes.
+                        state.consumedEnd = lineEndOffset(after: end)
                         closeAbove(index - 1)
                         return nil
                     }

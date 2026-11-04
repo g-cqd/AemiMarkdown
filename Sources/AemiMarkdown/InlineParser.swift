@@ -56,6 +56,9 @@ struct InlineParser {
     var bareLinks: [BareLink] = []
     /// The normalized form of the label being looked up, reused.
     var referenceKey: [UInt8] = []
+    /// What the leaf block's reference lookups found, folded in order (ADR-0003): zero when it looked up none. A block whose link changes meaning because a
+    /// definition appeared, went or changed has a different stamp, and so a different content hash.
+    var resolutionStamp: UInt64 = 0
 
     /// Parses `lines` of `source` and appends the leaf block's inline run, ending in a `runEnd` slot, to `inlines`. Returns the index of the run's first slot.
     mutating func parse(
@@ -70,6 +73,7 @@ struct InlineParser {
     ) -> Int {
         self.source = source
         self.references = references
+        resolutionStamp = 0
         self.limits = limits
         self.extensions = extensions
         tree.reset()

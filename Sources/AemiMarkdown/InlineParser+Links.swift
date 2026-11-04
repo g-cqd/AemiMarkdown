@@ -77,7 +77,10 @@ extension InlineParser {
         }
         if length == 0 { position = afterBracket }
         guard let label, spend(label.count) else { return nil }
-        return references.find(label: text[label], scratch: &referenceKey)
+        // With no definition in the document nothing can resolve: no label needs normalizing, which for a label with letters outside ASCII is not cheap.
+        let found = references.hasDefinitions ? references.find(label: text[label], scratch: &referenceKey) : nil
+        stampResolution(label: label, found)
+        return found
     }
 
     /// Builds the link or image node over what follows the opener on the tree. False if it would nest past the limit.

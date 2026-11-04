@@ -13,6 +13,31 @@ enum ByteScan {
         }
     }
 
+    /// As ``firstIndex(inSet:in:from:)``, looking only before `limit`: `limit` if none is there.
+    static func firstIndex(
+        inSet set: AemiKernels.ByteSet,
+        in bytes: ContiguousArray<UInt8>,
+        from start: Int,
+        before limit: Int
+    ) -> Int {
+        let limit = Swift.min(limit, bytes.count)
+        guard start < limit else { return limit }
+        return bytes.withUnsafeBufferPointer { buffer -> Int in
+            guard let base = buffer.baseAddress else { return limit }
+            // SAFETY: `start < limit <= bytes.count`, so `base + start` is valid for `limit - start` bytes, the count the kernel is given.
+            let found = unsafe AemiKernels.firstIndex(inSet: set, base: base + start, count: limit - start)
+            return start + found
+        }
+    }
+
+    /// A pipe and a backslash: what ends a table cell, or hides the pipe that would.
+    static let cellStops: AemiKernels.ByteSet = {
+        guard let set = AemiKernels.ByteSet(Array("|\\".utf8)) else {
+            preconditionFailure("the cell stops do not fit in nibble tables")
+        }
+        return set
+    }()
+
     /// The bytes that start something in a leaf block: a line ending, a backslash, a backtick, `*`, `_`, `~`, `[`, `]`, `!`, `<` and `&`. Six rows of nibbles, so the tables hold it exactly.
     static let inlineSpecials: AemiKernels.ByteSet = {
         guard let set = AemiKernels.ByteSet(Array("\n\\`*_~[]!<&$".utf8)) else {

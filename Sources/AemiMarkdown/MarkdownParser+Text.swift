@@ -38,6 +38,9 @@ extension MarkdownParser {
                 if (1 ... 5).contains(state.open[container].htmlCondition),
                     HTMLBlockScanner.ends(state.open[container].htmlCondition, source, state.offset, end)
                 {
+                    // The line that ends the block is its last.
+                    state.consumedEnd = lineEndOffset(after: end)
+                    state.open[container].markerClosed = true
                     closeAbove(container - 1)
                 }
             case _ where blank:

@@ -13,7 +13,7 @@ extension MarkdownParser {
     }
 
     /// Splits `source[range]` into trimmed cells in `state.cells`: a leading and a trailing pipe are optional, and `\|` does not divide.
-    private mutating func splitCells(_ range: Range<Int>) {
+    mutating func splitCells(_ range: Range<Int>) {
         state.cells.removeAll(keepingCapacity: true)
         var index = range.lowerBound
         var upper = range.upperBound
@@ -22,7 +22,11 @@ extension MarkdownParser {
         if index < upper, source[index] == UInt8(ascii: "|") { index += 1 }
         while index < upper {
             var scan = index
-            while scan < upper, source[scan] != UInt8(ascii: "|") { scan += source[scan] == UInt8(ascii: "\\") ? 2 : 1 }
+            while true {
+                scan = ByteScan.firstIndex(inSet: ByteScan.cellStops, in: source, from: scan, before: upper)
+                guard scan < upper, source[scan] == UInt8(ascii: "\\") else { break }
+                scan += 2
+            }
             scan = Swift.min(scan, upper)
             var cellStart = index
             var cellEnd = scan
@@ -65,8 +69,12 @@ extension MarkdownParser {
         let header = state.lineRanges[paragraph.firstLine + paragraph.lineCount - 1]
         splitCells(header)
         guard state.cells.count == delimiter.columns else { return false }
-        // The lines above the header stay a paragraph; a paragraph that is only the header becomes the table.
+        // The lines above the header stay a paragraph; a paragraph that is only the header becomes the table. The table's source starts at its header's line.
+        var tableStart = paragraph.startOffset
         if paragraph.lineCount > 1 {
+            tableStart = lineStartOffset(before: header.lowerBound)
+            // The header line was the paragraph's last until now; it belongs to the table.
+            state.consumedEnd = tableStart
             state.open[container].lineCount -= 1
             closeAbove(container - 1)
         } else {
@@ -78,6 +86,7 @@ extension MarkdownParser {
             to: container - 1,
             slot: Slot.make(.container, .table, payload: delimiter.columns, low: 0)
         )
+        state.open[table].startOffset = tableStart
         state.open[table].columns = delimiter.columns
         state.open[table].alignments = delimiter.alignments
         appendRow(header: true, table: table, cells: header)

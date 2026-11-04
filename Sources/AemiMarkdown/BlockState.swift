@@ -30,6 +30,8 @@ struct BlockState: Sendable {
         var fenceCharacter: UInt8 = 0
         var fenceLength = 0
         var fenceOffset = 0
+        /// A closing fence, or the line an HTML block's end condition names, ended the block; otherwise the blank lines at its end are its text (ADR-0003).
+        var markerClosed = false
         // An HTML block.
         var htmlCondition = 0
         // A table: its column count, and two bits of alignment per column.
@@ -37,6 +39,8 @@ struct BlockState: Sendable {
         var alignments: UInt128 = 0
         /// A paragraph that is the first block of a list item, so it may start with a task list marker.
         var taskCandidate = false
+        /// The first byte of the line the block began on: where its source starts (ADR-0003).
+        var startOffset = 0
         /// A paragraph that is the first block of a block quote, so its first line may be an alert marker.
         var alertCandidate = false
         // A paragraph or heading: where its lines start in `BlockState.lineRanges`.
@@ -70,10 +74,19 @@ struct BlockState: Sendable {
         indent = 0
         blank = false
         partiallyConsumedTab = false
+        lineStartOffset = 0
+        consumedEnd = 0
+        verbatimEnd = -1
     }
 
     var open: ContiguousArray<Open> = [Open(kind: .document, slot: -1, startLine: 0)]
     var lineNumber = 0
+    /// Where the line being processed starts in the source, and where the last line that belongs to the open blocks ends, line ending included.
+    var lineStartOffset = 0
+    var consumedEnd = 0
+    /// Where `consumedEnd` stood when a fenced code block with no closing fence, or an HTML block that nothing ended, last closed: when a top-level block
+    /// closes there, its blank last lines are the text of that block.
+    var verbatimEnd = -1
     var lineRanges: ContiguousArray<Range<Int>> = []
     var pending: ContiguousArray<Pending> = []
     /// The cells of the table row being read, as source ranges: scratch that is reused.

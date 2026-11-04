@@ -12,13 +12,22 @@ extension MarkdownParser {
             case .indentedCode:
                 trimTrailingBlankCodeLines()
                 blocks[block.slot] = Slot.withLow(blocks[block.slot], blocks.count)
-            case .fencedCode, .htmlBlock, .blockQuote, .item, .footnote, .table:
+            case .fencedCode:
+                if !block.markerClosed { state.verbatimEnd = state.consumedEnd }
+                blocks[block.slot] = Slot.withLow(blocks[block.slot], blocks.count)
+            case .htmlBlock:
+                if !block.markerClosed, (1 ... 5).contains(block.htmlCondition) {
+                    state.verbatimEnd = state.consumedEnd
+                }
+                blocks[block.slot] = Slot.withLow(blocks[block.slot], blocks.count)
+            case .blockQuote, .item, .footnote, .table:
                 blocks[block.slot] = Slot.withLow(blocks[block.slot], blocks.count)
             case .list:
                 var slot = Slot.withLow(blocks[block.slot], blocks.count)
                 if !block.loose { slot = Slot.withPayload(slot, Slot.payload(slot) | ListFlags.tight.rawValue) }
                 blocks[block.slot] = slot
         }
+        if state.open.count == 1 { recordTopLevel(block) }
         let parent = state.open.count - 1
         if parent >= 0 {
             state.open[parent].childSelfBlank = block.lastLineBlank

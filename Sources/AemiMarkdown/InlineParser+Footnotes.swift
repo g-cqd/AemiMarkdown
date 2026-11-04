@@ -6,6 +6,7 @@ extension InlineParser {
         guard !label.isEmpty, references.hasFootnote(label: text[label], scratch: &referenceKey),
             !text[label].contains(where: { ASCIIClass.isWhitespace($0) || $0 == UInt8(ascii: "[") })
         else { return false }
+        stampFootnote()
         // What was scanned since the `[` was the label, as text: it goes, and the delimiters it made with it.
         var next = tree.nodes[Int(opener.node)].next
         while next >= 0 {

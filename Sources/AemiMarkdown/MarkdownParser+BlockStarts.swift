@@ -29,6 +29,7 @@ extension MarkdownParser {
         state.open[parent].hasChild = true
         let index = appendBlock(slot)
         state.open.append(BlockState.Open(kind: kind, slot: index, startLine: startLine ?? state.lineNumber))
+        state.open[state.open.count - 1].startOffset = state.lineStartOffset
         return state.open.count - 1
     }
 

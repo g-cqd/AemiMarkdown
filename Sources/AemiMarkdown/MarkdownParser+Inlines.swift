@@ -17,6 +17,8 @@ extension MarkdownParser {
             parser.source = source
             parser.limits = limits
             parser.extensions = extensions
+            // The definitions seen so far: the open line is the last of the document, so no later definition can reach it.
+            parser.references = references
             parser.tree.reset()
             parser.lineScratchStart = [0]
             parser.lineSourceStart = [lineStart]
@@ -54,6 +56,7 @@ extension MarkdownParser {
                     parser.autolinkBareLinks()
                 }
                 parser.serialize(into: &inlines)
+                recordStamp(parser.resolutionStamp, leaf.slot)
                 inlines.append(Slot.make(.marker, .runEnd, payload: 0, low: 0))
                 openParagraphParser = nil
                 openParagraphParsedUpTo = 0
@@ -68,11 +71,19 @@ extension MarkdownParser {
                     isTaskCandidate: leaf.taskCandidate,
                     into: &inlines
                 )
+                recordStamp(inlineParser.resolutionStamp, leaf.slot)
             }
             diagnostics.formUnion(inlineParser.diagnostics)
             inlineSteps += inlineParser.work
             blocks[leaf.slot] = Slot.withLow(blocks[leaf.slot], run)
         }
         state.pending.removeAll(keepingCapacity: true)
+    }
+
+    /// Notes what the reference lookups of the leaf block at `slot` found, if it made any.
+    private mutating func recordStamp(_ stamp: UInt64, _ slot: Int) {
+        guard stamp != 0 else { return }
+        stamps.append(UInt64(slot))
+        stamps.append(stamp)
     }
 }

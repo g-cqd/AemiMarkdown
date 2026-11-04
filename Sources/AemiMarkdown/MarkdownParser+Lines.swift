@@ -26,7 +26,9 @@ extension MarkdownParser {
     public mutating func finish() {
         close()
         blocks.commit()
+        topIndex.commit()
         inlines.commit()
+        stamps.commit()
     }
 
     /// The document as it stands: closed blocks are final, and the open ones are drawn as if the input ended here. Parsing goes on afterwards.
@@ -40,6 +42,7 @@ extension MarkdownParser {
         // What has closed is final.
         parsePendingInlines()
         inlines.commit()
+        stamps.commit()
         if state.open.allSatisfy({ $0.lineCount == 0 }) { state.lineRanges.removeAll(keepingCapacity: true) }
         updateIncrementalParagraph()
         // The boundary is read from this parser, not from the copy: a partial last line parsed as if the input ended can close a block (a lone `*`
@@ -54,7 +57,7 @@ extension MarkdownParser {
     }
 
     /// Parses the last line, closes every open block and parses every inline run, without committing.
-    private mutating func close() {
+    mutating func close() {
         guard !isFinished else { return }
         isFinished = true
         // A carriage return that waited for a line feed has none coming: it ends its line (docs/formal/LineSplitter.tla found this).
@@ -71,7 +74,7 @@ extension MarkdownParser {
 
     /// Notes control bytes and invalid UTF-8 in `source[scannedUpTo ..< end]`, which holds only whole characters: it ends at a line ending, or at the end of the input.
     /// One pass of each kernel over everything that arrived since the last, not one per line.
-    private mutating func scan(upTo end: Int) {
+    mutating func scan(upTo end: Int) {
         guard scannedUpTo < end else { return }
         let range = scannedUpTo ..< end
         scannedUpTo = end
@@ -94,7 +97,7 @@ extension MarkdownParser {
     }
 
     /// Parses each complete line from `from` on. A line ends at a line feed, a carriage return, or a carriage return and a line feed.
-    private mutating func processCompleteLines() {
+    mutating func processCompleteLines() {
         // Every line that was completed has been looked at once the loop ends, however it ends.
         defer { scan(upTo: lineStart) }
         var cursor = scanPosition
@@ -125,7 +128,7 @@ extension MarkdownParser {
     }
 
     /// Parses one line, cut into pieces of at most `maxLineBytes` so that no line is longer than the limit says.
-    private mutating func processLines(start: Int, end: Int) {
+    mutating func processLines(start: Int, end: Int) {
         var from = start
         while end - from > limits.maxLineBytes {
             diagnostics.insert(.lineLengthLimit)
@@ -137,7 +140,10 @@ extension MarkdownParser {
 
     /// A top-level block that has closed is final, and no later line can change it. Only the parser itself commits: a snapshot works on a copy and must
     /// write nothing to the tapes it shares (docs/formal/SnapshotProtocol.tla).
-    private mutating func commitClosedBlocks() {
-        if state.open.count == 1 { blocks.commit() }
+    mutating func commitClosedBlocks() {
+        if state.open.count == 1 {
+            blocks.commit()
+            topIndex.commit()
+        }
     }
 }

@@ -5,6 +5,10 @@ public struct MarkdownParser: Sendable {
     var source: ContiguousArray<UInt8> = []
     var blocks = SlotTape()
     var inlines = SlotTape()
+    /// The top-level block index: three slots for each closed top-level block (source range, content hash, slot on the block tape), committed with the block tape (ADR-0003).
+    var topIndex = SlotTape()
+    /// For each leaf block whose inlines looked up a reference: its slot on the block tape and the stamp of what the lookups found, in slot order (ADR-0003).
+    var stamps = SlotTape()
     var diagnostics: MarkdownDiagnostics = []
     var state = BlockState()
     var references = ReferenceTable()
@@ -16,6 +20,8 @@ public struct MarkdownParser: Sendable {
     /// Where the check for control bytes and invalid UTF-8 resumes: everything before it was checked.
     var scannedUpTo = 0
     var isFinished = false
+    /// An editor has put an edit's bytes in `source` and has not yet parsed them: the tapes are those of the document before it (ADR-0003).
+    var spliced = false
     /// Steps the inline phase has taken so far, over every leaf block: what the work limit counts, kept so tests can show that the cost grows with the input.
     var inlineSteps = 0
     /// When a single open paragraph runs without line breaks for many bytes, an incremental parser keeps its inline tree across appends and snapshots.
@@ -48,11 +54,14 @@ public struct MarkdownParser: Sendable {
         inlines.removeAll()
         diagnostics = []
         state.reset()
+        topIndex.removeAll()
+        stamps.removeAll()
         if !references.isEmpty { references.removeAll() }
         lineStart = 0
         scanPosition = 0
         scannedUpTo = 0
         isFinished = false
+        spliced = false
         inlineSteps = 0
         openParagraphParser = nil
         openParagraphParsedUpTo = 0
@@ -64,6 +73,8 @@ public struct MarkdownParser: Sendable {
             source: source,
             blocks: blocks,
             inlines: inlines,
+            index: topIndex,
+            stamps: stamps,
             diagnostics: diagnostics,
             finalBefore: finalBefore ?? blocks.count
         )
