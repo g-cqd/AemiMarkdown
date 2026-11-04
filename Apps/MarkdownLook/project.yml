@@ -1,0 +1,119 @@
+# MarkdownLook: Quick Look preview and thumbnail for Markdown and Mermaid files (ask roadmaps 0199, 0201).
+# `xcodegen generate` makes MarkdownLook.xcodeproj (not committed). Signed ad hoc here; to install for use, set DEVELOPMENT_TEAM and CODE_SIGN_IDENTITY in a local Signing.xcconfig.
+name: MarkdownLook
+options:
+  bundleIdPrefix: studio.aemi
+  deploymentTarget:
+    macOS: "15.0"
+  createIntermediateGroups: true
+configFiles:
+  Debug: Signing.xcconfig
+  Release: Signing.xcconfig
+settings:
+  base:
+    SWIFT_VERSION: 6.0
+    MARKETING_VERSION: 0.1.0
+    CURRENT_PROJECT_VERSION: 1
+    ENABLE_HARDENED_RUNTIME: YES
+    GENERATE_INFOPLIST_FILE: YES
+    SWIFT_STRICT_CONCURRENCY: complete
+packages:
+  MarkdownLook:
+    path: .
+targets:
+  MarkdownLook:
+    type: application
+    platform: macOS
+    sources: [App]
+    dependencies:
+      - package: MarkdownLook
+        product: MarkdownLookKit
+      - target: MarkdownLookPreview
+        embed: true
+      - target: MarkdownLookThumbnail
+        embed: true
+    entitlements:
+      path: App/App.entitlements
+      properties:
+        com.apple.security.app-sandbox: true
+        com.apple.security.files.user-selected.read-only: true
+    info:
+      path: App/Info.plist
+      properties:
+        CFBundleDisplayName: Markdown Look
+        LSApplicationCategoryType: public.app-category.developer-tools
+        UTExportedTypeDeclarations:
+          - UTTypeIdentifier: studio.aemi.mermaid
+            UTTypeDescription: Mermaid diagram
+            UTTypeConformsTo: [public.plain-text]
+            UTTypeTagSpecification:
+              public.filename-extension: [mmd, mermaid]
+              public.mime-type: [text/vnd.mermaid]
+        CFBundleDocumentTypes:
+          - CFBundleTypeName: Markdown document
+            CFBundleTypeRole: Viewer
+            LSItemContentTypes: [net.daringfireball.markdown]
+            LSHandlerRank: Alternate
+          - CFBundleTypeName: Mermaid diagram
+            CFBundleTypeRole: Viewer
+            LSItemContentTypes: [studio.aemi.mermaid]
+            LSHandlerRank: Default
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: studio.aemi.MarkdownLook
+        INFOPLIST_KEY_NSHumanReadableCopyright: Aemi Studio
+  MarkdownLookPreview:
+    type: app-extension
+    platform: macOS
+    sources: [Preview]
+    dependencies:
+      - package: MarkdownLook
+        product: MarkdownLookKit
+    entitlements:
+      path: Preview/Preview.entitlements
+      properties:
+        com.apple.security.app-sandbox: true
+        com.apple.security.files.user-selected.read-only: true
+    info:
+      path: Preview/Info.plist
+      properties:
+        CFBundleDisplayName: Markdown Look Preview
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.quicklook.preview
+          NSExtensionPrincipalClass: $(PRODUCT_MODULE_NAME).PreviewProvider
+          NSExtensionAttributes:
+            QLIsDataBasedPreview: true
+            QLSupportsSearchableItems: false
+            QLSupportedContentTypes:
+              - net.daringfireball.markdown
+              - studio.aemi.mermaid
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: studio.aemi.MarkdownLook.Preview
+  MarkdownLookThumbnail:
+    type: app-extension
+    platform: macOS
+    sources: [Thumbnail]
+    dependencies:
+      - package: MarkdownLook
+        product: MarkdownLookKit
+    entitlements:
+      path: Thumbnail/Thumbnail.entitlements
+      properties:
+        com.apple.security.app-sandbox: true
+        com.apple.security.files.user-selected.read-only: true
+    info:
+      path: Thumbnail/Info.plist
+      properties:
+        CFBundleDisplayName: Markdown Look Thumbnail
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.quicklook.thumbnail
+          NSExtensionPrincipalClass: $(PRODUCT_MODULE_NAME).ThumbnailProvider
+          NSExtensionAttributes:
+            QLThumbnailMinimumDimension: 0
+            QLSupportedContentTypes:
+              - net.daringfireball.markdown
+              - studio.aemi.mermaid
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: studio.aemi.MarkdownLook.Thumbnail

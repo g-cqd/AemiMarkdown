@@ -1,0 +1,5 @@
+// Ad-hoc by default. For a build to install and keep, copy this to Signing.local.xcconfig's values or edit here:
+// DEVELOPMENT_TEAM = <your team id>
+// CODE_SIGN_IDENTITY = Apple Development
+CODE_SIGN_STYLE = Manual
+CODE_SIGN_IDENTITY = -
