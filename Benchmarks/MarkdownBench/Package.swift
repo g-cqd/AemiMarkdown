@@ -15,7 +15,8 @@ let package = Package(
             name: "MarkdownBench",
             dependencies: [
                 .product(name: "AemiMarkdown", package: "AemiMarkdown"),
-                .product(name: "CAemiTestKitMalloc", package: "aemi")
+                .product(name: "CAemiTestKitMalloc", package: "aemi"),
+                .product(name: "AemiMetrics", package: "aemi")
             ]
         )
     ]

@@ -9,6 +9,11 @@ func percentile(_ sorted: [Double], _ p: Double) -> Double {
     sorted.isEmpty ? 0 : sorted[min(sorted.count - 1, Int(Double(sorted.count) * p))]
 }
 
+// `--corpus`: the public documents of Benchmarks/Corpus (downloaded by its setup phase, never part of the repository), by size.
+if CommandLine.arguments.count > 1, CommandLine.arguments[1] == "--corpus" {
+    exit(runCorpusBenchmark(arguments: Array(CommandLine.arguments.dropFirst(2))))
+}
+
 guard CommandLine.arguments.count > 1, let data = FileManager.default.contents(atPath: CommandLine.arguments[1]) else {
     FileHandle.standardError.write(Data("usage: MarkdownBench corpus.ndjson\n".utf8))
     exit(2)
@@ -29,7 +34,8 @@ print(
 // `--profile`: only the parse loop, many rounds, for a sampling profiler.
 if CommandLine.arguments.contains("--profile") {
     var parser = MarkdownParser(
-        limits: CommandLine.arguments.contains("--plain") ? MarkdownLimits(maxLeafBytes: 1) : .default)
+        limits: CommandLine.arguments.contains("--plain") ? MarkdownLimits(maxLeafBytes: 1) : .default
+    )
     for _ in 0 ..< 80 {
         for message in messages {
             parser.reset()
@@ -60,8 +66,12 @@ if CommandLine.arguments.contains("--phases") {
         rounds.sort()
         print(
             String(
-                format: "%-38@ median %.3f s (%.1f MB/s)", name as NSString, rounds[3],
-                Double(totalBytes) / 1e6 / rounds[3]))
+                format: "%-38@ median %.3f s (%.1f MB/s)",
+                name as NSString,
+                rounds[3],
+                Double(totalBytes) / 1e6 / rounds[3]
+            )
+        )
     }
     exit(0)
 }
@@ -81,8 +91,14 @@ rounds.sort()
 let megabytes = Double(totalBytes) / 1e6
 print(
     String(
-        format: "parse:      median %.3f s (%.1f MB/s), p10..p90 %.3f..%.3f s over 5 rounds; %d slots", rounds[2],
-        megabytes / rounds[2], rounds[0], rounds[4], slots))
+        format: "parse:      median %.3f s (%.1f MB/s), p10..p90 %.3f..%.3f s over 5 rounds; %d slots",
+        rounds[2],
+        megabytes / rounds[2],
+        rounds[0],
+        rounds[4],
+        slots
+    )
+)
 
 // 1b. The same with one parser used for message after message (what a reader of many answers does).
 var reuseRounds: [Double] = []
@@ -99,8 +115,13 @@ for _ in 0 ..< 5 {
 reuseRounds.sort()
 print(
     String(
-        format: "parse, one parser reused: median %.3f s (%.1f MB/s), p10..p90 %.3f..%.3f s", reuseRounds[2],
-        megabytes / reuseRounds[2], reuseRounds[0], reuseRounds[4]))
+        format: "parse, one parser reused: median %.3f s (%.1f MB/s), p10..p90 %.3f..%.3f s",
+        reuseRounds[2],
+        megabytes / reuseRounds[2],
+        reuseRounds[0],
+        reuseRounds[4]
+    )
+)
 
 // 2. One message at a time: latency, and allocations.
 var perMessage: [Double] = []
@@ -112,8 +133,13 @@ for message in messages {
 perMessage.sort()
 print(
     String(
-        format: "per message: p50 %.1f us  p95 %.1f us  p99 %.1f us  max %.1f us", percentile(perMessage, 0.5) / 1e3,
-        percentile(perMessage, 0.95) / 1e3, percentile(perMessage, 0.99) / 1e3, perMessage.last! / 1e3))
+        format: "per message: p50 %.1f us  p95 %.1f us  p99 %.1f us  max %.1f us",
+        percentile(perMessage, 0.5) / 1e3,
+        percentile(perMessage, 0.95) / 1e3,
+        percentile(perMessage, 0.99) / 1e3,
+        perMessage.last! / 1e3
+    )
+)
 var allocations: [UInt64] = []
 let sample = Array(messages.prefix(2000))
 for message in sample {
@@ -187,14 +213,23 @@ func stream(_ name: String, _ bytes: [UInt8], delta: Int = 40) {
         String(
             format:
                 "stream %-22@ %d bytes, %d deltas, append and snapshot each: total %.3f s; per delta p50 %.1f us  p95 %.1f us  p99 %.1f us  max %.1f us",
-            name as NSString, bytes.count, deltas.count, total, percentile(deltas, 0.5) / 1e3,
-            percentile(deltas, 0.95) / 1e3, percentile(deltas, 0.99) / 1e3, deltas.last! / 1e3))
+            name as NSString,
+            bytes.count,
+            deltas.count,
+            total,
+            percentile(deltas, 0.5) / 1e3,
+            percentile(deltas, 0.95) / 1e3,
+            percentile(deltas, 0.99) / 1e3,
+            deltas.last! / 1e3
+        )
+    )
 }
 stream("real answers", answer)
 // The worst shapes for a parser that redoes the open block: one paragraph that never ends, and one code block that never closes.
 let words = Array(
     "The quick brown fox jumps over the lazy dog, with `code`, **bold**, *emphasis* and a [link](https://example.com/path) in it. "
-        .utf8)
+        .utf8
+)
 var paragraph: [UInt8] = []
 while paragraph.count < 100_000 { paragraph += words }
 stream("one 100 KB paragraph", paragraph)
