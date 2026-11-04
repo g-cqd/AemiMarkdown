@@ -6,7 +6,8 @@ import Testing
 /// A parser that is used again allocates nothing for a document no larger than one it has parsed: the buffers it grew are kept, and nothing is allocated per node
 /// (ADR-0001, goals). `mallocDelta` counts the allocations of the calling thread, so the work is synchronous and on this thread.
 /// The ceilings describe the optimized parser: an unoptimized build allocates where release does not (unspecialised generics, retained
-/// temporaries), so `swift test` in debug skips them and `swift test -c release` runs them (AGENTS.md).
+/// temporaries), so `swift test` in debug skips them and `swift test -c release` runs them (AGENTS.md). AemiTestKit counts
+/// allocations through libmalloc's hook, so they run on macOS, and are skipped on Linux and under a sanitizer.
 private let isDebugBuild: Bool = {
     #if DEBUG
         true
@@ -18,7 +19,8 @@ private let isDebugBuild: Bool = {
 @Suite(
     "A reused parser does not allocate",
     .serialized,
-    .disabled(if: isDebugBuild, "the ceilings describe the optimized parser; run them with -c release")
+    .disabled(if: isDebugBuild, "the ceilings describe the optimized parser; run them with -c release"),
+    .enabled(if: allocationCountingAvailable, "allocations are counted on Darwin only, and not under a sanitizer")
 )
 struct AllocationTests {
     static let document = Array(
