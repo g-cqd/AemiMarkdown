@@ -5,13 +5,19 @@ import SwiftUI
 /// The lab (ask roadmap 0204): Markdown on the left, its page on the right, and what each edit cost. The text view reports every change as a range of bytes and the editor of AemiMarkdown
 /// re-reads only the blocks around it, so the page follows each keystroke from what the editor holds.
 @MainActor @Observable final class LabModel {
-    var session = LabSession(text: LabModel.sample)
+    var session: LabSession
     var document = NativeDocument()
+    /// A Mermaid file is one diagram, not Markdown.
+    @ObservationIgnored let isDiagram: Bool
     var lastEdit: LabEdit?
     var edits = 0
     @ObservationIgnored var settings = ViewerSettings.current()
 
-    init() { refresh() }
+    init(text: String = LabModel.sample, isDiagram: Bool = false) {
+        session = LabSession(text: text)
+        self.isDiagram = isDiagram
+        refresh()
+    }
 
     func replace(utf16 range: NSRange, with replacement: String) {
         let low = session.utf8Offset(ofUTF16: range.location)
@@ -21,7 +27,20 @@ import SwiftUI
         refresh()
     }
 
-    func refresh() { document = session.nativeDocument(settings: settings) }
+    func refresh() {
+        document =
+            isDiagram
+            ? NativeDocument(diagram: session.text, settings: settings) : session.nativeDocument(settings: settings)
+    }
+
+    /// What the last edit cost, for the toolbar.
+    var readout: String {
+        guard let edit = lastEdit else { return "\(session.utf8Count) bytes" }
+        let micro = Double(edit.nanoseconds) / 1000
+        let how = edit.parsedWhole ? "whole document" : "region only"
+        return
+            "\(edit.blockCount) \(edit.blockCount == 1 ? "block" : "blocks") · \(edit.removedBlocks) out, \(edit.insertedBlocks) in · \(String(format: "%.0f", micro)) µs · \(how)"
+    }
 
     static let sample = """
         # Lab
@@ -42,35 +61,39 @@ import SwiftUI
         """
 }
 
+/// The editor and the page side by side.
+struct LabPane: View {
+    let model: LabModel
+    let settings: ViewerSettings
+
+    var body: some View {
+        HSplitView {
+            SourceEditor(model: model).frame(minWidth: 280)
+            NativeDocumentView(document: model.document, settings: settings).frame(minWidth: 320)
+        }
+    }
+}
+
+/// The lab as a window of its own, on a sample: the same pane the document windows open from their toolbar.
 struct LabView: View {
     static let windowID = "lab"
     let store: SettingsStore
     @State private var model = LabModel()
 
     var body: some View {
-        HSplitView {
-            SourceEditor(model: model).frame(minWidth: 280)
-            NativeDocumentView(document: model.document, settings: store.settings).frame(minWidth: 320)
-        }
-        .containerBackground(for: .window) { WindowBackdrop(mode: store.settings.backdrop) }
-        .navigationTitle("Lab")
-        .toolbar {
-            ToolbarItem(placement: .status) {
-                Text(readout).font(.callout.monospacedDigit()).foregroundStyle(.secondary)
+        LabPane(model: model, settings: store.settings)
+            .scrollEdgeEffectStyle(.soft, for: .top)
+            .containerBackground(for: .window) { WindowBackdrop(settings: store.settings) }
+            .navigationTitle("Lab")
+            .toolbar {
+                ToolbarItem(placement: .status) {
+                    Text(model.readout).font(.callout.monospacedDigit()).foregroundStyle(.secondary)
+                }
             }
-        }
-        .onChange(of: store.settings, initial: true) { _, settings in
-            model.settings = settings
-            model.refresh()
-        }
-    }
-
-    private var readout: String {
-        guard let edit = model.lastEdit else { return "\(model.session.utf8Count) bytes" }
-        let micro = Double(edit.nanoseconds) / 1000
-        let how = edit.parsedWhole ? "whole document" : "region only"
-        return
-            "\(edit.blockCount) \(edit.blockCount == 1 ? "block" : "blocks") · \(edit.removedBlocks) out, \(edit.insertedBlocks) in · \(String(format: "%.0f", micro)) µs · \(how)"
+            .onChange(of: store.settings, initial: true) { _, settings in
+                model.settings = settings
+                model.refresh()
+            }
     }
 }
 

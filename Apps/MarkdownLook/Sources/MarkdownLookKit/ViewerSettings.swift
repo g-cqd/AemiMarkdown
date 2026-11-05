@@ -8,6 +8,18 @@ public enum Backdrop: String, Sendable, CaseIterable {
     case blurred
     /// The page is transparent and the window is clear: what is behind the window shows through.
     case clear
+    /// The page is transparent and the app puts Liquid Glass behind it, in the variant `glass` names.
+    case glass
+}
+
+/// The thickness of the system material behind a page whose backdrop is `blurred`, from the thinnest (the most of what is behind shows) to the thickest.
+public enum BackdropMaterial: String, Sendable, CaseIterable {
+    case ultraThin, thin, regular, thick, ultraThick
+}
+
+/// The variant of Liquid Glass behind a page whose backdrop is `glass`: the regular one frosts what is behind it, the clear one lets it show.
+public enum GlassVariant: String, Sendable, CaseIterable {
+    case regular, clear
 }
 
 /// What a reader may choose (ADR 0004): every behaviour the viewer assumes is one of these, with the default it ships with. The app writes them into a preferences domain of its own and the
@@ -34,6 +46,8 @@ public struct ViewerSettings: Sendable, Equatable {
         public static let bleedsTables = "bleedsTables"
         public static let alignsLeft = "alignsLeft"
         public static let backdrop = "backdrop"
+        public static let material = "material"
+        public static let glass = "glass"
     }
     public static let tabSizes = 1 ... 8
     public static let defaultTabSize = 4
@@ -69,6 +83,9 @@ public struct ViewerSettings: Sendable, Equatable {
     /// The text column sits on the leading edge of the window instead of in its middle.
     public var alignsLeft = false
     public var backdrop = Backdrop.blurred
+    /// The material behind a `blurred` page, and the glass behind a `glass` one.
+    public var material = BackdropMaterial.thin
+    public var glass = GlassVariant.regular
 
     public init() {}
 
@@ -97,6 +114,9 @@ public struct ViewerSettings: Sendable, Equatable {
         settings.columnLines = value(Key.columnLines) as? Bool ?? settings.columnLines
         settings.outerBorder = value(Key.outerBorder) as? Bool ?? settings.outerBorder
         settings.scrollsTables = value(Key.scrollsTables) as? Bool ?? settings.scrollsTables
+        settings.material =
+            (value(Key.material) as? String).flatMap(BackdropMaterial.init(rawValue:)) ?? settings.material
+        settings.glass = (value(Key.glass) as? String).flatMap(GlassVariant.init(rawValue:)) ?? settings.glass
         settings.bleedsTables = value(Key.bleedsTables) as? Bool ?? settings.bleedsTables
         settings.alignsLeft = value(Key.alignsLeft) as? Bool ?? settings.alignsLeft
         settings.backdrop = (value(Key.backdrop) as? String).flatMap(Backdrop.init(rawValue:)) ?? settings.backdrop

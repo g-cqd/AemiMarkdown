@@ -16,7 +16,6 @@ struct MarkdownLookApp: App {
                 document: file.document,
                 settings: store.settings
             )
-            .ignoresSafeArea()
             .background(TitlebarSeparator())
             .toolbar {
                 ToolbarItem(placement: .automatic) {
@@ -99,6 +98,8 @@ struct SettingsView: View {
     @AppStorage(Key.alignsLeft, store: .shared) private var alignsLeft = false
     @AppStorage(Key.drawsDiagrams, store: .shared) private var drawsDiagrams = true
     @AppStorage(Key.backdrop, store: .shared) private var backdrop = Backdrop.blurred.rawValue
+    @AppStorage(Key.material, store: .shared) private var material = BackdropMaterial.thin.rawValue
+    @AppStorage(Key.glass, store: .shared) private var glass = GlassVariant.regular.rawValue
 
     var body: some View {
         Form {
@@ -129,13 +130,30 @@ struct SettingsView: View {
             Section {
                 Picker("Background", selection: $backdrop) {
                     Text("Solid").tag(Backdrop.solid.rawValue)
-                    Text("Blurred").tag(Backdrop.blurred.rawValue)
+                    Text("Material").tag(Backdrop.blurred.rawValue)
+                    Text("Glass").tag(Backdrop.glass.rawValue)
                     Text("Clear").tag(Backdrop.clear.rawValue)
                 }
                 .pickerStyle(.segmented)
+                if backdrop == Backdrop.blurred.rawValue {
+                    Picker("Material", selection: $material) {
+                        Text("Ultra thin").tag(BackdropMaterial.ultraThin.rawValue)
+                        Text("Thin").tag(BackdropMaterial.thin.rawValue)
+                        Text("Regular").tag(BackdropMaterial.regular.rawValue)
+                        Text("Thick").tag(BackdropMaterial.thick.rawValue)
+                        Text("Ultra thick").tag(BackdropMaterial.ultraThick.rawValue)
+                    }
+                }
+                if backdrop == Backdrop.glass.rawValue {
+                    Picker("Glass", selection: $glass) {
+                        Text("Regular").tag(GlassVariant.regular.rawValue)
+                        Text("Clear").tag(GlassVariant.clear.rawValue)
+                    }
+                    .pickerStyle(.segmented)
+                }
             } footer: {
                 Text(
-                    "Solid has the most contrast. Quick Look draws its own backdrop behind Blurred and Clear. Previews follow all of these choices."
+                    "Solid has the most contrast. Quick Look draws its own backdrop behind Material, Glass and Clear. Previews follow all of these choices."
                 )
             }
         }
@@ -145,26 +163,71 @@ struct SettingsView: View {
     }
 }
 
-/// A document, drawn natively over the backdrop of the settings, with the system's soft scroll edge under the title bar.
+/// A document, drawn natively over the backdrop of the settings, with the system's soft scroll edge under the title bar. The toolbar's pencil opens the lab beside it (ask roadmap 0204): the
+/// document's own Markdown in an editor on the left, the page on the right following each edit from what the editor of AemiMarkdown holds. The file is not written; the edits are the window's.
 struct PageView: View {
     let document: SourceDocument
     let settings: ViewerSettings
+    @State private var model: LabModel?
+    @State private var editing = false
 
     var body: some View {
-        NativeDocumentView(document: document.native(settings: settings), settings: settings)
-            .containerBackground(for: .window) { WindowBackdrop(mode: settings.backdrop) }
+        Group {
+            if editing, let model {
+                LabPane(model: model, settings: settings)
+            } else {
+                NativeDocumentView(document: document.native(settings: settings), settings: settings)
+            }
+        }
+        .scrollEdgeEffectStyle(.soft, for: .top)
+        .containerBackground(for: .window) { WindowBackdrop(settings: settings) }
+        .toolbar {
+            if editing, let model {
+                ToolbarItem(placement: .status) {
+                    Text(model.readout).font(.callout.monospacedDigit()).foregroundStyle(.secondary)
+                }
+            }
+            ToolbarItem(placement: .automatic) {
+                Toggle(isOn: $editing) { Label("Edit source", systemImage: "pencil.and.outline") }
+                    .keyboardShortcut("e", modifiers: [.command, .option])
+                    .help("Edit the source beside the page (not saved to the file)")
+            }
+        }
+        .onChange(of: editing) { _, on in
+            if on, model == nil {
+                let lab = LabModel(text: String(decoding: document.bytes, as: UTF8.self), isDiagram: document.isDiagram)
+                lab.settings = settings
+                lab.refresh()
+                model = lab
+            }
+        }
+        .onChange(of: settings) { _, latest in
+            model?.settings = latest
+            model?.refresh()
+        }
     }
 }
 
-/// Behind the page: the window's own opaque background, the system's blurred material, or nothing.
+/// Behind the page: the window's own opaque background, a system material of the chosen thickness, Liquid Glass of the chosen variant, or nothing.
 struct WindowBackdrop: View {
-    let mode: Backdrop
+    let settings: ViewerSettings
 
     var body: some View {
-        switch mode {
+        switch settings.backdrop {
             case .solid: Color(nsColor: .windowBackgroundColor)
-            case .blurred: Rectangle().fill(.thinMaterial)
+            case .blurred: Rectangle().fill(material)
+            case .glass: Color.clear.glassEffect(settings.glass == .clear ? .clear : .regular, in: .rect)
             case .clear: Color.clear
+        }
+    }
+
+    private var material: Material {
+        switch settings.material {
+            case .ultraThin: .ultraThinMaterial
+            case .thin: .thinMaterial
+            case .regular: .regularMaterial
+            case .thick: .thickMaterial
+            case .ultraThick: .ultraThickMaterial
         }
     }
 }
