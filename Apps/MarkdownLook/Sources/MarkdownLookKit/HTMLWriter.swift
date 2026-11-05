@@ -49,15 +49,19 @@ struct HTMLWriter {
         self.document = document
         self.options = options
         self.embedsDiagramStyle = embedsDiagramStyle
-        out.reserveCapacity(document.source.count + document.source.count / 4)
+        // About a quarter more than the source on the corpus (1.26); the buffer doubles if a document needs more.
+        out.reserveCapacity(document.source.count + document.source.count / 3)
     }
 
-    mutating func finish() -> String {
+    /// The page's content, closed: UTF-8 by construction (the escaper writes only well-formed sequences, the rest is ASCII literals and the diagram and highlighter output).
+    mutating func finishBytes() -> [UInt8] {
         closeHead()
         while !stack.isEmpty { closeFrame() }
         closeFootnotes()
-        return String(decoding: out, as: UTF8.self)
+        return out
     }
+
+    mutating func finish() -> String { String(decoding: finishBytes(), as: UTF8.self) }
 
     mutating func closeHead() {
         if headOpen {

@@ -74,6 +74,16 @@ measure("aemimarkdown-parse", "local", "tree") { bytes in
 measure("aemimarkdown-html", "local", "html") { bytes in
     renderer.body(MarkdownParser.parse(bytes), embedsDiagramStyle: false).utf8.count
 }
+// The writer alone: the documents are parsed once, outside the timing, so the figure is the cost of events to HTML (the bytes are those of the source, so MB/s compares with the rows above).
+let parsedDocuments: [MarkdownDocument] = only == "aemimarkdown-write" ? documents.map { MarkdownParser.parse($0) } : []
+var writeIndex = 0
+measure("aemimarkdown-write", "local", "write") { _ in
+    defer { writeIndex = (writeIndex + 1) % Swift.max(1, parsedDocuments.count) }
+    return renderer.bodyBytes(parsedDocuments[writeIndex], embedsDiagramStyle: false).count
+}
+measure("aemimarkdown-html-bytes", "local", "html") { bytes in
+    renderer.bodyBytes(MarkdownParser.parse(bytes), embedsDiagramStyle: false).count
+}
 measure("swift-markdown-parse", "ea1d88b", "tree") { bytes in
     Document(parsing: String(decoding: bytes, as: UTF8.self)).childCount
 }

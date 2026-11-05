@@ -26,6 +26,13 @@ public struct MarkdownHTMLRenderer: Sendable {
 
     public init(settings: ViewerSettings) { self.settings = settings }
 
+    /// The same, as UTF-8 bytes: no `String` is made, which for a large document is a validation and a copy saved. A web view can load it as it is (`Data`).
+    public func bodyBytes(_ document: MarkdownDocument, embedsDiagramStyle: Bool = true) -> [UInt8] {
+        var writer = HTMLWriter(document: document, options: self, embedsDiagramStyle: embedsDiagramStyle)
+        for event in document.events { writer.handle(event) }
+        return writer.finishBytes()
+    }
+
     /// The document's content as HTML, with no page around it. `embedsDiagramStyle` puts the diagrams' style sheet in each SVG; a page that carries it once turns it off.
     public func body(_ document: MarkdownDocument, embedsDiagramStyle: Bool = true) -> String {
         var writer = HTMLWriter(document: document, options: self, embedsDiagramStyle: embedsDiagramStyle)

@@ -75,7 +75,6 @@ enum HTMLEscaper {
     ) {
         let count = bytes.count
         var index = 0
-        out.reserveCapacity(out.count + count + count / 8)
         let classes = smartOn ? smartClasses : plainClasses
         classes.withUnsafeBufferPointer { classes in
             while index < count {

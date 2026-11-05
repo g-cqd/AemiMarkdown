@@ -63,7 +63,6 @@ enum CodeHighlighter {
 
     /// The same, appended to the writer's buffer.
     static func html(_ code: [UInt8], language: Language, into out: inout [UInt8]) {
-        out.reserveCapacity(out.count + code.count * 2)
         var position = 0
         var unused = SmartPunctuation()
         let found = spans(code, language: language)

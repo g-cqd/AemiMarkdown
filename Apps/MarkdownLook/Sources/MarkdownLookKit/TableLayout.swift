@@ -116,7 +116,6 @@ struct TableLayout {
 
     /// `markup` with each cell's attribute put in, appended to `out`.
     func apply(to markup: ArraySlice<UInt8>, into out: inout [UInt8]) {
-        out.reserveCapacity(out.count + markup.count + cells.count * 12)
         let attributes = columns.indices.map { Array(attribute(forColumn: $0).utf8) }
         var position = markup.startIndex
         for cell in cells {
