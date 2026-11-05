@@ -26,6 +26,7 @@ struct MarkdownLookApp: App {
         Window("Lab", id: LabView.windowID) { LabView(store: store) }
             .defaultSize(width: 1200, height: 760)
         Settings { SettingsView() }
+            .windowResizability(.contentMinSize)
             .commands { CommandGroup(after: .newItem) { OpenLabButton() } }
     }
 }
@@ -200,8 +201,15 @@ struct SettingsView: View {
             }
         }
         .formStyle(.grouped)
-        .frame(width: 460)
-        .fixedSize(horizontal: false, vertical: true)
+        // Resizable: a minimum that keeps the controls usable, the size it opens at, and no maximum. A grouped form scrolls when the window is shorter than its content.
+        .frame(
+            minWidth: 420,
+            idealWidth: 460,
+            maxWidth: .infinity,
+            minHeight: 360,
+            idealHeight: 640,
+            maxHeight: .infinity
+        )
     }
 }
 
