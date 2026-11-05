@@ -9,8 +9,8 @@ struct HTMLWriter {
         /// A list that is tight (and the items in it): its paragraphs are not wrapped.
         var tight = false
         /// The element's name, closed as `</name>`, unless `closing` says otherwise.
-        var tag = ""
-        var closing: String?
+        var tag: StaticString = ""
+        var closing: StaticString?
     }
 
     let document: MarkdownDocument
@@ -134,21 +134,48 @@ struct HTMLWriter {
         return result
     }
 
-    static let headingTags = ["h1", "h2", "h3", "h4", "h5", "h6"]
+    static let headingTags: [StaticString] = ["h1", "h2", "h3", "h4", "h5", "h6"]
 
     private mutating func open(
         _ node: NodeKind,
-        _ tag: String,
-        attributes: String = "",
-        closing: String? = nil,
+        _ tag: StaticString,
+        attributes: StaticString = "",
+        closing: StaticString? = nil,
         tight: Bool = false,
         headOpen keep: Bool = false
     ) {
         out.append(0x3C)
         out += tag
-        if !attributes.isEmpty { out += attributes }
+        if attributes.utf8CodeUnitCount > 0 { out += attributes }
         if keep { headOpen = true } else { out.append(0x3E) }
         stack.append(Frame(kind: node, tight: tight, tag: tag, closing: closing))
+    }
+
+    private mutating func enterList(_ node: MarkdownNode) {
+        let flags = ListFlags(rawValue: node.payload)
+        let tag: StaticString = flags.contains(.ordered) ? "ol" : "ul"
+        let attributes: StaticString = flags.contains(.tight) ? " class=\"tight\"" : ""
+        open(
+            .list,
+            tag,
+            attributes: attributes,
+            tight: flags.contains(.tight),
+            headOpen: flags.contains(.ordered)
+        )
+    }
+
+    private mutating func enterTableCell(_ node: MarkdownNode) {
+        smart = SmartPunctuation()
+        let tag: StaticString = headerRow ? "th" : "td"
+        let alignment: StaticString =
+            switch node.payload {
+                case 2: " class=\"c\""
+                case 3: " class=\"r\""
+                default: ""
+            }
+        tableLayout.startCell(at: out.count - tableStart + 1 + tag.utf8CodeUnitCount)
+        open(.tableCell, tag, attributes: alignment)
+        tableLayout.cellStart = out.count - tableStart
     }
 
     mutating func enter(_ node: MarkdownNode) {
@@ -169,16 +196,7 @@ struct HTMLWriter {
                     open(.blockQuote, "blockquote")
                     out += "\n"
                 }
-            case .list:
-                let flags = ListFlags(rawValue: node.payload)
-                let tag = flags.contains(.ordered) ? "ol" : "ul"
-                open(
-                    .list,
-                    tag,
-                    attributes: flags.contains(.tight) ? " class=\"tight\"" : "",
-                    tight: flags.contains(.tight),
-                    headOpen: flags.contains(.ordered)
-                )
+            case .list: enterList(node)
             case .listItem:
                 open(.listItem, "li", tight: stack.last?.tight == true)
             case .codeBlock, .htmlBlock:
@@ -204,13 +222,7 @@ struct HTMLWriter {
                     out += "<tbody>"
                 }
                 open(.tableRow, "tr", closing: headerRow ? "</tr></thead>" : "</tr>")
-            case .tableCell:
-                smart = SmartPunctuation()
-                let tag = headerRow ? "th" : "td"
-                let alignment = [1: "", 2: " class=\"c\"", 3: " class=\"r\""][node.payload] ?? ""
-                tableLayout.startCell(at: out.count - tableStart + 1 + tag.utf8.count)
-                open(.tableCell, tag, attributes: alignment)
-                tableLayout.cellStart = out.count - tableStart
+            case .tableCell: enterTableCell(node)
             case .footnoteDefinition: enterFootnote()
             case .emphasis: open(.emphasis, "em")
             case .strong: open(.strong, "strong")

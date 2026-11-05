@@ -168,5 +168,11 @@ enum HTMLEscaper {
 
 extension Array where Element == UInt8 {
     /// Appends the UTF-8 of `rhs`: the writer's `out += "<p>"`.
+    @_disfavoredOverload
     static func += (lhs: inout [UInt8], rhs: String) { lhs.append(contentsOf: rhs.utf8) }
+
+    /// Appends a literal: its bytes are in the binary, so nothing is checked, counted or released (a literal prefers this to the `String` one).
+    static func += (lhs: inout [UInt8], rhs: StaticString) {
+        unsafe lhs.append(contentsOf: UnsafeBufferPointer(start: rhs.utf8Start, count: rhs.utf8CodeUnitCount))
+    }
 }
