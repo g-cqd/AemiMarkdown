@@ -72,3 +72,18 @@ before and after, `diff -r`. A property test (8,000 random byte strings, ill-for
 
 Read it as a range: the machine was shared (load average 5 to 20), and the same binary gave 60 to 114 MB/s from one run to the next. The ordering against the rows above is what holds: the writer is about three times faster than it was, and AemiMarkdown as an HTML engine is now ahead of comrak (85) and cmark-gfm (43), and still well behind pulldown-cmark (266).
 The parse and the write are now about equal halves of the time, so the next factor has to come from both: the profile of the writer is flat (the scan 11%, event decoding 11%, appends and uniqueness checks 14%), and the parse's own profile starts with `matchOpenBlocks` (6%) and the SIMD search (6%).
+
+## Instructions retired, and the copies that were hiding (2026-11-06)
+
+`/usr/bin/time -l` reports **instructions retired**, which does not move with the machine's load the way a wall-clock figure does (here the reading still varies by 1 to 2% between runs, because the 84 MB of input comes through the file cache). The figures below are one engine over the 998 files, one round and the warm-up, so they compare one build with the next, not one engine with another.
+
+The parser is a 904-byte struct and the inline parser a 272-byte one. Swift copies the whole struct (`memcpy` of 904 bytes) every time a method that is not `mutating` is called from one that is, and the parse called such helpers (`lineEndOffset`, `lineStartOffset`, `peek`, `sourceOffset`, the bare-link scanners) for every line and every inline. Finding them: scan the binary with `otool -tvV` for `mov w2, #904` followed by a call to `memcpy`, and read the function the copy feeds. Making the helpers `mutating` is the whole fix.
+
+| Change | Parse (G instructions) | Writer alone | Parse and write |
+|---|---:|---:|---:|
+| Before | 16.37 | 18.89 | 26.57 |
+| Helpers `mutating`, no struct copy | 14.96 | 18.09 | 25.25 |
+| The first non-space of a line found once per cursor, not once per open block | 14.2 to 14.5 | | |
+| Tags and closings as literals (`StaticString`); a table cell no longer builds a dictionary | | 17.0 | 23.9 |
+
+The output is byte for byte the same on all 1,996 files of the golden dump after each step. What is left, from the profile: the line scan (`adf_index_of_set` once per line, about 13% of the parse; a short line is mostly the cost of the call), `matchOpenBlocks` 12%, array uniqueness checks 7%, and in the writer the appends (`Array.append(contentsOf:)` 10%, `memmove` 10%). An unsafe output buffer would touch about 45 append sites for an estimated 3 to 4% of the whole; it was not done.
