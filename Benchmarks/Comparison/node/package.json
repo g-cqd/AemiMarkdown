@@ -1,0 +1,2 @@
+{ "name": "compare-node", "private": true, "type": "module",
+  "dependencies": { "markdown-it": "14", "marked": "16", "commonmark": "0.31" } }
