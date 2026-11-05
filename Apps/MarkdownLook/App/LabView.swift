@@ -70,7 +70,7 @@ struct LabView: View {
         let micro = Double(edit.nanoseconds) / 1000
         let how = edit.parsedWhole ? "whole document" : "region only"
         return
-            "\(edit.blockCount) blocks · \(edit.removedBlocks) out, \(edit.insertedBlocks) in · \(String(format: "%.0f", micro)) µs · \(how)"
+            "\(edit.blockCount) \(edit.blockCount == 1 ? "block" : "blocks") · \(edit.removedBlocks) out, \(edit.insertedBlocks) in · \(String(format: "%.0f", micro)) µs · \(how)"
     }
 }
 
