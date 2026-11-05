@@ -25,6 +25,7 @@ public struct ViewerSettings: Sendable, Equatable {
         public static let smartPunctuation = "smartPunctuation"
         public static let highlightsCode = "highlightsCode"
         public static let showsLanguage = "showsLanguage"
+        public static let copyButton = "copyButton"
         public static let drawsDiagrams = "drawsDiagrams"
         public static let rowLines = "rowLines"
         public static let columnLines = "columnLines"
@@ -49,6 +50,8 @@ public struct ViewerSettings: Sendable, Equatable {
     public var highlightsCode = true
     /// The language a fence names, in the corner of its block.
     public var showsLanguage = true
+    /// A button in the corner of a code block that copies its code (in the app; Quick Look's page is not interactive).
+    public var copyButton = true
     /// Mermaid fences as diagrams; off shows them as code.
     public var drawsDiagrams = true
     /// A hairline between the rows of a table.
@@ -82,6 +85,7 @@ public struct ViewerSettings: Sendable, Equatable {
         settings.smartPunctuation = value(Key.smartPunctuation) as? Bool ?? settings.smartPunctuation
         settings.highlightsCode = value(Key.highlightsCode) as? Bool ?? settings.highlightsCode
         settings.showsLanguage = value(Key.showsLanguage) as? Bool ?? settings.showsLanguage
+        settings.copyButton = value(Key.copyButton) as? Bool ?? settings.copyButton
         settings.drawsDiagrams = value(Key.drawsDiagrams) as? Bool ?? settings.drawsDiagrams
         settings.rowLines = value(Key.rowLines) as? Bool ?? settings.rowLines
         settings.columnLines = value(Key.columnLines) as? Bool ?? settings.columnLines

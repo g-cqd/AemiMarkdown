@@ -1,8 +1,8 @@
+import AemiMarkdown
 import AppKit
 import MarkdownLookKit
 import SwiftUI
 import UniformTypeIdentifiers
-import WebKit
 
 /// The app that carries the Quick Look extensions (roadmap 0201) and shows a Markdown or Mermaid file in a window with the same renderer. The extensions are registered with the system
 /// when the app is first run from /Applications or ~/Applications. Every behaviour the viewer assumes is a choice in the Settings window, and Quick Look follows the same choices.
@@ -14,7 +14,6 @@ struct MarkdownLookApp: App {
         DocumentGroup(viewing: SourceDocument.self) { file in
             PageView(
                 document: file.document,
-                title: file.fileURL?.lastPathComponent ?? "Untitled",
                 settings: store.settings
             )
             .ignoresSafeArea()
@@ -73,9 +72,11 @@ struct SourceDocument: FileDocument {
 
     func fileWrapper(configuration: WriteConfiguration) throws -> FileWrapper { throw CocoaError(.featureUnsupported) }
 
-    func page(title: String, settings: ViewerSettings) -> String {
-        let renderer = MarkdownHTMLRenderer(settings: settings)
-        return isDiagram ? renderer.diagramPage(bytes, title: title) : renderer.page(markdown: bytes, title: title)
+    /// The document as the rows the app draws.
+    func native(settings: ViewerSettings) -> NativeDocument {
+        isDiagram
+            ? NativeDocument(diagram: String(decoding: bytes, as: UTF8.self), settings: settings)
+            : NativeDocument(MarkdownParser.parse(bytes), settings: settings)
     }
 }
 
@@ -87,6 +88,7 @@ struct SettingsView: View {
     @AppStorage(Key.smartPunctuation, store: .shared) private var smartPunctuation = true
     @AppStorage(Key.highlightsCode, store: .shared) private var highlightsCode = true
     @AppStorage(Key.showsLanguage, store: .shared) private var showsLanguage = true
+    @AppStorage(Key.copyButton, store: .shared) private var copyButton = true
     @AppStorage(Key.tabSize, store: .shared) private var tabSize = ViewerSettings.defaultTabSize
     @AppStorage(Key.rowLines, store: .shared) private var rowLines = true
     @AppStorage(Key.columnLines, store: .shared) private var columnLines = false
@@ -105,6 +107,7 @@ struct SettingsView: View {
             Section("Code") {
                 Toggle("Syntax colour", isOn: $highlightsCode)
                 Toggle("Show the language of a block", isOn: $showsLanguage)
+                Toggle("Copy button on code blocks", isOn: $copyButton)
                 Stepper(value: $tabSize, in: ViewerSettings.tabSizes) {
                     Text("A tab is \(tabSize) \(tabSize == 1 ? "space" : "spaces") wide")
                 }
@@ -137,46 +140,14 @@ struct SettingsView: View {
     }
 }
 
-/// Links a reader follows open in the browser, never in the window, and nothing else navigates.
-@MainActor final class LinkDecider: WebPage.NavigationDeciding {
-    func decidePolicy(for action: WebPage.NavigationAction, preferences: inout WebPage.NavigationPreferences) async
-        -> WKNavigationActionPolicy
-    {
-        guard action.navigationType == .linkActivated, let url = action.request.url else { return .allow }
-        if ["http", "https", "mailto"].contains(url.scheme?.lowercased() ?? "") { NSWorkspace.shared.open(url) }
-        return .cancel
-    }
-}
-
-/// The page, in SwiftUI's own web view: transparent, so the window's backdrop shows, with the system's soft scroll edge under the title bar that appears only while text is scrolled beneath it.
-struct HTMLPageView: View {
-    let html: String
-    @State private var page: WebPage
-
-    init(html: String) {
-        self.html = html
-        var configuration = WebPage.Configuration()
-        configuration.defaultNavigationPreferences.allowsContentJavaScript = false
-        configuration.loadsSubresources = false
-        _page = State(initialValue: WebPage(configuration: configuration, navigationDecider: LinkDecider()))
-    }
-
-    var body: some View {
-        WebView(page)
-            .webViewContentBackground(.hidden)
-            .scrollEdgeEffectStyle(.soft, for: .top)
-            .task(id: html) { _ = page.load(html: html, baseURL: URL(string: "about:blank") ?? URL(filePath: "/")) }
-    }
-}
-
-/// A document's page over the backdrop of the settings.
+/// A document, drawn natively over the backdrop of the settings, with the system's soft scroll edge under the title bar.
 struct PageView: View {
     let document: SourceDocument
-    let title: String
     let settings: ViewerSettings
 
     var body: some View {
-        HTMLPageView(html: document.page(title: title, settings: settings))
+        NativeDocumentView(document: document.native(settings: settings), settings: settings)
+            .scrollEdgeEffectStyle(.soft, for: .top)
             .containerBackground(for: .window) { WindowBackdrop(mode: settings.backdrop) }
     }
 }

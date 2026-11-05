@@ -39,16 +39,27 @@ enum CodeHighlighter {
         }
     }
 
-    /// `code` as escaped HTML with its tokens in spans. Tokens are ascending and disjoint; one that is not (it would be a bug in a scanner) is left uncoloured, so the text is whole whatever happens.
-    static func html(_ code: [UInt8], language: Language) -> String {
-        var out = ""
-        out.reserveCapacity(code.count * 2)
+    /// The coloured stretches of `code`: a byte range and the kind letter of its class. Ascending and disjoint; a token that is not (a bug in a scanner) is left out, so the text stays whole.
+    static func spans(_ code: [UInt8], language: Language) -> [(range: Range<Int>, kind: String)] {
+        var found: [(range: Range<Int>, kind: String)] = []
         var position = 0
         for token in SyntaxHighlighter.tokens(utf8: code, language: language) {
             let range = token.byteRange
             guard range.lowerBound >= position, range.upperBound <= code.count, !range.isEmpty,
                 let kind = kind(of: token.role)
             else { continue }
+            found.append((range, kind))
+            position = range.upperBound
+        }
+        return found
+    }
+
+    /// `code` as escaped HTML with its tokens in spans.
+    static func html(_ code: [UInt8], language: Language) -> String {
+        var out = ""
+        out.reserveCapacity(code.count * 2)
+        var position = 0
+        for (range, kind) in spans(code, language: language) {
             out += HTMLText.escaped(String(decoding: code[position ..< range.lowerBound], as: UTF8.self))
             out +=
                 "<span class=\"\(kind)\">" + HTMLText.escaped(String(decoding: code[range], as: UTF8.self)) + "</span>"

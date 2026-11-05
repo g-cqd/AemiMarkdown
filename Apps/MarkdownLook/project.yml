@@ -36,8 +36,6 @@ targets:
       path: App/App.entitlements
       properties:
         com.apple.security.app-sandbox: true
-        # WebKit's networking process refuses to start without it and the page stays blank; the page itself allows no request (Content-Security-Policy) and links open in the browser.
-        com.apple.security.network.client: true
         com.apple.security.temporary-exception.shared-preference.read-write: [studio.aemi.MarkdownLook.shared]
         com.apple.security.files.user-selected.read-only: true
     info:

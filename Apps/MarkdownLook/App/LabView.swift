@@ -6,7 +6,7 @@ import SwiftUI
 /// re-reads only the blocks around it, so the page follows each keystroke from what the editor holds.
 @MainActor @Observable final class LabModel {
     var session = LabSession(text: LabModel.sample)
-    var html = ""
+    var document = NativeDocument()
     var lastEdit: LabEdit?
     var edits = 0
     @ObservationIgnored var settings = ViewerSettings.current()
@@ -21,7 +21,7 @@ import SwiftUI
         refresh()
     }
 
-    func refresh() { html = session.page(title: "Lab", settings: settings) }
+    func refresh() { document = session.nativeDocument(settings: settings) }
 
     static let sample = """
         # Lab
@@ -50,7 +50,7 @@ struct LabView: View {
     var body: some View {
         HSplitView {
             SourceEditor(model: model).frame(minWidth: 280)
-            HTMLPageView(html: model.html).frame(minWidth: 320)
+            NativeDocumentView(document: model.document, settings: store.settings).frame(minWidth: 320)
         }
         .containerBackground(for: .window) { WindowBackdrop(mode: store.settings.backdrop) }
         .navigationTitle("Lab")

@@ -53,6 +53,11 @@ public struct LabSession: Sendable {
         )
     }
 
+    /// The document as it stands, as the rows a view draws.
+    public func nativeDocument(settings: ViewerSettings) -> NativeDocument {
+        NativeDocument(editor.document, settings: settings)
+    }
+
     /// The page of the document as it stands.
     public func page(title: String, settings: ViewerSettings) -> String {
         MarkdownHTMLRenderer(settings: settings).page(editor.document, title: title)
