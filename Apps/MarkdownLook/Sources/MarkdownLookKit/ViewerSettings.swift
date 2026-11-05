@@ -109,7 +109,9 @@ public struct ViewerSettings: Sendable, Equatable {
         if outerBorder {
             rules +=
                 ".table-wrap { border: var(--hair) solid var(--rule); border-radius: var(--radius); width: fit-content; max-width: 100%; }\n"
-            rules += ".table-wrap.wide { max-width: min(68em, 100vw - 5em); margin-inline: auto; }\n"
+            // A wide table's outline hugs the table, which is centred on the text column as far out as the window allows.
+            rules +=
+                ".table-wrap.wide { width: max-content; max-width: min(68em, 100vw - 5em); margin-inline: 0; position: relative; left: 50%; transform: translateX(-50%); }\n"
             rules +=
                 "th:first-child, td:first-child { padding-left: 1.4em; } th:last-child, td:last-child { padding-right: 1.4em; }\n"
             rules += "tbody tr:last-child td::after { display: none; }\n"

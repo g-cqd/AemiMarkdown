@@ -3,7 +3,7 @@ import AppKit
 import Foundation
 import MarkdownLookKit
 
-// markdown-look-compare FILE.md [--width N] [--dark] [--scale N] [--out DIR] [--text-size N] [--blocks]: the page as HTML in WebKit (the oracle) and as the native view, at one width, with a measure of how alike they are.
+// markdown-look-compare FILE.md [--width N] [--dark] [--scale N] [--out DIR] [--text-size N] [--blocks] [--scroll-tables] [--outline] [--column-lines]: the page as HTML in WebKit (the oracle) and as the native view, at one width, with a measure of how alike they are.
 let arguments = Array(CommandLine.arguments.dropFirst())
 func option(_ name: String) -> String? {
     guard let index = arguments.firstIndex(of: name), index + 1 < arguments.count else { return nil }
@@ -17,13 +17,17 @@ guard let path = arguments.first(where: { !$0.hasPrefix("--") && FileManager.def
     let data = FileManager.default.contents(atPath: path)
 else {
     print(
-        "usage: markdown-look-compare FILE.md [--width N] [--dark] [--scale N] [--out DIR] [--text-size N] [--blocks]"
+        "usage: markdown-look-compare FILE.md [--width N] [--dark] [--scale N] [--out DIR] [--text-size N] [--blocks] [--scroll-tables] [--outline] [--column-lines]"
     )
     exit(2)
 }
 try? FileManager.default.createDirectory(atPath: outDirectory, withIntermediateDirectories: true)
 var settings = ViewerSettings()
 if let size = option("--text-size").flatMap(Int.init) { settings.textSize = size }
+// The choices a person may have made in the Settings window, by name.
+if arguments.contains("--scroll-tables") { settings.scrollsTables = true }
+if arguments.contains("--outline") { settings.outerBorder = true }
+if arguments.contains("--column-lines") { settings.columnLines = true }
 settings.copyButton = false
 let name = ((path as NSString).lastPathComponent as NSString).deletingPathExtension
 let fill: (UInt8, UInt8, UInt8) = dark ? (30, 30, 30) : (255, 255, 255)

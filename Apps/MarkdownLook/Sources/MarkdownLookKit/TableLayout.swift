@@ -77,8 +77,14 @@ struct TableLayout {
 
     private func estimate(fitLimit: Int) -> Int {
         columns.reduce(0) { total, column in
-            total + (column.longest <= fitLimit ? column.longest : Swift.min(column.longest, Self.flexibleShare)) + 3
+            total + width(of: column, fitLimit: fitLimit) + 3
         }
+    }
+
+    /// What a column takes, in characters: its longest cell if that stays on a line; else the share a long column is counted at, and never less than its longest word, which no wrapping narrows.
+    private func width(of column: Column, fitLimit: Int) -> Int {
+        column.longest <= fitLimit
+            ? column.longest : Swift.max(Swift.min(column.longest, Self.flexibleShare), column.longestWord)
     }
 
     /// The longest cell a column may have and stay on one line, for this table.
