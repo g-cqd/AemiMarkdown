@@ -537,3 +537,58 @@ struct StylePolicyTests {
         )
     }
 }
+
+@Suite("The lab")
+struct LabSessionTests {
+    private func fresh(_ text: String) -> String {
+        MarkdownHTMLRenderer().page(MarkdownParser.parse(Array(text.utf8)), title: "t")
+    }
+
+    @Test func `after every edit the page is the page of a fresh parse`() {
+        var lab = LabSession(text: "# Title\n\nsome *text* here\n\n- a\n- b\n\n```swift\nlet x = 1\n```\n")
+        var model = lab.text
+        var state: UInt64 = 0x2545_F491_4F6C_DD1D
+        let pieces = ["x", "\n", "\n\n", "*", "`", "# ", "- ", "é", "😀", "[l](u)", "```", "| a | b |\n|---|---|\n"]
+        for round in 0 ..< 300 {
+            state = state &* 6_364_136_223_846_793_005 &+ 1_442_695_040_888_963_407
+            let bytes = Array(model.utf8)
+            let from = Int(state >> 33) % (bytes.count + 1)
+            let to = Swift.min(bytes.count, from + Int(state >> 20) % 6)
+            // Cut at scalar boundaries, as a text view would.
+            func boundary(_ i: Int) -> Int {
+                var j = Swift.min(i, bytes.count)
+                while j > 0, j < bytes.count, bytes[j] & 0xC0 == 0x80 { j -= 1 }
+                return j
+            }
+            let (low, high) = (boundary(from), boundary(to))
+            let piece = pieces[Int(state >> 40) % pieces.count]
+            var next = bytes
+            next.replaceSubrange(low ..< Swift.max(low, high), with: Array(piece.utf8))
+            lab.replace(low ..< Swift.max(low, high), with: piece)
+            model = String(decoding: next, as: UTF8.self)
+            if lab.page(title: "t", settings: ViewerSettings()) != fresh(model) {
+                Issue.record("round \(round): the page differs from a fresh parse of \(model.debugDescription)")
+                return
+            }
+        }
+    }
+
+    @Test func `a typed letter touches one block and an edit says what it did`() {
+        var lab = LabSession(text: "one\n\ntwo\n\nthree\n")
+        let edit = lab.replace(5 ..< 5, with: "x")
+        #expect(edit.removedBlocks == 1 && edit.insertedBlocks == 1 && edit.blockCount == 3 && !edit.parsedWhole)
+        #expect(lab.text == "one\n\nxtwo\n\nthree\n")
+    }
+
+    @Test func `a range outside the text is cut to it`() {
+        var lab = LabSession(text: "abc")
+        lab.replace(2 ..< 99, with: "Z")
+        lab.replace(-5 ..< 0, with: ">")
+        #expect(lab.text == ">abZ")
+    }
+
+    @Test func `utf16 offsets become utf8 offsets`() {
+        let lab = LabSession(text: "aé😀z")
+        #expect([0, 1, 2, 4, 5].map(lab.utf8Offset(ofUTF16:)) == [0, 1, 3, 7, 8])
+    }
+}

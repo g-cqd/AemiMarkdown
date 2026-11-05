@@ -24,7 +24,10 @@ struct MarkdownLookApp: App {
                 }
             }
         }
+        Window("Lab", id: LabView.windowID) { LabView(store: store) }
+            .defaultSize(width: 1200, height: 760)
         Settings { SettingsView() }
+            .commands { CommandGroup(after: .newItem) { OpenLabButton() } }
     }
 }
 
@@ -146,16 +149,12 @@ struct SettingsView: View {
 }
 
 /// The page, in SwiftUI's own web view: transparent, so the window's backdrop shows, with the system's soft scroll edge under the title bar that appears only while text is scrolled beneath it.
-struct PageView: View {
-    let document: SourceDocument
-    let title: String
-    let settings: ViewerSettings
+struct HTMLPageView: View {
+    let html: String
     @State private var page: WebPage
 
-    init(document: SourceDocument, title: String, settings: ViewerSettings) {
-        self.document = document
-        self.title = title
-        self.settings = settings
+    init(html: String) {
+        self.html = html
         var configuration = WebPage.Configuration()
         configuration.defaultNavigationPreferences.allowsContentJavaScript = false
         configuration.loadsSubresources = false
@@ -163,12 +162,22 @@ struct PageView: View {
     }
 
     var body: some View {
-        let html = document.page(title: title, settings: settings)
         WebView(page)
             .webViewContentBackground(.hidden)
             .scrollEdgeEffectStyle(.soft, for: .top)
-            .containerBackground(for: .window) { WindowBackdrop(mode: settings.backdrop) }
             .task(id: html) { _ = page.load(html: html, baseURL: URL(string: "about:blank") ?? URL(filePath: "/")) }
+    }
+}
+
+/// A document's page over the backdrop of the settings.
+struct PageView: View {
+    let document: SourceDocument
+    let title: String
+    let settings: ViewerSettings
+
+    var body: some View {
+        HTMLPageView(html: document.page(title: title, settings: settings))
+            .containerBackground(for: .window) { WindowBackdrop(mode: settings.backdrop) }
     }
 }
 
