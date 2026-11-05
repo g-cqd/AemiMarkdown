@@ -86,4 +86,9 @@ The parser is a 904-byte struct and the inline parser a 272-byte one. Swift copi
 | The first non-space of a line found once per cursor, not once per open block | 14.2 to 14.5 | | |
 | Tags and closings as literals (`StaticString`); a table cell no longer builds a dictionary | | 17.0 | 23.9 |
 
-The output is byte for byte the same on all 1,996 files of the golden dump after each step. What is left, from the profile: the line scan (`adf_index_of_set` once per line, about 13% of the parse; a short line is mostly the cost of the call), `matchOpenBlocks` 12%, array uniqueness checks 7%, and in the writer the appends (`Array.append(contentsOf:)` 10%, `memmove` 10%). An unsafe output buffer would touch about 45 append sites for an estimated 3 to 4% of the whole; it was not done.
+The output is byte for byte the same on all 1,996 files of the golden dump after each step. What is left, from the profile: the line scan (memory-bound, above), `matchOpenBlocks` 8 to 12%, array uniqueness checks 3% and spread over a dozen callers, and in the writer the copying of the source's text to the output, which cannot go away.
+
+| Output in an `OutputBuffer` (no uniqueness check per append); the escaper's runs found with the NEON byte-set kernel | | 15.4 | 22.3 |
+
+Two things tried that did not pay. **The line scan.** The profile showed the SIMD scan for line endings (`adf_index_of_set`, one call per line) at 12 to 13% of the parse's *time*, so the kernel that finds every line ending of a stretch in one pass (`AemiKernels.positions`) looked like the fix; the instruction count did not move and the throughput did not either (149 to 152 MB/s with it, 130 to 153 without, at a load of 16). The time is memory, not instructions: that scan is the first touch of the input's bytes, and any scan would pay it. Reverted. An instruction count cannot see a stall, and a wall-clock figure at that load cannot see a few percent: it took the two together to say that this was a stall and not work.
+
