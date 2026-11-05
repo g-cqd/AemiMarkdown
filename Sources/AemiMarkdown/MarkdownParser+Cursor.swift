@@ -3,7 +3,7 @@ extension MarkdownParser {
 
     /// The byte at `index` in the current line, or 0 past its end.
     @inline(__always)
-    func peek(_ index: Int, _ end: Int) -> UInt8 { index < end ? source[index] : 0 }
+    mutating func peek(_ index: Int, _ end: Int) -> UInt8 { index < end ? source[index] : 0 }
 
     /// Finds the first byte that is not a space or a tab, from the cursor, and the indent and blankness that follow from it.
     mutating func findFirstNonspace(_ end: Int) {

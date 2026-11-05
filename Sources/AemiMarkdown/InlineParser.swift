@@ -142,7 +142,7 @@ struct InlineParser {
     }
 
     /// The source offset of the byte at `index` in the joined text.
-    func sourceOffset(_ index: Int) -> Int {
+    mutating func sourceOffset(_ index: Int) -> Int {
         // One line and no dropped backslash, which is nearly every leaf block: no search.
         if lineScratchStart.count == 1, droppedBackslashes.isEmpty { return lineSourceStart[0] + index }
         var low = 0
@@ -193,7 +193,7 @@ struct InlineParser {
     }
 
     /// The first scratch index in `lower ..< upper` of a pipe whose backslash was left out, if any.
-    private func firstDroppedBackslash(in lower: Int, _ upper: Int) -> Int? {
+    private mutating func firstDroppedBackslash(in lower: Int, _ upper: Int) -> Int? {
         var below = 0
         var above = droppedBackslashes.count
         while below < above {

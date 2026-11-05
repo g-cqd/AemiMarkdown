@@ -46,8 +46,9 @@ extension MarkdownParser {
             let lines = state.lineRanges[leaf.firstLine ..< (leaf.firstLine + leaf.lineCount)]
             inlineParser.diagnostics = []
             let run = inlines.count
-            if var parser = openParagraphParser, leaf.slot == blocks.count - 1, lines.count == 1,
-                parser.lineSourceStart[0] == lines[lines.startIndex].lowerBound
+            if leaf.slot == blocks.count - 1, lines.count == 1,
+                openParagraphParser?.lineSourceStart[0] == lines[lines.startIndex].lowerBound,
+                var parser = openParagraphParser
             {
                 parser.processEmphasis(bottom: -1)
                 if parser.extensions.contains(.autolinks), parser.text.count <= parser.limits.maxLeafBytes,

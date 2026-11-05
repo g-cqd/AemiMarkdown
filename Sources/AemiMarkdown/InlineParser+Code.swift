@@ -32,7 +32,7 @@ extension InlineParser {
         appendText(start, end)
     }
 
-    private func isExhausted(_ length: Int) -> Bool {
+    private mutating func isExhausted(_ length: Int) -> Bool {
         length < 64
             ? backticksExhaustedLow & (1 << UInt64(length)) != 0
             : backticksExhaustedHigh & (1 << UInt64(length - 64)) != 0

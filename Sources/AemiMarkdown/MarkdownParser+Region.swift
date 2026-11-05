@@ -48,7 +48,7 @@ extension MarkdownParser {
     /// Whether the line that starts at `boundary` starts a top-level block when it is read next. With nothing open that is a look at the line; otherwise the
     /// state is copied, the line is read on the copy, and this parser is left as it was. It does not look when the open blocks are large, so the cost of a look is bounded; a block it does not look at is
     /// not a place to stop.
-    func startsTopLevelBlock(at boundary: Int) -> Bool {
+    mutating func startsTopLevelBlock(at boundary: Int) -> Bool {
         if state.open.count == 1 {
             // Nothing is open, so any line with something in it starts a block: no copy of the state is needed.
             var index = boundary

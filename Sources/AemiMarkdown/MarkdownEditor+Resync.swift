@@ -27,7 +27,7 @@ extension MarkdownEditor {
     }
 
     /// The start of the second line of the block at `ordinal`, or the end of its first line if it has one line.
-    private func secondLineStart(of ordinal: Int) -> Int {
+    private mutating func secondLineStart(of ordinal: Int) -> Int {
         let first = start(of: ordinal)
         let end = ByteScan.firstIndex(inSet: ByteScan.lineEndings, in: parser.source, from: first)
         return parser.lineEndOffset(after: end)

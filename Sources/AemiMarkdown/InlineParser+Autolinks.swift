@@ -29,7 +29,7 @@ extension InlineParser {
     }
 
     /// Whether the text has a byte that can start a bare link: `://`, `@`, or `www.`. Most leaf blocks have none, and then the pass over their nodes is skipped.
-    func mayHoldBareLink() -> Bool {
+    mutating func mayHoldBareLink() -> Bool {
         var index = 0
         while true {
             index = ByteScan.firstIndex(inSet: ByteScan.autolinkStarts, in: text, from: index)

@@ -72,7 +72,7 @@ extension MarkdownParser {
     }
 
     /// The content of an ATX heading: without the spaces after the `#`s, the spaces before the end, and an optional closing sequence of `#`s.
-    private func trimmedHeading(_ range: Range<Int>) -> Range<Int> {
+    private mutating func trimmedHeading(_ range: Range<Int>) -> Range<Int> {
         var lower = range.lowerBound
         var upper = range.upperBound
         while lower < upper, BlockScanner.isSpaceOrTab(source[lower]) { lower += 1 }

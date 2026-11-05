@@ -47,7 +47,7 @@ extension MarkdownParser {
     }
 
     /// One past the last byte of the last line that has text in `source[start ..< consumed]`, not counting that line's ending.
-    func lastTextLineEnd(start: Int, consumed: Int) -> Int {
+    mutating func lastTextLineEnd(start: Int, consumed: Int) -> Int {
         var end = consumed
         while end > start {
             if source[end - 1] == 0x0A {
@@ -70,14 +70,14 @@ extension MarkdownParser {
     }
 
     /// The first byte of the line that holds the byte at `offset`.
-    func lineStartOffset(before offset: Int) -> Int {
+    mutating func lineStartOffset(before offset: Int) -> Int {
         var start = Swift.min(offset, source.count)
         while start > 0, source[start - 1] != 0x0A, source[start - 1] != 0x0D { start -= 1 }
         return start
     }
 
     /// Where the line that ends at `end` (without its ending) ends with its ending: past a line feed, a carriage return, or both.
-    func lineEndOffset(after end: Int) -> Int {
+    mutating func lineEndOffset(after end: Int) -> Int {
         guard end < source.count else { return end }
         switch source[end] {
             case 0x0A: return end + 1

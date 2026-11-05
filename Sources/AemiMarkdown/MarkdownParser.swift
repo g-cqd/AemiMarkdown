@@ -93,7 +93,9 @@ public struct MarkdownParser: Sendable {
     /// Where the top-level blocks that may still change begin on the block tape: the slot of the open top-level block, or the end of the tape
     /// when none is open, since a partial last line may still start one. Everything before it has closed, and a closed block is final.
     var openBlocksStart: Int {
-        guard !isFinished else { return blocks.count }
-        return state.open.count > 1 ? state.open[1].slot : blocks.count
+        mutating get {
+            guard !isFinished else { return blocks.count }
+            return state.open.count > 1 ? state.open[1].slot : blocks.count
+        }
     }
 }
