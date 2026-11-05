@@ -13,5 +13,18 @@ xcodebuild -project MarkdownLook.xcodeproj -scheme MarkdownLook -configuration R
 Signed ad hoc by default (`Signing.xcconfig`); set `DEVELOPMENT_TEAM` and `CODE_SIGN_IDENTITY` there to sign for distribution (Developer ID and notarization are not done here). To try a build, copy
 `MarkdownLook.app` to `~/Applications`, run `pluginkit -a` on both `.appex` files inside it, and `qlmanage -p file.md`.
 
-Known limits: the system's own thumbnail wins for `.md` on the machine this was tried on (Mermaid thumbnails are drawn by the extension); selection in the preview copies rendered text, not
-Markdown source; edge labels in diagrams are stacked beside the edge rather than placed on it; the macOS 26 runtime has not been tried.
+Known limits: the system's own thumbnail wins for `.md` on the machine this was tried on (Mermaid thumbnails are drawn by the extension); selection in Quick Look's preview copies rendered text, not
+Markdown source (the app's own view copies the Markdown of the rows it selects whole); edge labels in diagrams are stacked beside the edge rather than placed on it; the macOS 26 runtime has not been tried.
+
+## The native view and its harness
+
+The app draws the document natively and holds it to the page (ADR 0005). To measure the difference, in release and off-screen:
+
+```sh
+swift build -c release --product markdown-look-compare
+.build/release/markdown-look-compare FILE.md [--width 800] [--dark] [--blocks] [--columns --column-lines] \
+    [--scroll-tables] [--outline] [--bleed] [--left] [--typeface serif] [--features ss01,tnum]
+Scripts/compare-all.sh [--dark] [filter]    # the component fixtures, Fixtures/components/01 to 12
+```
+
+Pictures are written to `/tmp/ql/compare` (web, native, and the difference).
