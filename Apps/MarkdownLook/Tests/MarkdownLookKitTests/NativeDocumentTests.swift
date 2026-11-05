@@ -111,6 +111,34 @@ struct NativeDocumentTests {
         )
     }
 
+    @Test
+    func
+        `a table is sized as the page sizes it: short columns on a line, long ones to wrap, a wide one beside the text`()
+    {
+        func table(_ source: String) -> NativeTable? {
+            if case .table(let found) = rows(source)[0].content { found } else { nil }
+        }
+        let long = String(repeating: "word ", count: 12)
+        guard let narrow = table("| a | b |\n|---|---|\n| 1 | 2 |"),
+            let wide = table("| a | b | c |\n|---|---|---|\n| \(long) | \(long) | \(long) |")
+        else {
+            Issue.record("not a table")
+            return
+        }
+        let (small, large) = (NativeTableShape(narrow), NativeTableShape(wide))
+        #expect(!small.isWide && small.keepsLine(0) && small.keepsLine(1))
+        #expect(large.isWide && !large.keepsLine(0) && large.floor(0) == TableLayout.flexibleFloor)
+    }
+
+    @Test func `the narrowest a cell can be is its longest piece between spaces and after hyphens`() {
+        func width(_ text: String) -> CGFloat {
+            NativeTableShape.unbreakable(AttributedString(text), size: 13, codeScale: 0.9, weight: .regular)
+        }
+        #expect(width("ab cd") < width("abcd"))
+        #expect(width("ab-cd") < width("abcd"))
+        #expect(width("ab/cd") == width("ab/cd ab"))
+    }
+
     @Test func `links keep a safe destination only, and an image is named and not loaded`() {
         func links(_ source: String) -> [URL] {
             rows(source)

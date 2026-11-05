@@ -37,6 +37,12 @@ public struct NativeDocumentView: View {
 }
 
 extension NativeRow {
+    /// The width of the row's column in ems: the text's, and for a table wider than that the room beside it.
+    fileprivate var measure: CGFloat {
+        if guides.isEmpty, case .table(let table) = content, NativeTableShape(table).isWide { return 68 }
+        return 40
+    }
+
     fileprivate var isTable: Bool { if case .table = content { true } else { false } }
 }
 
@@ -206,7 +212,7 @@ public struct NativeDocumentColumn: View {
     @ViewBuilder private func rows(_ size: CGFloat) -> some View {
         ForEach(document.rows) { row in
             NativeRowView(row: row, size: size, settings: settings)
-                .frame(maxWidth: settings.fullWidth ? .infinity : size * 40, alignment: .leading)
+                .frame(maxWidth: settings.fullWidth ? .infinity : size * row.measure, alignment: .leading)
                 .frame(maxWidth: .infinity)
                 .id(row.id)
         }

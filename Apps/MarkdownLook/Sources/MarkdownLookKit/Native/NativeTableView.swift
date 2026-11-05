@@ -1,3 +1,4 @@
+internal import AppKit
 internal import SwiftUI
 
 /// A table as the style sheet sets it: a grid in a box that scrolls sideways. The table is 0.96 em and a header cell 0.92 of that, in weight 500 and the secondary colour, lines of 1.45; a cell has
@@ -8,40 +9,62 @@ struct NativeTableView: View {
     let size: CGFloat
     let settings: ViewerSettings
     @State private var natural: CGFloat = 0
+    @State private var available: CGFloat = 0
 
     private var edge: Bool { settings.outerBorder }
+    private var shape: NativeTableShape { NativeTableShape(table) }
 
     var body: some View {
+        let shape = shape
         ScrollView(.horizontal) {
-            grid.fixedSize()
+            grid(shape)
+                .background(NoBounce())
                 .onGeometryChange(for: CGFloat.self) {
                     $0.size.width
                 } action: {
                     natural = $0
                 }
         }
-        .scrollBounceBehavior(.basedOnSize)
         .overlay {
             if settings.outerBorder {
                 RoundedRectangle(cornerRadius: size * 0.6).strokeBorder(NativeTheme.rule, lineWidth: 1.5)
             }
         }
         .frame(maxWidth: natural > 0 ? natural : nil, alignment: .leading)
-        .frame(maxWidth: .infinity, alignment: .leading)
+        .frame(maxWidth: .infinity, alignment: shape.isWide ? .center : .leading)
+        .onGeometryChange(for: CGFloat.self) {
+            $0.size.width
+        } action: {
+            available = $0
+        }
     }
 
-    private var grid: some View {
-        Grid(alignment: .topLeading, horizontalSpacing: 0, verticalSpacing: 0) {
-            GridRow {
-                ForEach(table.header.indices, id: \.self) {
-                    cell(table.header[$0], column: $0, header: true, last: false)
-                }
+    private func grid(_ shape: NativeTableShape) -> some View {
+        let own = size * 0.96
+        let side = own * 1.4
+        let zero = ("0" as NSString)
+            .size(withAttributes: [.font: NSFont.monospacedDigitSystemFont(ofSize: own, weight: .regular)]).width
+        let floors = (0 ..< shape.columns)
+            .map { column -> CGFloat in
+                let pad = (column == 0 && !edge ? 0 : side) + (column == shape.columns - 1 && !edge ? 0 : side)
+                return CGFloat(shape.floor(column)) * (zero > 0 ? zero : own * 0.6) + pad
             }
+        let keeps = (0 ..< shape.columns).map { settings.scrollsTables || shape.keepsLine($0) }
+        return NativeTableGrid(
+            columns: shape.columns,
+            keeps: keeps,
+            floors: floors,
+            available: available > 0 ? available : nil
+        ) {
+            ForEach(table.header.indices, id: \.self) { cell(table.header[$0], column: $0, header: true, last: false) }
             ForEach(table.rows.indices, id: \.self) { index in
-                GridRow {
-                    ForEach(table.rows[index].indices, id: \.self) {
-                        cell(table.rows[index][$0], column: $0, header: false, last: index == table.rows.count - 1)
-                    }
+                ForEach(0 ..< shape.columns, id: \.self) { column in
+                    cell(
+                        column < table.rows[index].count ? table.rows[index][column] : AttributedString(),
+                        column: column,
+                        header: false,
+                        last: index == table.rows.count - 1
+                    )
                 }
             }
         }
@@ -59,15 +82,22 @@ struct NativeTableView: View {
             color: header ? NativeTheme.secondary : NativeTheme.text,
             lineHeight: own * 1.45,
             codeScale: header ? 0.9 : 0.88,
-            digits: true,
-            wraps: !settings.scrollsTables
+            digits: true
         )
         .multilineTextAlignment(alignment == .center ? .center : (alignment == .trailing ? .trailing : .leading))
-        .frame(maxWidth: settings.scrollsTables ? nil : size * 28, alignment: frameAlignment(alignment))
-        .frame(maxWidth: .infinity, alignment: frameAlignment(alignment))
         .padding(.vertical, own * 0.6)
         .padding(.leading, column == 0 ? (edge ? side : 0) : side)
         .padding(.trailing, column == columns - 1 ? (edge ? side : 0) : side)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: frameAlignment(alignment, top: true))
+        .layoutValue(
+            key: UnbreakableWidth.self,
+            value: NativeTableShape.unbreakable(
+                text,
+                size: own,
+                codeScale: header ? 0.9 : 0.88,
+                weight: header ? .medium : .regular
+            ) + (column == 0 ? (edge ? side : 0) : side) + (column == columns - 1 ? (edge ? side : 0) : side)
+        )
         .overlay(alignment: .bottom) {
             if settings.rowLines { Capsule().fill(header ? NativeTheme.mark : NativeTheme.rule).frame(height: 1.5) }
         }
@@ -76,7 +106,7 @@ struct NativeTableView: View {
         }
     }
 
-    private func frameAlignment(_ alignment: NativeTable.Alignment) -> Alignment {
-        alignment == .center ? .center : (alignment == .trailing ? .trailing : .leading)
+    private func frameAlignment(_ alignment: NativeTable.Alignment, top: Bool) -> Alignment {
+        alignment == .center ? .top : (alignment == .trailing ? .topTrailing : .topLeading)
     }
 }

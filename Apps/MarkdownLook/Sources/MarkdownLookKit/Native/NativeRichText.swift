@@ -78,6 +78,7 @@ enum NativeRichText {
             plain.strikethroughStyle = nil
             plain.foregroundColor = nil
             let intent = run.inlinePresentationIntent ?? []
+            if intent.contains(.code) { plain = Self.breakableAfterHyphens(plain) }
             var piece = Text(plain)
             if intent.contains(.emphasized) { piece = piece.italic() }
             if intent.contains(.stronglyEmphasized) { piece = piece.fontWeight(.semibold) }
@@ -107,6 +108,26 @@ enum NativeRichText {
             interpolation.appendInterpolation(piece)
         }
         return (Text(LocalizedStringKey(stringInterpolation: interpolation)), needsRenderer)
+    }
+
+    /// A code span breaks as the page breaks it: after a hyphen, which the typesetter takes as no place to break (it falls back to a slash), and not after a slash, which it takes as one.
+    private static func breakableAfterHyphens(_ text: AttributedString) -> AttributedString {
+        var out = text
+        let characters = Array(text.characters)
+        var offset = 0
+        for index in characters.indices where index + 1 < characters.count {
+            let mark: Character
+            switch characters[index] {
+                case "-": mark = "\u{200B}"
+                case "/": mark = "\u{2060}"
+                default: continue
+            }
+            guard characters[index + 1].isLetter || characters[index + 1].isNumber else { continue }
+            let at = out.index(out.startIndex, offsetByCharacters: index + 1 + offset)
+            out.characters.insert(mark, at: at)
+            offset += 1
+        }
+        return out
     }
 
     /// The width of a space of the monospaced font, in ems: the room a code span's side padding is made of (a space of a smaller font than the code's, so that the line's height does not change).
