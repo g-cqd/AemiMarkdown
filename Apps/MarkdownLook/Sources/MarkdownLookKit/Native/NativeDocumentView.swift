@@ -95,6 +95,7 @@ struct NativeRowView: View {
     let settings: ViewerSettings
     @Environment(\.openURL) private var openURL
     @Environment(\.documentSelection) private var selection
+    @Environment(\.pageFonts) private var fonts
 
     private var indent: CGFloat { size * 1.75 }
     private var gap: CGFloat { size * row.gap }
@@ -152,11 +153,12 @@ struct NativeRowView: View {
                     .overlay(Circle().strokeBorder(NativeTheme.tertiary, lineWidth: 1))
                     .frame(width: size * 0.35, height: size * 0.35).offset(y: 0.7)
             case .number(let number):
-                Text(number).font(.system(size: size).monospacedDigit()).foregroundColor(NativeTheme.tertiary)
+                Text(number).font(fonts.font(.text, size: size).monospacedDigit()).foregroundColor(NativeTheme.tertiary)
             case .task(let done):
                 TaskBox(done: done).frame(width: size * 0.95, height: size * 0.95)
             case .note(let label):
-                Text(label).font(.system(size: size * 0.92).monospacedDigit()).foregroundColor(NativeTheme.tertiary)
+                Text(label).font(fonts.font(.text, size: size * 0.92).monospacedDigit())
+                    .foregroundColor(NativeTheme.tertiary)
         }
     }
 
@@ -188,12 +190,14 @@ struct NativeRowView: View {
                 tracking: size * scale * tracking(text.style),
                 uppercase: text.style == .alertTitle,
                 balances: isHeading,
+                role: isHeading ? .heading : .text,
                 row: row.id
             )
             .frame(maxWidth: text.back == nil ? .infinity : nil, alignment: .leading)
             if let label = text.back {
                 Spacer(minLength: 0)
-                Text("\u{21A9}\u{FE0E}").font(.system(size: size * scale)).foregroundColor(NativeTheme.tertiary)
+                Text("\u{21A9}\u{FE0E}").font(fonts.font(.text, size: size * scale))
+                    .foregroundColor(NativeTheme.tertiary)
                     .onTapGesture { if let url = NativeLink.url(NativeLink.reference, label: label) { openURL(url) } }
             }
         }
@@ -262,6 +266,7 @@ public struct NativeDocumentColumn: View {
                 VStack(alignment: .leading, spacing: 0) { rows(size) }
             }
         }
+        .environment(\.pageFonts, NativeFonts(settings.fonts))
         .padding(.horizontal, size * 2.5)
         .padding(.top, size * 3.5)
         .padding(.bottom, size * 5)

@@ -3,7 +3,7 @@ import AppKit
 import Foundation
 import MarkdownLookKit
 
-// markdown-look-compare FILE.md [--width N] [--dark] [--scale N] [--out DIR] [--text-size N] [--blocks] [--columns] [--bleed] [--left] [--scroll-tables] [--outline] [--column-lines]: the page as HTML in WebKit (the oracle) and as the native view, at one width, with a measure of how alike they are.
+// markdown-look-compare FILE.md [--width N] [--dark] [--scale N] [--out DIR] [--text-size N] [--blocks] [--typeface system|serif|serifDisplay|serifText] [--text-font F] [--heading-font F] [--code-font F] [--features ss01,tnum] [--columns] [--bleed] [--left] [--scroll-tables] [--outline] [--column-lines]: the page as HTML in WebKit (the oracle) and as the native view, at one width, with a measure of how alike they are.
 let arguments = Array(CommandLine.arguments.dropFirst())
 func option(_ name: String) -> String? {
     guard let index = arguments.firstIndex(of: name), index + 1 < arguments.count else { return nil }
@@ -26,6 +26,11 @@ var settings = ViewerSettings()
 if let size = option("--text-size").flatMap(Int.init) { settings.textSize = size }
 // The choices a person may have made in the Settings window, by name.
 if arguments.contains("--scroll-tables") { settings.scrollsTables = true }
+if let name = option("--typeface"), let preset = ViewerFonts.Preset(rawValue: name) { settings.fonts = preset.fonts }
+if let name = option("--text-font") { settings.fonts.text = FontFace(name) }
+if let name = option("--heading-font") { settings.fonts.heading = FontFace(name) }
+if let name = option("--code-font") { settings.fonts.code = FontFace(name) }
+if let words = option("--features") { settings.fonts.features = ViewerFonts.features(words) }
 if arguments.contains("--bleed") { settings.bleedsTables = true }
 if arguments.contains("--left") { settings.alignsLeft = true }
 if arguments.contains("--outline") { settings.outerBorder = true }

@@ -8,6 +8,7 @@ import SwiftUI
 struct NativeDiagramView: View {
     let diagram: NativeDiagram
     let size: CGFloat
+    @Environment(\.pageFonts) private var fonts
 
     var body: some View {
         switch diagram {
@@ -18,7 +19,7 @@ struct NativeDiagramView: View {
                 )
                 Canvas { context, canvas in
                     context.scaleBy(x: canvas.width / natural.width, y: canvas.width / natural.width)
-                    Self.draw(scene, in: &context)
+                    Self.draw(scene, fonts: fonts, in: &context)
                 }
                 .aspectRatio(natural.width / Swift.max(1, natural.height), contentMode: .fit)
                 .frame(maxWidth: natural.width)
@@ -32,22 +33,22 @@ struct NativeDiagramView: View {
     private static func px(_ x: Int32) -> CGFloat { (CGFloat(x) + 0.5) * cell.width }
     private static func py(_ y: Int32) -> CGFloat { (CGFloat(y) + 0.5) * cell.height }
 
-    static func draw(_ scene: DiagramScene, in context: inout GraphicsContext) {
+    static func draw(_ scene: DiagramScene, fonts: NativeFonts, in context: inout GraphicsContext) {
         let line = 1.5
         let stroke = NativeTheme.secondary
-        for shape in scene.shapes { drawShape(shape, scene, &context, line: line, stroke: stroke) }
+        for shape in scene.shapes { drawShape(shape, scene, fonts, &context, line: line, stroke: stroke) }
         for path in scene.paths { drawPath(path, scene, &context, line: line, stroke: stroke) }
         for text in scene.texts {
             let x = text.anchor == .center ? px(Int32(text.x)) : CGFloat(text.x) * cell.width
             let muted = text.role == .label || text.role == .clusterTitle
             setText(
                 scene.string(text.text),
-                x: x,
-                baseline: py(Int32(text.y)) + 4.5,
+                at: CGPoint(x: x, y: py(Int32(text.y)) + 4.5),
                 anchor: text.anchor,
                 size: text.role == .label ? 13 * 0.92 : 13,
                 weight: text.role == .clusterTitle ? .medium : .regular,
                 color: muted ? NativeTheme.pieMuted : NativeTheme.text,
+                fonts: fonts,
                 in: &context
             )
         }
@@ -56,16 +57,20 @@ struct NativeDiagramView: View {
     /// A line of text on a baseline, at 13 points, as the page's SVG sets it.
     static func setText(
         _ string: String,
-        x: CGFloat,
-        baseline: CGFloat,
+        at point: CGPoint,
         anchor: SceneAnchor,
         size: CGFloat = 13,
         weight: Font.Weight = .regular,
         color: Color,
+        fonts: NativeFonts,
         in context: inout GraphicsContext
     ) {
-        let resolved = context.resolve(Text(string).font(.system(size: size, weight: weight)).foregroundColor(color))
+        let resolved = context.resolve(
+            Text(string).font(fonts.font(.diagram, size: size, weight: weight)).foregroundColor(color)
+        )
         let box = resolved.measure(in: CGSize(width: 10_000, height: 10_000))
+        let x = point.x
+        let baseline = point.y
         let left = anchor == .leading ? x : (anchor == .center ? x - box.width / 2 : x - box.width)
         context.draw(resolved, at: CGPoint(x: left, y: baseline - resolved.firstBaseline(in: box)), anchor: .topLeading)
     }
@@ -151,6 +156,7 @@ struct NativeDiagramView: View {
     private static func drawShape(
         _ shape: SceneShape,
         _ scene: DiagramScene,
+        _ fonts: NativeFonts,
         _ context: inout GraphicsContext,
         line: CGFloat,
         stroke: Color
@@ -188,11 +194,11 @@ struct NativeDiagramView: View {
         if shape.kind == .frame {
             setText(
                 words,
-                x: rect.minX + 14,
-                baseline: rect.minY + 4.5,
+                at: CGPoint(x: rect.minX + 14, y: rect.minY + 4.5),
                 anchor: .leading,
                 weight: .medium,
                 color: NativeTheme.pieMuted,
+                fonts: fonts,
                 in: &context
             )
             return
@@ -202,10 +208,10 @@ struct NativeDiagramView: View {
         for (index, piece) in lines.enumerated() {
             setText(
                 String(piece),
-                x: rect.midX,
-                baseline: first + CGFloat(index) * cell.height,
+                at: CGPoint(x: rect.midX, y: first + CGFloat(index) * cell.height),
                 anchor: .center,
                 color: NativeTheme.text,
+                fonts: fonts,
                 in: &context
             )
         }
@@ -304,6 +310,7 @@ struct NativeDiagramView: View {
 struct NativePieView: View {
     let pie: PieDiagram
     let size: CGFloat
+    @Environment(\.pageFonts) private var fonts
 
     private let radius = 90.0
 
@@ -391,7 +398,9 @@ struct NativePieView: View {
         centered: Bool,
         in context: inout GraphicsContext
     ) {
-        let resolved = context.resolve(Text(string).font(.system(size: 13, weight: weight)).foregroundColor(color))
+        let resolved = context.resolve(
+            Text(string).font(fonts.font(.diagram, size: 13, weight: weight)).foregroundColor(color)
+        )
         let box = resolved.measure(in: CGSize(width: 10_000, height: 10_000))
         let origin = CGPoint(
             x: centered ? point.x - box.width / 2 : point.x,

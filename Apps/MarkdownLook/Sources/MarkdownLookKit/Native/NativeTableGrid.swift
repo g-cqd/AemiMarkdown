@@ -32,7 +32,13 @@ struct NativeTableShape {
     }
 
     /// The width of the longest piece of a cell that a line cannot break: the text between spaces and after hyphens, in the fonts the cell sets it in.
-    static func unbreakable(_ cell: AttributedString, size: CGFloat, codeScale: CGFloat, weight: NSFont.Weight)
+    static func unbreakable(
+        _ cell: AttributedString,
+        size: CGFloat,
+        codeScale: CGFloat,
+        weight: NSFont.Weight,
+        fonts: NativeFonts = NativeFonts()
+    )
         -> CGFloat
     {
         var current: CGFloat = 0
@@ -45,8 +51,8 @@ struct NativeTableShape {
             let isCode = intent.contains(.code)
             let font =
                 isCode
-                ? NSFont.monospacedSystemFont(ofSize: size * codeScale, weight: .regular)
-                : NSFont.systemFont(ofSize: size, weight: intent.contains(.stronglyEmphasized) ? .semibold : weight)
+                ? fonts.nsFont(.code, size: size * codeScale)
+                : fonts.nsFont(.text, size: size, weight: intent.contains(.stronglyEmphasized) ? .semibold : weight)
             let edge = isCode ? size * codeScale * 0.3 : 0
             current += edge
             var piece = ""

@@ -10,6 +10,7 @@ struct NativeTableView: View {
     let settings: ViewerSettings
     /// The table starts at the text's leading edge and scrolls across the whole window: the row is as wide as the window.
     var bleeds = false
+    @Environment(\.pageFonts) private var fonts
     @State private var natural: CGFloat = 0
     @State private var available: CGFloat = 0
 
@@ -77,8 +78,7 @@ struct NativeTableView: View {
     private func grid(_ shape: NativeTableShape, room: CGFloat?) -> some View {
         let own = size * 0.96
         let side = own * 1.4
-        let zero = ("0" as NSString)
-            .size(withAttributes: [.font: NSFont.monospacedDigitSystemFont(ofSize: own, weight: .regular)]).width
+        let zero = ("0" as NSString).size(withAttributes: [.font: fonts.nsFont(.code, size: own)]).width
         let floors = (0 ..< shape.columns)
             .map { column -> CGFloat in
                 let pad = (column == 0 && !edge ? 0 : side) + (column == shape.columns - 1 && !edge ? 0 : side)
@@ -130,7 +130,8 @@ struct NativeTableView: View {
                 text,
                 size: own,
                 codeScale: header ? 0.9 : 0.88,
-                weight: header ? .medium : .regular
+                weight: header ? .medium : .regular,
+                fonts: fonts
             ) + (column == 0 ? (edge ? side : 0) : side) + (column == columns - 1 ? (edge ? side : 0) : side)
         )
         .overlay(alignment: .bottom) {

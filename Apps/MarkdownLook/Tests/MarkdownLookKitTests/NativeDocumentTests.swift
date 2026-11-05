@@ -1,4 +1,5 @@
 import AemiMarkdown
+import AppKit
 import Foundation
 import SwiftUI
 import Testing
@@ -153,6 +154,39 @@ struct NativeDocumentTests {
     {
         let grid = NativeTableGrid(columns: 2, keeps: [true, false], floors: [0, 50], available: 300)
         #expect(grid.columns == 2 && grid.available == 300)
+    }
+
+    @Test func `fonts reach the style sheet as names and numbers only, and the preferences are read cleanly`() {
+        #expect(FontFace("serif") == .serif && FontFace("  ") == .system)
+        #expect(FontFace("Evil';}body{x:y") == .family("Evilbodyxy"))
+        #expect(
+            ViewerFonts.features("ss01, tnum, cv11=2, bad, toolong, x=1, ss02=99").map(\.tag) == [
+                "ss01", "tnum", "cv11"
+            ]
+        )
+        var settings = ViewerSettings()
+        settings.fonts = ViewerFonts.Preset.serifText.fonts
+        settings.fonts.features = ViewerFonts.features("ss01")
+        let css = settings.css
+        #expect(css.contains("html { font-family: ui-serif"))
+        #expect(css.contains("h1, h2, h3, h4, h5, h6 { font-family: -apple-system"))
+        #expect(css.contains("font-feature-settings: \"ss01\" 1"))
+    }
+
+    @Test
+    func
+        `the native fonts follow the choices: designs, a named family that is installed, and the system's when it is not`()
+    {
+        var fonts = ViewerFonts()
+        fonts.heading = .serif
+        let native = NativeFonts(fonts)
+        #expect(native.nsFont(.heading, size: 20).fontDescriptor.symbolicTraits.contains(.italic) == false)
+        #expect(native.nsFont(.heading, size: 20).fontName != native.nsFont(.text, size: 20).fontName)
+        #expect(native.nsFont(.code, size: 13).isFixedPitch)
+        fonts.text = .family("No Such Family Anywhere")
+        #expect(NativeFonts(fonts).nsFont(.text, size: 13).fontName == NSFont.systemFont(ofSize: 13).fontName)
+        fonts.text = .family("Georgia")
+        #expect(NativeFonts(fonts).nsFont(.text, size: 13).familyName == "Georgia")
     }
 
     @Test func `links keep a safe destination only, and an image is named and not loaded`() {

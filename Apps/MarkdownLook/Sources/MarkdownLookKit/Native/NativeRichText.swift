@@ -65,7 +65,12 @@ struct PageTextRenderer: TextRenderer {
 /// a link in its colour, struck text and a missing image in the secondary one.
 enum NativeRichText {
     /// The text, and whether it needs the page's renderer.
-    static func text(_ string: AttributedString, size: CGFloat, code codeScale: CGFloat = 0.9) -> (
+    static func text(
+        _ string: AttributedString,
+        size: CGFloat,
+        code codeScale: CGFloat = 0.9,
+        fonts: NativeFonts = NativeFonts()
+    ) -> (
         text: Text, needsRenderer: Bool, map: [Int]
     ) {
         var needsRenderer = false
@@ -76,7 +81,7 @@ enum NativeRichText {
             literalCapacity: 0,
             interpolationCount: string.runs.count
         )
-        let spaceWidth = monospacedSpace()
+        let spaceWidth = monospacedSpace(fonts)
         for run in string.runs {
             var plain = AttributedString(string[run.range])
             plain.inlinePresentationIntent = nil
@@ -106,8 +111,9 @@ enum NativeRichText {
                 let isNote = NativeLink.parse(link)?.scheme == NativeLink.note
                 piece = piece.foregroundColor(NativeTheme.link)
                 if isNote {
-                    let edge = Text("\u{00A0}").font(.system(size: size * 0.75 * 0.1 / spaceWidth, design: .monospaced))
-                    piece = Text("\(edge)\(piece.font(.system(size: size * 0.75)))\(edge)").customAttribute(NoteRaise())
+                    let edge = Text("\u{00A0}").font(fonts.font(.code, size: size * 0.75 * 0.1 / spaceWidth))
+                    piece = Text("\(edge)\(piece.font(fonts.font(.text, size: size * 0.75)))\(edge)")
+                        .customAttribute(NoteRaise())
                     needsRenderer = true
                 } else {
                     piece = piece.customAttribute(LinkUnderline())
@@ -116,8 +122,8 @@ enum NativeRichText {
             }
             if intent.contains(.code) {
                 let pad = size * codeScale * 0.3
-                let edge = Text("\u{00A0}").font(.system(size: pad / spaceWidth, design: .monospaced))
-                piece = piece.font(.system(size: size * codeScale, design: .monospaced))
+                let edge = Text("\u{00A0}").font(fonts.font(.code, size: pad / spaceWidth))
+                piece = piece.font(fonts.font(.code, size: size * codeScale))
                 piece = Text("\(edge)\(piece)\(edge)").customAttribute(CodePill())
                 needsRenderer = true
             }
@@ -150,8 +156,8 @@ enum NativeRichText {
     }
 
     /// The width of a space of the monospaced font, in ems: the room a code span's side padding is made of (a space of a smaller font than the code's, so that the line's height does not change).
-    private static func monospacedSpace() -> CGFloat {
-        let font = NSFont.monospacedSystemFont(ofSize: 100, weight: .regular)
+    private static func monospacedSpace(_ fonts: NativeFonts) -> CGFloat {
+        let font = fonts.nsFont(.code, size: 100)
         return NSAttributedString(string: "\u{00A0}", attributes: [.font: font]).size().width / 100
     }
 }
@@ -170,13 +176,15 @@ struct PageText: View {
     var balances = false
     var digits = false
     var wraps = true
+    var role = FontRole.text
     /// The row of the document this text is, if it can be selected.
     var row: Int?
     @Environment(\.documentSelection) private var selection
+    @Environment(\.pageFonts) private var fonts
 
     var body: some View {
-        let rich = NativeRichText.text(string, size: size, code: codeScale)
-        var font = Font.system(size: size, weight: weight)
+        let rich = NativeRichText.text(string, size: size, code: codeScale, fonts: fonts)
+        var font = fonts.font(role, size: size, weight: weight)
         if digits { font = font.monospacedDigit() }
         let line = rich.text.font(font).foregroundColor(color).lineHeight(.exact(points: lineHeight))
             .textCase(uppercase ? .uppercase : nil).tracking(tracking).fixedSize(horizontal: !wraps, vertical: true)
@@ -184,7 +192,7 @@ struct PageText: View {
         if balances {
             layout.balances = true
             layout.text = String(string.characters)
-            layout.font = NSFont.systemFont(ofSize: size, weight: weight == .semibold ? .semibold : .regular)
+            layout.font = fonts.nsFont(role, size: size, weight: nsWeight)
             layout.kern = tracking
         }
         var recorder: SelectionRecorder?
@@ -210,7 +218,9 @@ struct PageText: View {
                 line
             }
         }
-        .offset(y: NativeMetrics.halfLeading(size: size, weight: nsWeight, lineHeight: lineHeight))
+        .offset(
+            y: NativeMetrics.halfLeading(font: fonts.nsFont(role, size: size, weight: nsWeight), lineHeight: lineHeight)
+        )
     }
 
     private var nsWeight: NSFont.Weight {

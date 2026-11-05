@@ -47,6 +47,11 @@ public struct ViewerSettings: Sendable, Equatable {
         public static let alignsLeft = "alignsLeft"
         public static let backdrop = "backdrop"
         public static let material = "material"
+        public static let textFont = "textFont"
+        public static let headingFont = "headingFont"
+        public static let codeFont = "codeFont"
+        public static let diagramFont = "diagramFont"
+        public static let fontFeatures = "fontFeatures"
         public static let glass = "glass"
     }
     public static let tabSizes = 1 ... 8
@@ -80,6 +85,8 @@ public struct ViewerSettings: Sendable, Equatable {
     public var scrollsTables = false
     /// A table starts at the leading edge of the text and scrolls on its own across the whole window, past the margins of the text on both sides, instead of inside the text's column.
     public var bleedsTables = false
+    /// The fonts of the page's styles, and the features turned on in them.
+    public var fonts = ViewerFonts()
     /// The text column sits on the leading edge of the window instead of in its middle.
     public var alignsLeft = false
     public var backdrop = Backdrop.blurred
@@ -117,6 +124,13 @@ public struct ViewerSettings: Sendable, Equatable {
         settings.material =
             (value(Key.material) as? String).flatMap(BackdropMaterial.init(rawValue:)) ?? settings.material
         settings.glass = (value(Key.glass) as? String).flatMap(GlassVariant.init(rawValue:)) ?? settings.glass
+        func face(_ key: String) -> FontFace? { (value(key) as? String).map(FontFace.init) }
+        settings.fonts.text = face(Key.textFont) ?? settings.fonts.text
+        settings.fonts.code = face(Key.codeFont) ?? settings.fonts.code
+        // The headings and the diagrams follow the text unless a face is named for them (`text` names none).
+        settings.fonts.heading = (value(Key.headingFont) as? String) == "text" ? nil : face(Key.headingFont)
+        settings.fonts.diagram = (value(Key.diagramFont) as? String) == "text" ? nil : face(Key.diagramFont)
+        settings.fonts.features = ViewerFonts.features(value(Key.fontFeatures) as? String ?? "")
         settings.bleedsTables = value(Key.bleedsTables) as? Bool ?? settings.bleedsTables
         settings.alignsLeft = value(Key.alignsLeft) as? Bool ?? settings.alignsLeft
         settings.backdrop = (value(Key.backdrop) as? String).flatMap(Backdrop.init(rawValue:)) ?? settings.backdrop
@@ -125,7 +139,7 @@ public struct ViewerSettings: Sendable, Equatable {
 
     /// The rules these settings add to the style sheet. Numbers, booleans and fixed words only: nothing a document or a preferences file says is written into it.
     var css: String {
-        var rules = "html { font-size: \(textSize)px; }\npre, code { tab-size: \(tabSize); }\n"
+        var rules = "html { font-size: \(textSize)px; }\npre, code { tab-size: \(tabSize); }\n" + fonts.css
         if fullWidth { rules += "main { max-width: none; } .table-wrap.wide { margin-inline: 0; }\n" }
         if alignsLeft {
             rules += "main { margin-inline: 0 auto; }\n"

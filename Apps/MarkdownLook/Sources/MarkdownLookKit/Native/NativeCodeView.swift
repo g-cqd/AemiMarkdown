@@ -6,6 +6,7 @@ struct NativeCodeView: View {
     let code: NativeCode
     let size: CGFloat
     let settings: ViewerSettings
+    @Environment(\.pageFonts) private var fonts
     @State private var hovering = false
     @State private var copied = false
 
@@ -19,12 +20,18 @@ struct NativeCodeView: View {
         ScrollView(.horizontal) {
             BalancedLayout(lineHeight: lineHeight) {
                 Text(code.shown)
-                    .font(.system(size: size * 0.9, design: .monospaced))
+                    .font(fonts.font(.code, size: size * 0.9))
                     .lineHeight(.exact(points: lineHeight))
                     .foregroundColor(code.isHTML ? NativeTheme.secondary : NativeTheme.text)
                     .fixedSize(horizontal: true, vertical: true)
             }
-            .offset(y: NativeMetrics.shift(size: size * 0.9, design: .monospaced, strut: size, lineHeight: lineHeight))
+            .offset(
+                y: NativeMetrics.shift(
+                    own: fonts.nsFont(.code, size: size * 0.9),
+                    block: fonts.nsFont(.code, size: size),
+                    lineHeight: lineHeight
+                )
+            )
             .padding(EdgeInsets(top: size * 1.1, leading: size * 1.3, bottom: size * 1.1, trailing: size * 1.3))
         }
         .scrollBounceBehavior(.basedOnSize)

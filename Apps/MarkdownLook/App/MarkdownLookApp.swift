@@ -96,10 +96,32 @@ struct SettingsView: View {
     @AppStorage(Key.scrollsTables, store: .shared) private var scrollsTables = false
     @AppStorage(Key.bleedsTables, store: .shared) private var bleedsTables = false
     @AppStorage(Key.alignsLeft, store: .shared) private var alignsLeft = false
+    @AppStorage(Key.textFont, store: .shared) private var textFont = "system"
+    @AppStorage(Key.headingFont, store: .shared) private var headingFont = "text"
+    @AppStorage(Key.codeFont, store: .shared) private var codeFont = "mono"
+    @AppStorage(Key.diagramFont, store: .shared) private var diagramFont = "text"
+    @AppStorage(Key.fontFeatures, store: .shared) private var fontFeatures = ""
     @AppStorage(Key.drawsDiagrams, store: .shared) private var drawsDiagrams = true
     @AppStorage(Key.backdrop, store: .shared) private var backdrop = Backdrop.blurred.rawValue
     @AppStorage(Key.material, store: .shared) private var material = BackdropMaterial.thin.rawValue
     @AppStorage(Key.glass, store: .shared) private var glass = GlassVariant.regular.rawValue
+
+    /// The preset the four fonts add up to, if they are one; choosing one sets them.
+    private var typeface: Binding<ViewerFonts.Preset?> {
+        Binding {
+            ViewerFonts.Preset.allCases.first {
+                let fonts = $0.fonts
+                return fonts.text.raw == textFont && (fonts.heading?.raw ?? "text") == headingFont
+                    && fonts.code.raw == codeFont && (fonts.diagram?.raw ?? "text") == diagramFont
+            }
+        } set: { preset in
+            guard let fonts = preset?.fonts else { return }
+            textFont = fonts.text.raw
+            headingFont = fonts.heading?.raw ?? "text"
+            codeFont = fonts.code.raw
+            diagramFont = fonts.diagram?.raw ?? "text"
+        }
+    }
 
     var body: some View {
         Form {
@@ -108,6 +130,26 @@ struct SettingsView: View {
                 Toggle("Text uses the full width of the window", isOn: $fullWidth)
                 Toggle("Align the text to the leading edge of the window", isOn: $alignsLeft)
                 Toggle("Curly quotes and ellipses", isOn: $smartPunctuation)
+            }
+            Section {
+                Picker("Typeface", selection: typeface) {
+                    Text("System").tag(ViewerFonts.Preset.system)
+                    Text("Serif").tag(ViewerFonts.Preset.serif)
+                    Text("Serif headings, system text").tag(ViewerFonts.Preset.serifDisplay)
+                    Text("System headings, serif text").tag(ViewerFonts.Preset.serifText)
+                    Text("Custom").tag(ViewerFonts.Preset?.none)
+                }
+                FontField(title: "Text", value: $textFont, follows: false)
+                FontField(title: "Headings", value: $headingFont, follows: true)
+                FontField(title: "Code", value: $codeFont, follows: false)
+                FontField(title: "Diagrams", value: $diagramFont, follows: true)
+                TextField("Features", text: $fontFeatures, prompt: Text("ss01, tnum, cv11=2"))
+            } header: {
+                Text("Fonts")
+            } footer: {
+                Text(
+                    "A style is set in the system's design (system, serif, rounded, mono) or in the name of an installed family. Features are OpenType tags, applied to all text."
+                )
             }
             Section("Code") {
                 Toggle("Syntax colour", isOn: $highlightsCode)
@@ -246,6 +288,33 @@ struct TitlebarSeparator: NSViewRepresentable {
         func apply() {
             window?.titlebarSeparatorStyle = .none
             DispatchQueue.main.async { [weak self] in self?.window?.titlebarSeparatorStyle = .none }
+        }
+    }
+}
+
+/// One style's font: a menu of the system's designs and a field for the name of an installed family.
+struct FontField: View {
+    let title: String
+    @Binding var value: String
+    /// Whether the style may follow the text's font.
+    let follows: Bool
+
+    var body: some View {
+        LabeledContent(title) {
+            HStack {
+                TextField(title, text: $value, prompt: Text("family name")).labelsHidden()
+                    .multilineTextAlignment(.trailing)
+                Menu {
+                    if follows { Button("Same as text") { value = "text" } }
+                    Button("System") { value = "system" }
+                    Button("Serif") { value = "serif" }
+                    Button("Rounded") { value = "rounded" }
+                    Button("Monospaced") { value = "mono" }
+                } label: {
+                    Image(systemName: "textformat")
+                }
+                .menuStyle(.borderlessButton).fixedSize()
+            }
         }
     }
 }
