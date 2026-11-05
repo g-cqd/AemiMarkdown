@@ -13,8 +13,8 @@ let package = Package(
     ],
     dependencies: [
         .package(path: "../.."),
-        .package(url: "https://github.com/g-cqd/AemiMermaid.git", revision: "488edea83ef3990cdf712cdd54b1e514d4621655"),
-        .package(url: "https://github.com/Aemi-Studio/aemi.git", revision: "2b2dbe6d0bc3dcb5ec48093c02a2e279d03a37a8")
+        .package(url: "https://github.com/g-cqd/AemiMermaid.git", revision: "0828d31fdabd7ca7979f7597698b7c03d98af2b6"),
+        .package(url: "https://github.com/Aemi-Studio/aemi.git", revision: "528804643f693104656a02449cfa59131556f616")
     ],
     targets: [
         .target(
