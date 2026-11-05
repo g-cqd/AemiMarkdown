@@ -16,7 +16,6 @@ public enum ViewerStyle {
         body { margin: 0; padding: var(--page); background: transparent; color: var(--text); font-kerning: normal; }
         main { max-width: var(--measure); margin: 0 auto; }
         :where(p, ul, ol, pre, blockquote, figure, hr, h1, h2, h3, h4, h5, h6) { margin: 0; }
-        p { text-wrap: pretty; }
         h1, h2, h3, h4, h5, h6 { font-weight: 600; line-height: 1.25; text-wrap: balance; letter-spacing: -0.012em; }
         h1 { font-size: 1.9em; letter-spacing: -0.02em; } h2 { font-size: 1.45em; } h3 { font-size: 1.15em; } h4 { font-size: 1em; }
         h5, h6 { font-size: 1em; color: var(--secondary); }

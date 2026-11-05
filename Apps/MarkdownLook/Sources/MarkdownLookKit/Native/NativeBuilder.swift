@@ -33,7 +33,10 @@ private struct Frame {
     /// For a quote, whether a row has been put in it.
     var hasRows = false
     /// The space above the first row inside this container, if it is not the first thing in its parent.
-    var gapForFirst: NativeGap?
+    var gapForFirst: Double?
+    /// For a container, what the last block put in it was.
+    var last: Sibling?
+    var tight = false
     var label = ""
     var firstRowPending = false
 }
@@ -43,9 +46,8 @@ struct NativeBuilder {
     let settings: ViewerSettings
     private var result = NativeDocument()
     private var frames: [Frame] = []
-    /// A block ended since the last row: the next row at the same level is separated from it.
-    private var separated = false
-    private var previous: Previous?
+    private var rootLast: Sibling?
+    private var notesStarted = false
     private var inline: NativeInline?
     private var leafKind: NodeKind?
     private var leafPayload = 0
@@ -53,8 +55,6 @@ struct NativeBuilder {
     var table: TableState?
     private var cell: NativeInline?
     private var inNotes = false
-
-    enum Previous { case prose, heading, box, rule }
 
     struct CodeState {
         var isHTML: Bool
@@ -95,7 +95,7 @@ struct NativeBuilder {
                 )
             )
         }
-        document.rows = [NativeRow(id: 0, guides: [], gap: .none, content: content)]
+        document.rows = [NativeRow(id: 0, guides: [], gap: 0, content: content)]
         return document
     }
 
@@ -131,9 +131,8 @@ struct NativeBuilder {
                         depth: depth
                     )
                 )
-                frame.gapForFirst = containerGap(parentIsTight: innermostTightList)
+                frame.gapForFirst = containerGap(.list)
                 frames.append(frame)
-                separated = false
             case .listItem: enterItem()
             case .footnoteDefinition: enterNote()
             case .codeBlock, .htmlBlock: code = CodeState(isHTML: node.kind == .htmlBlock)
@@ -225,57 +224,65 @@ struct NativeBuilder {
 
     // MARK: Containers
 
-    private var innermostTightList: Bool {
-        for frame in frames.reversed() { if case .list(_, let tight, _, _) = frame.kind { return tight } }
-        return false
+    /// What the innermost container is to the blocks in it, for the space between them.
+    private var flow: Spacing.Flow {
+        guard let frame = frames.last, case .item = frame.kind else { return Spacing.Flow() }
+        return Spacing.Flow(tight: frame.tight, inItem: true)
     }
 
-    /// The space above the first row of a container that follows something at its level.
-    private func containerGap(parentIsTight: Bool) -> NativeGap? {
-        separated ? (parentIsTight ? .small : .normal) : nil
+    /// The space between items of the innermost list.
+    private var itemStep: Double {
+        for frame in frames.reversed() {
+            if case .list(_, let tight, _, _) = frame.kind { return tight ? Spacing.small : Spacing.gap }
+        }
+        return Spacing.gap
+    }
+
+    private var lastChild: Sibling? { frames.isEmpty ? rootLast : frames[frames.count - 1].last }
+
+    /// The space above a container that follows something at its level: its own, which the first block inside it shares (the larger of the two shows, as margins that meet do).
+    private func containerGap(_ sibling: Sibling) -> Double? {
+        let value = Spacing.margin(after: lastChild, this: sibling, flow: flow, itemStep: itemStep)
+        return value > 0 ? value : nil
     }
 
     private mutating func enterQuote(alert: NativeAlert?) {
         var frame = Frame(kind: .quote(alert))
-        frame.gapForFirst = separated ? .box : nil
+        frame.gapForFirst = containerGap(.box)
         frames.append(frame)
-        separated = false
-        if let alert { emitText(titleText(alert), style: .alertTitle) }
-    }
-
-    private func titleText(_ alert: NativeAlert) -> NativeInline {
+        guard let alert else { return }
         var title = NativeInline(smartPunctuation: false)
         title.appendPlain(alert.title)
-        return title
+        emitText(title, style: .alertTitle)
     }
 
     private mutating func enterItem() {
-        var tight = false
-        if let list = frames.last, case .list(let ordered, let isTight, let parenthesis, let depth) = list.kind {
-            tight = isTight
-            var item = Frame(kind: .item)
-            item.gapForFirst = separated ? (tight ? .small : .normal) : nil
-            let number = list.number
-            item.marker = ordered ? .number("\(number)\(parenthesis ? ")" : ".")") : .bullet(depth: depth)
-            frames.append(item)
-        } else {
+        guard let list = frames.last, case .list(let ordered, let isTight, let parenthesis, let depth) = list.kind
+        else {
             frames.append(Frame(kind: .item))
+            return
         }
-        separated = false
+        var item = Frame(kind: .item)
+        item.tight = isTight
+        item.gapForFirst = containerGap(.item)
+        item.marker = ordered ? .number("\(list.number)\(parenthesis ? ")" : ".")") : .bullet(depth: depth)
+        frames.append(item)
     }
 
+    /// The notes at the end of a document sit under a short rule, a row of their own, in a section of a smaller font: `padding-top` of a box, then the notes a step apart.
     private mutating func enterNote() {
         var note = Frame(kind: .note)
         let top = frames.isEmpty
-        if top, !inNotes {
-            inNotes = true
-            emit(.footnoteRule, kind: .rule)
-            separated = false
+        let scale = Spacing.notesScale
+        if top, !notesStarted {
+            notesStarted = true
+            emit(.footnoteRule, kind: .notes)
+            note.gapForFirst = Spacing.box * scale - 1.5 / Double(settings.textSize)
+        } else if top {
+            note.gapForFirst = Spacing.small * scale
         }
-        note.gapForFirst = top && previous != .rule ? .small : nil
         note.firstRowPending = true
         frames.append(note)
-        separated = false
     }
 
     private mutating func exitNote() {
@@ -294,12 +301,15 @@ struct NativeBuilder {
     }
 
     private mutating func closeContainer() {
-        if !frames.isEmpty { frames.removeLast() }
-        separated = true
-        if frames.isEmpty { inNotesIfNeeded() }
+        guard let closed = frames.popLast() else { return }
+        let sibling: Sibling =
+            switch closed.kind {
+                case .quote: .box
+                case .list: .list
+                case .item, .note: .item
+            }
+        if frames.isEmpty { rootLast = sibling } else { frames[frames.count - 1].last = sibling }
     }
-
-    private mutating func inNotesIfNeeded() {}
 
     private mutating func setTask(done: Bool) {
         if let item = frames.lastIndex(where: { if case .item = $0.kind { true } else { false } }),
@@ -322,16 +332,21 @@ struct NativeBuilder {
         // A task marker with nothing after it, or an empty paragraph: nothing to show, but the marker still counts as used by the row.
         if inline.isEmpty, style == .body { inline.appendPlain("") }
         for label in inline.notes where result.referenceRow[label] == nil { pendingReferences.append(label) }
-        let kind: Previous = if case .heading = style { .heading } else { .prose }
+        let kind: Sibling =
+            switch style {
+                case .heading(let level): .heading(level)
+                case .alertTitle: .title
+                default: .prose
+            }
         emit(.text(NativeText(string: inline.string, style: style)), kind: kind)
     }
 
     private var pendingReferences: [String] = []
 
     /// Puts a row in the document: its guides from the open containers, and the space above it from what came before.
-    mutating func emit(_ content: NativeContent, kind: Previous) {
+    mutating func emit(_ content: NativeContent, kind: Sibling) {
         var guides: [NativeGuide] = []
-        var strongest: NativeGap?
+        var gap = Spacing.margin(after: lastChild, this: kind, flow: flow, itemStep: itemStep)
         for index in frames.indices {
             switch frames[index].kind {
                 case .quote(let alert):
@@ -347,15 +362,11 @@ struct NativeBuilder {
                 case .list: break
             }
             if let first = frames[index].gapForFirst {
-                if strongest == nil || first.em > strongest?.em ?? 0 { strongest = first }
+                gap = Swift.max(gap, first)
                 frames[index].gapForFirst = nil
             }
         }
-        var gap: NativeGap = .none
-        if previous != nil {
-            gap = strongest ?? (separated ? .normal : .none)
-            if gap != .none { gap = adjust(gap, this: kind) }
-        }
+        if result.rows.isEmpty { gap = 0 }
         let id = result.rows.count
         result.rows.append(NativeRow(id: id, guides: guides, gap: gap, content: content))
         for label in pendingReferences where result.referenceRow[label] == nil { result.referenceRow[label] = id }
@@ -366,15 +377,6 @@ struct NativeBuilder {
             frames[note].firstRowPending = false
             result.noteRow[frames[note].label] = id
         }
-        previous = kind
-        separated = true
-    }
-
-    /// The step the kinds on either side ask for: under a heading, above one, around a box or a rule.
-    private func adjust(_ gap: NativeGap, this: Previous) -> NativeGap {
-        if previous == .heading { return .heading }
-        if this == .heading || this == .rule || previous == .rule { return .section }
-        if this == .box || previous == .box { return gap.em < NativeGap.box.em ? .box : gap }
-        return gap
+        if frames.isEmpty { rootLast = kind } else { frames[frames.count - 1].last = kind }
     }
 }

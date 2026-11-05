@@ -14,21 +14,10 @@ public struct NativeDocumentView: View {
     }
 
     public var body: some View {
-        let size = CGFloat(settings.textSize)
         ScrollViewReader { proxy in
             ScrollView {
-                LazyVStack(alignment: .leading, spacing: 0) {
-                    ForEach(document.rows) { row in
-                        NativeRowView(row: row, size: size, settings: settings)
-                            .frame(maxWidth: settings.fullWidth ? .infinity : size * 40, alignment: .leading)
-                            .frame(maxWidth: .infinity)
-                            .id(row.id)
-                    }
-                }
-                .padding(.horizontal, size * 2.5)
-                .padding(.top, size * 3.5)
-                .padding(.bottom, size * 5)
-                .textSelection(.enabled)
+                NativeDocumentColumn(document: document, settings: settings, lazy: true)
+                    .textSelection(.enabled)
             }
             .tint(Color(nsColor: .linkColor))
             .environment(\.openURL, OpenURLAction { url in open(url, proxy: proxy) })
@@ -58,7 +47,7 @@ struct NativeRowView: View {
     let settings: ViewerSettings
 
     private var indent: CGFloat { size * 1.75 }
-    private var gap: CGFloat { size * row.gap.em }
+    private var gap: CGFloat { size * row.gap }
     private var lineHeight: CGFloat { size * 1.6 }
     private var isQuote: Bool { row.guides.contains { if case .bar(nil, _) = $0 { true } else { false } } }
 
@@ -112,32 +101,121 @@ struct NativeRowView: View {
         }
     }
 
+    /// A text row as the style sheet draws it: the font in its own em, a line of 1.6 (1.25 for a heading) set exactly, the letter spacing of a heading and of an alert's title.
+    /// A line of an exact height keeps its glyphs at the top and the leading below; a page puts half of it above, so the text moves down by that half.
     private func textView(_ text: NativeText) -> some View {
-        let spacing = size * 0.35
-        return Text(text.string)
+        let scale = fontScale(text.style)
+        let height = size * scale * lineFactor(text.style)
+        let rich = NativeRichText.text(text.string, size: size * scale)
+        let line = rich.text
             .font(font(text.style))
-            .foregroundStyle(color(text.style))
-            .lineSpacing(spacing)
+            .foregroundColor(color(text.style))
+            .lineHeight(.exact(points: height))
             .textCase(text.style == .alertTitle ? .uppercase : nil)
-            .tracking(text.style == .alertTitle ? size * 0.06 : 0)
+            .tracking(size * scale * tracking(text.style))
             .fixedSize(horizontal: false, vertical: true)
-            .frame(maxWidth: .infinity, alignment: .leading)
+        var layout = BalancedLayout(lineHeight: height)
+        if case .heading = text.style {
+            layout.balances = true
+            layout.text = String(text.string.characters)
+            layout.font = NSFont.systemFont(ofSize: size * scale, weight: .semibold)
+            layout.kern = size * scale * tracking(text.style)
+        }
+        return layout {
+            rich.needsRenderer
+                ? AnyView(
+                    line.textRenderer(
+                        PageTextRenderer(
+                            tint: NativeTheme.tint,
+                            link: NativeTheme.link,
+                            radius: size * scale * 0.27,
+                            size: size * scale
+                        )
+                    )
+                ) : AnyView(line)
+        }
+        .offset(y: NativeMetrics.halfLeading(size: size * scale, weight: weight(text.style), lineHeight: height))
     }
 
-    private func font(_ style: NativeText.Style) -> Font {
+    private func weight(_ style: NativeText.Style) -> NSFont.Weight {
         switch style {
-            case .body: .system(size: size)
-            case .heading(let level): .system(size: size * [1.9, 1.45, 1.15, 1, 1, 1][level - 1], weight: .semibold)
-            case .alertTitle: .system(size: size * 0.85, weight: .medium)
-            case .note: .system(size: size * 0.92)
+            case .heading: .semibold
+            case .alertTitle: .medium
+            default: .regular
         }
     }
 
-    private func color(_ style: NativeText.Style) -> HierarchicalShapeStyle {
+    private func fontScale(_ style: NativeText.Style) -> Double {
         switch style {
-            case .heading(let level): level >= 5 ? .secondary : .primary
-            case .alertTitle, .note: .secondary
-            case .body: isQuote ? .secondary : .primary
+            case .body: 1
+            case .heading(let level): Spacing.scale(.heading(level))
+            case .alertTitle: 0.85
+            case .note: Spacing.notesScale
+        }
+    }
+
+    private func lineFactor(_ style: NativeText.Style) -> Double {
+        if case .heading = style { 1.25 } else { 1.6 }
+    }
+
+    private func tracking(_ style: NativeText.Style) -> Double {
+        switch style {
+            case .heading(let level): level == 1 ? -0.02 : -0.012
+            case .alertTitle: 0.06
+            default: 0
+        }
+    }
+
+    private func font(_ style: NativeText.Style) -> Font {
+        let points = size * fontScale(style)
+        switch style {
+            case .body, .note: return .system(size: points)
+            case .heading: return .system(size: points, weight: .semibold)
+            case .alertTitle: return .system(size: points, weight: .medium)
+        }
+    }
+
+    private func color(_ style: NativeText.Style) -> Color {
+        switch style {
+            case .heading(let level): level >= 5 ? NativeTheme.secondary : NativeTheme.text
+            case .alertTitle, .note: NativeTheme.secondary
+            case .body: isQuote ? NativeTheme.secondary : NativeTheme.text
+        }
+    }
+}
+
+/// The rows of a document in a column with the page's padding, with no scroll view around it: what the scroll view holds, and what a snapshot draws.
+public struct NativeDocumentColumn: View {
+    let document: NativeDocument
+    let settings: ViewerSettings
+    let lazy: Bool
+
+    public init(document: NativeDocument, settings: ViewerSettings, lazy: Bool = false) {
+        self.document = document
+        self.settings = settings
+        self.lazy = lazy
+    }
+
+    public var body: some View {
+        let size = CGFloat(settings.textSize)
+        Group {
+            if lazy {
+                LazyVStack(alignment: .leading, spacing: 0) { rows(size) }
+            } else {
+                VStack(alignment: .leading, spacing: 0) { rows(size) }
+            }
+        }
+        .padding(.horizontal, size * 2.5)
+        .padding(.top, size * 3.5)
+        .padding(.bottom, size * 5)
+    }
+
+    @ViewBuilder private func rows(_ size: CGFloat) -> some View {
+        ForEach(document.rows) { row in
+            NativeRowView(row: row, size: size, settings: settings)
+                .frame(maxWidth: settings.fullWidth ? .infinity : size * 40, alignment: .leading)
+                .frame(maxWidth: .infinity)
+                .id(row.id)
         }
     }
 }

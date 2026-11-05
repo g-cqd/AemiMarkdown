@@ -8,7 +8,8 @@ public import SwiftUI
 public struct NativeRow: Identifiable, Sendable {
     public let id: Int
     public var guides: [NativeGuide]
-    public var gap: NativeGap
+    /// The space above the row in em of the body text: what the web page's style sheet gives it, in the em of its own font (a heading's space is in em of the heading).
+    public var gap: Double
     public var content: NativeContent
 }
 
@@ -35,23 +36,6 @@ public enum NativeAlert: Int, Sendable, Equatable {
     case tip, important, warning, caution
 
     public var title: String { ["Note", "Tip", "Important", "Warning", "Caution"][rawValue - 1] }
-}
-
-/// The space above a row, in the scale of the page: a step between items, between blocks, around boxes and sections, under a heading.
-public enum NativeGap: Sendable, Equatable {
-    case none, small, normal, heading, box, section
-
-    /// In em of the body text.
-    public var em: Double {
-        switch self {
-            case .none: 0
-            case .small: 0.45
-            case .heading: 0.8
-            case .normal: 1.15
-            case .box: 1.6
-            case .section: 2.4
-        }
-    }
 }
 
 public enum NativeContent: Sendable {

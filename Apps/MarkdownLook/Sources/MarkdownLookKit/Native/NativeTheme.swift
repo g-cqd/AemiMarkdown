@@ -3,6 +3,31 @@ internal import SwiftUI
 
 /// Colours that follow the appearance, for what the system's own do not cover: the tones of syntax colour.
 enum NativeTheme {
+    /// The page's own colours (`:root` in the style sheet), light and dark, as hex with an alpha.
+    private static func page(light: UInt32, dark: UInt32, lightAlpha: CGFloat = 1, darkAlpha: CGFloat = 1) -> Color {
+        Color(
+            nsColor: NSColor(name: nil) { appearance in
+                let isDark = appearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
+                let hex = isDark ? dark : light
+                return NSColor(
+                    srgbRed: CGFloat((hex >> 16) & 0xFF) / 255,
+                    green: CGFloat((hex >> 8) & 0xFF) / 255,
+                    blue: CGFloat(hex & 0xFF) / 255,
+                    alpha: isDark ? darkAlpha : lightAlpha
+                )
+            }
+        )
+    }
+
+    static let text = page(light: 0x1d1d1f, dark: 0xececf0)
+    static let secondary = page(light: 0x6e6e73, dark: 0x98989d)
+    static let tertiary = page(light: 0xa1a1a6, dark: 0x636366)
+    static let note = page(light: 0x8e8e93, dark: 0x8e8e93)
+    static let link = page(light: 0x0a64d6, dark: 0x4da3ff)
+    static let rule = page(light: 0, dark: 0xffffff, lightAlpha: 0.10, darkAlpha: 0.13)
+    static let tint = page(light: 0, dark: 0xffffff, lightAlpha: 0.045, darkAlpha: 0.07)
+    static let mark = page(light: 0, dark: 0xffffff, lightAlpha: 0.28, darkAlpha: 0.35)
+
     private static func dynamic(light: (CGFloat, CGFloat, CGFloat), dark: (CGFloat, CGFloat, CGFloat)) -> Color {
         Color(
             nsColor: NSColor(name: nil) { appearance in

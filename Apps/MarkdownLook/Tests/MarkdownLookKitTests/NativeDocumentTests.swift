@@ -20,7 +20,7 @@ struct NativeDocumentTests {
     @Test func `paragraphs and headings are rows with the space the scale gives`() {
         let found = rows("# Title\n\nfirst\n\nsecond\n\n## Next\n\nafter")
         #expect(found.map(text) == ["Title", "first", "second", "Next", "after"])
-        #expect(found.map(\.gap) == [.none, .heading, .normal, .section, .heading])
+        #expect(found.map(\.gap) == [0, 0.6, 1, 2.2 * 1.45, 0.6])
         if case .text(let heading) = found[0].content { #expect(heading.style == .heading(1)) }
     }
 
@@ -30,7 +30,7 @@ struct NativeDocumentTests {
             found[0].guides == [.bar(nil, continues: false)] && found[1].guides == [.bar(nil, continues: true)]
                 && found[2].guides.isEmpty
         )
-        #expect(found[0].gap == .none && found[1].gap == .normal && found[2].gap == .normal)
+        #expect(found[0].gap == 0 && found[1].gap == 1 && found[2].gap == 1.5)
     }
 
     @Test func `an alert has its title as its first row`() {
@@ -44,7 +44,7 @@ struct NativeDocumentTests {
 
     @Test func `list items put a marker on their first row and an indent under it`() {
         let found = rows("1. one\n   more\n\n   para\n2. two\n10. ten")
-        #expect(found.map(text) == ["one\nmore", "para", "two", "ten"])
+        #expect(found.map(text) == ["one more", "para", "two", "ten"])
         #expect(
             found[0].guides == [.marker(.number("1."))] && found[1].guides == [.indent]
                 && found[2].guides == [.marker(.number("2."))] && found[3].guides == [.marker(.number("3."))]
@@ -56,12 +56,12 @@ struct NativeDocumentTests {
         #expect(found.map(text) == ["a", "b", "c", "d", "e"])
         #expect(found.map(\.guides.count) == [1, 1, 2, 3, 1])
         #expect(found[3].guides == [.indent, .indent, .marker(.bullet(depth: 2))])
-        #expect(found.dropFirst().allSatisfy { $0.gap == .small }, "\(found.map(\.gap))")
+        #expect(found.dropFirst().allSatisfy { $0.gap == 0.4 }, "\(found.map(\.gap))")
     }
 
     @Test func `a loose list is spaced by a block, a tight one by a step`() {
-        #expect(rows("- a\n\n- b").map(\.gap) == [.none, .normal])
-        #expect(rows("- a\n- b").map(\.gap) == [.none, .small])
+        #expect(rows("- a\n\n- b").map(\.gap) == [0, 1])
+        #expect(rows("- a\n- b").map(\.gap) == [0, 0.4])
     }
 
     @Test func `a task takes the place of the marker, in a bulleted and in an ordered list`() {
@@ -96,7 +96,7 @@ struct NativeDocumentTests {
 
     @Test func `boxes are set off by the box step and a rule by the section step`() {
         let found = rows("text\n\n```\ncode\n```\n\nmore\n\n---\n\nlast")
-        #expect(found.map(\.gap) == [.none, .box, .box, .section, .section])
+        #expect(found.map(\.gap) == [0, 1.5, 1.5, 2.2, 2.2])
     }
 
     @Test func `a table keeps its columns, their alignment and its header`() {

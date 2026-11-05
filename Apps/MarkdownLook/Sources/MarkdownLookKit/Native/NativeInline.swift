@@ -68,15 +68,13 @@ struct NativeInline {
                 }
             case .entity: append(String(decoding: document.decode(node.range), as: UTF8.self))
             case .htmlInline: append(text(node.range))
-            case .softBreak: append(code > 0 ? " " : "\n")
+            case .softBreak: append(" ")
             case .hardBreak: append("\n")
             case .footnoteReference:
                 let label = text(node.range)
                 notes.append(label)
                 var run = AttributedString(label)
                 run.link = NativeLink.url(NativeLink.note, label: label)
-                run.baselineOffset = 4
-                run.font = .system(size: 9, weight: .medium)
                 string.append(run)
             default: break
         }
@@ -85,7 +83,7 @@ struct NativeInline {
     mutating func appendPlain(_ text: String, link target: URL? = nil, secondary: Bool = false) {
         var run = AttributedString(text)
         if let target { run.link = target }
-        if secondary { run.foregroundColor = .secondary }
+        if secondary { run.foregroundColor = NativeTheme.secondary }
         string.append(run)
     }
 
@@ -95,7 +93,8 @@ struct NativeInline {
         if kind == 2, !shown.contains(":") { target = "http://" + shown }
         let previous = link
         link = HTMLText.isSafeDestination(target) ? URL(string: target) : nil
-        append(shown)
+        // A page breaks a line at a space, not inside an address; the text engine also breaks after a slash, which a word joiner prevents.
+        append(shown.replacing("/", with: "/\u{2060}"))
         link = previous
     }
 
@@ -110,14 +109,10 @@ struct NativeInline {
         if !intent.isEmpty { run.inlinePresentationIntent = intent }
         if strike > 0 {
             run.strikethroughStyle = .single
-            run.foregroundColor = .secondary
+            run.foregroundColor = NativeTheme.secondary
         }
-        if code > 0 { run.backgroundColor = Color.primary.opacity(0.07) }
-        if image > 0 { run.foregroundColor = .secondary }
-        if let link {
-            run.link = link
-            run.underlineStyle = .single
-        }
+        if image > 0 { run.foregroundColor = NativeTheme.secondary }
+        if let link { run.link = link }
         string.append(run)
     }
 }
