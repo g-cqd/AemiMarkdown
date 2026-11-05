@@ -53,6 +53,6 @@ decimals. Markdown to HTML unless the row says `tree`.
 | mistune | 3.4.0 | html | 2.2 |
 | Python-Markdown | | html | did not finish in 9 minutes |
 
-What it says: AemiMarkdown parses faster than every engine here that writes HTML, and its parse alone is the fastest Swift figure by far; its HTML writer is the viewer's (it escapes, drops controls, checks
-link schemes and marks up tables and footnotes) and is **slower than the Rust engines and than cmark-gfm in C**. That is a finding, not a footnote: the writer is where the viewer's time goes, and the Rust
+What it says: as HTML writers, AemiMarkdown (30 MB/s) is faster than the JavaScript engines, swift-markdown and the pure-Python ones, and **slower than the Rust engines and than cmark-gfm in C**. Its parse alone
+(a tree, not comparable with the HTML rows) is the fastest Swift figure here. Its HTML writer is the viewer's: it escapes, drops controls, checks link schemes and marks up tables and footnotes. That is a finding, not a footnote: the writer is where the viewer's time goes, and the Rust
 engines show what a lean one costs. The Python rows read the files with replacement characters, so their byte count is 50 bytes smaller than the others'.
