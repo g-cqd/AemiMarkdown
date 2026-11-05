@@ -45,6 +45,7 @@ struct NativeRowView: View {
     let row: NativeRow
     let size: CGFloat
     let settings: ViewerSettings
+    @Environment(\.openURL) private var openURL
 
     private var indent: CGFloat { size * 1.75 }
     private var gap: CGFloat { size * row.gap }
@@ -61,13 +62,26 @@ struct NativeRowView: View {
     @ViewBuilder private func guideView(_ guide: NativeGuide) -> some View {
         switch guide {
             case .bar(let alert, let continues):
-                Capsule().fill(alert == nil ? Color.primary.opacity(0.28) : Color.secondary).frame(width: 2)
+                // The bar of a quote is one rectangle for the whole quote; its rows draw their parts, overlapping a little so no seam shows.
+                Rectangle().fill(alert == nil ? NativeTheme.mark : NativeTheme.note).frame(width: 1.5)
                     .padding(.top, continues ? 0 : gap).frame(width: indent, alignment: .leading)
                     .frame(maxHeight: .infinity)
-            case .marker(let marker):
-                markerView(marker).frame(width: indent - size * 0.45, height: lineHeight, alignment: .trailing)
-                    .padding(.trailing, size * 0.45).padding(.top, gap)
+            case .marker(let marker): markerGuide(marker)
             case .indent: Color.clear.frame(width: indent, height: 1).padding(.top, gap)
+        }
+    }
+
+    @ViewBuilder private func markerGuide(_ marker: NativeMarker) -> some View {
+        if case .note = marker {
+            // A footnote's label is a column of its own, 0.7 em from the note.
+            markerView(marker).frame(height: size * 0.92 * lineFactor(.note), alignment: .leading)
+                .padding(.trailing, size * 0.92 * 0.7).padding(.top, gap)
+        } else {
+            // A page puts a marker's right edge a space (0.26 em) before the text of a numbered item, and 0.82 em before it for a bullet, whose disc is 0.35 em across.
+            let room = marker.isBullet ? 0.82 : 0.26
+            markerView(marker)
+                .frame(width: indent - size * room, height: lineHeight, alignment: marker.isTask ? .leading : .trailing)
+                .padding(.trailing, size * room).padding(.top, gap)
         }
     }
 
@@ -75,16 +89,15 @@ struct NativeRowView: View {
         switch marker {
             case .bullet(let depth):
                 // A dot drawn, not a glyph: its size and place do not depend on the font.
-                Circle().fill(depth % 2 == 0 ? Color.secondary.opacity(0.7) : Color.clear)
-                    .overlay(Circle().strokeBorder(Color.secondary.opacity(0.7), lineWidth: 1.2))
-                    .frame(width: size * 0.38, height: size * 0.38)
+                Circle().fill(depth % 2 == 0 ? NativeTheme.tertiary : Color.clear)
+                    .overlay(Circle().strokeBorder(NativeTheme.tertiary, lineWidth: 1))
+                    .frame(width: size * 0.35, height: size * 0.35).offset(y: 0.7)
             case .number(let number):
-                Text(number).font(.system(size: size).monospacedDigit()).foregroundStyle(.tertiary)
+                Text(number).font(.system(size: size).monospacedDigit()).foregroundColor(NativeTheme.tertiary)
             case .task(let done):
-                Image(systemName: done ? "checkmark.square" : "square").font(.system(size: size * 0.95))
-                    .foregroundStyle(.secondary)
+                TaskBox(done: done).frame(width: size * 0.95, height: size * 0.95)
             case .note(let label):
-                Text(label).font(.system(size: size * 0.92).monospacedDigit()).foregroundStyle(.tertiary)
+                Text(label).font(.system(size: size * 0.92).monospacedDigit()).foregroundColor(NativeTheme.tertiary)
         }
     }
 
@@ -101,43 +114,32 @@ struct NativeRowView: View {
         }
     }
 
-    /// A text row as the style sheet draws it: the font in its own em, a line of 1.6 (1.25 for a heading) set exactly, the letter spacing of a heading and of an alert's title.
-    /// A line of an exact height keeps its glyphs at the top and the leading below; a page puts half of it above, so the text moves down by that half.
+    /// A text row as the style sheet draws it: the font in its own em, a line of 1.6 (1.25 for a heading), the letter spacing of a heading and of an alert's title.
     private func textView(_ text: NativeText) -> some View {
         let scale = fontScale(text.style)
-        let height = size * scale * lineFactor(text.style)
-        let rich = NativeRichText.text(text.string, size: size * scale)
-        let line = rich.text
-            .font(font(text.style))
-            .foregroundColor(color(text.style))
-            .lineHeight(.exact(points: height))
-            .textCase(text.style == .alertTitle ? .uppercase : nil)
-            .tracking(size * scale * tracking(text.style))
-            .fixedSize(horizontal: false, vertical: true)
-        var layout = BalancedLayout(lineHeight: height)
-        if case .heading = text.style {
-            layout.balances = true
-            layout.text = String(text.string.characters)
-            layout.font = NSFont.systemFont(ofSize: size * scale, weight: .semibold)
-            layout.kern = size * scale * tracking(text.style)
+        let isHeading = if case .heading = text.style { true } else { false }
+        return HStack(alignment: .firstTextBaseline, spacing: size * scale * 0.7) {
+            PageText(
+                string: text.string,
+                size: size * scale,
+                weight: weight(text.style),
+                color: color(text.style),
+                lineHeight: size * scale * lineFactor(text.style),
+                tracking: size * scale * tracking(text.style),
+                uppercase: text.style == .alertTitle,
+                balances: isHeading
+            )
+            .frame(maxWidth: text.back == nil ? .infinity : nil, alignment: .leading)
+            if let label = text.back {
+                Spacer(minLength: 0)
+                Text("\u{21A9}\u{FE0E}").font(.system(size: size * scale)).foregroundColor(NativeTheme.tertiary)
+                    .onTapGesture { if let url = NativeLink.url(NativeLink.reference, label: label) { openURL(url) } }
+            }
         }
-        return layout {
-            rich.needsRenderer
-                ? AnyView(
-                    line.textRenderer(
-                        PageTextRenderer(
-                            tint: NativeTheme.tint,
-                            link: NativeTheme.link,
-                            radius: size * scale * 0.27,
-                            size: size * scale
-                        )
-                    )
-                ) : AnyView(line)
-        }
-        .offset(y: NativeMetrics.halfLeading(size: size * scale, weight: weight(text.style), lineHeight: height))
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    private func weight(_ style: NativeText.Style) -> NSFont.Weight {
+    private func weight(_ style: NativeText.Style) -> Font.Weight {
         switch style {
             case .heading: .semibold
             case .alertTitle: .medium
@@ -163,15 +165,6 @@ struct NativeRowView: View {
             case .heading(let level): level == 1 ? -0.02 : -0.012
             case .alertTitle: 0.06
             default: 0
-        }
-    }
-
-    private func font(_ style: NativeText.Style) -> Font {
-        let points = size * fontScale(style)
-        switch style {
-            case .body, .note: return .system(size: points)
-            case .heading: return .system(size: points, weight: .semibold)
-            case .alertTitle: return .system(size: points, weight: .medium)
         }
     }
 

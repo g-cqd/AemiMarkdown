@@ -88,7 +88,7 @@ struct Picture {
     window.setContentSize(NSSize(width: width, height: height))
     try? await Task.sleep(for: .milliseconds(300))
     let script = """
-        JSON.stringify([...document.querySelectorAll('main > *, li, td, th, blockquote > *, .alert > *, .footnote')].map(e => { const r = e.getBoundingClientRect(); \
+        JSON.stringify([...document.querySelectorAll('main > *, li, td, th, blockquote > *, .alert > *, .footnote, li input')].map(e => { const r = e.getBoundingClientRect(); \
         return [e.tagName.toLowerCase() + (e.className ? '.' + e.className : ''), r.left, r.top + scrollY, r.width, r.height]; }))
         """
     let json = (try? await view.evaluateJavaScript(script) as? String) ?? "[]"

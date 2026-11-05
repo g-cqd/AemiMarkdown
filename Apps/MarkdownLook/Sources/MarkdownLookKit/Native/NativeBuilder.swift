@@ -290,11 +290,7 @@ struct NativeBuilder {
         if result.referenceRow[note.label] != nil, let last = result.rows.indices.last,
             case .text(var text) = result.rows[last].content
         {
-            text.string.append(AttributedString(" "))
-            var back = AttributedString("\u{21A9}\u{FE0E}")
-            back.link = NativeLink.url(NativeLink.reference, label: note.label)
-            back.foregroundColor = .secondary
-            text.string.append(back)
+            text.back = note.label
             result.rows[last].content = .text(text)
         }
         closeContainer()

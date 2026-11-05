@@ -1,5 +1,5 @@
 internal import AppKit
-import SwiftUI
+internal import SwiftUI
 
 /// A code block: the code in a rounded tint that scrolls sideways, its language and a copy button in the corner.
 struct NativeCodeView: View {
@@ -9,48 +9,44 @@ struct NativeCodeView: View {
     @State private var hovering = false
     @State private var copied = false
 
-    private var hasHeader: Bool {
-        (settings.showsLanguage && !code.isHTML && !code.language.isEmpty) || (settings.copyButton && !code.isHTML)
-    }
+    private var showsLanguage: Bool { settings.showsLanguage && !code.isHTML && !code.language.isEmpty }
+    private var showsCopy: Bool { settings.copyButton && !code.isHTML }
 
-    /// A header row above the code, with the language on the left and the copy button on the right, so neither is ever over the code.
+    /// The block as the page draws it: padding of 1.1 em by 1.3 em in a rounded tint, lines of 1.55 of the block's own size (the code is 0.9 em inside it, the line's strut keeps the lines at the block's
+    /// pitch), the language small in the top right corner over the padding, and, on hover, the copy button in its place.
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            if hasHeader { header }
-            ScrollView(.horizontal) {
+        let lineHeight = size * 1.55
+        ScrollView(.horizontal) {
+            BalancedLayout(lineHeight: lineHeight) {
                 Text(code.shown)
                     .font(.system(size: size * 0.9, design: .monospaced))
-                    .lineSpacing(size * 0.3)
-                    .foregroundStyle(code.isHTML ? .secondary : .primary)
+                    .lineHeight(.exact(points: lineHeight))
+                    .foregroundColor(code.isHTML ? NativeTheme.secondary : NativeTheme.text)
                     .fixedSize(horizontal: true, vertical: true)
-                    .padding(
-                        EdgeInsets(
-                            top: hasHeader ? size * 0.2 : size * 1.1,
-                            leading: size * 1.3,
-                            bottom: size * 1.1,
-                            trailing: size * 1.3
-                        )
-                    )
             }
-            .scrollBounceBehavior(.basedOnSize)
+            .offset(y: NativeMetrics.shift(size: size * 0.9, design: .monospaced, strut: size, lineHeight: lineHeight))
+            .padding(EdgeInsets(top: size * 1.1, leading: size * 1.3, bottom: size * 1.1, trailing: size * 1.3))
         }
-        .background(Color.primary.opacity(0.05), in: .rect(cornerRadius: size * 0.6))
+        .scrollBounceBehavior(.basedOnSize)
+        .background(NativeTheme.tint, in: .rect(cornerRadius: size * 0.6))
+        .overlay(alignment: .topTrailing) { corner }
         .onHover { hovering = $0 }
     }
 
-    private var header: some View {
-        HStack(spacing: size * 0.3) {
-            if settings.showsLanguage, !code.isHTML, !code.language.isEmpty {
-                Text(code.language).font(.system(size: size * 0.75, weight: .medium)).foregroundStyle(.tertiary)
-                    .textSelection(.disabled)
+    private var corner: some View {
+        ZStack(alignment: .topTrailing) {
+            if showsLanguage {
+                let label = size * 0.75
+                let font = NSFont.systemFont(ofSize: label, weight: .medium)
+                // A line of 1: the box is the font's size, not its natural height, so the text rises by half the difference.
+                let rise = (font.ascender - font.descender + font.leading - label) / 2
+                Text(code.language).font(.system(size: label, weight: .medium)).tracking(label * 0.04)
+                    .foregroundColor(NativeTheme.tertiary).textSelection(.disabled).lineLimit(1)
+                    .padding(.top, label * 0.55 - rise).padding(.trailing, label * 0.9)
+                    .opacity(hovering && showsCopy || copied ? 0 : 1)
             }
-            Spacer(minLength: 0)
-            if settings.copyButton, !code.isHTML { copyButton }
+            if showsCopy { copyButton }
         }
-        .frame(height: size * 1.9)
-        .padding(.leading, size * 1.3)
-        .padding(.trailing, size * 0.5)
-        .padding(.top, size * 0.3)
     }
 
     private var copyButton: some View {

@@ -29,6 +29,9 @@ public enum NativeMarker: Sendable, Equatable {
     case number(String)
     case task(done: Bool)
     case note(String)
+
+    var isTask: Bool { if case .task = self { true } else { false } }
+    var isBullet: Bool { if case .bullet = self { true } else { false } }
 }
 
 public enum NativeAlert: Int, Sendable, Equatable {
@@ -58,6 +61,8 @@ public struct NativeText: Sendable {
 
     public var string: AttributedString
     public var style: Style
+    /// For the last row of a footnote that is referenced, the label to go back to: a link at the right edge of the note.
+    public var back: String?
 }
 
 public struct NativeCode: Sendable {

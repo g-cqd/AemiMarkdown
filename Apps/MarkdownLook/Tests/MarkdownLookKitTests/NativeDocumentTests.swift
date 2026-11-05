@@ -141,7 +141,7 @@ struct NativeDocumentTests {
             Issue.record("no note")
             return
         }
-        #expect(note.string.runs.compactMap(\.link).contains { NativeLink.parse($0)?.scheme == NativeLink.reference })
+        #expect(note.back == "n")
         #expect(document.rows.contains { if case .footnoteRule = $0.content { true } else { false } })
         guard case .text(let first) = document.rows[0].content else { return }
         #expect(first.string.runs.compactMap(\.link).allSatisfy { NativeLink.parse($0)?.label == "n" })

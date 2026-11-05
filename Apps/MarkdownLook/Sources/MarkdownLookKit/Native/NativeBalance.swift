@@ -18,7 +18,7 @@ struct BalancedLayout: Layout {
         let width = balancedWidth(in: proposal.width)
         let fit = view.sizeThatFits(ProposedViewSize(width: width, height: nil))
         let lines = Swift.max(1, (fit.height / lineHeight).rounded())
-        return CGSize(width: proposal.width ?? fit.width, height: lines * lineHeight)
+        return CGSize(width: fit.width, height: lines * lineHeight)
     }
 
     func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout Void) {
