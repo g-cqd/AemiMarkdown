@@ -7,14 +7,17 @@ extension HTMLWriter {
         switch node.kind {
             case .listStart: if node.value != 1 { out += " start=\"\(node.value)\"" }
             case .linkDestination:
-                let destination = String(decoding: document.decode(node.range), as: UTF8.self)
-                if stack.last?.kind == .link, HTMLText.isSafeDestination(destination) {
-                    out += " href=\"\(HTMLText.escaped(destination))\""
+                let destination = document.decode(node.range)
+                if stack.last?.kind == .link, HTMLText.isSafeDestination(bytes: destination) {
+                    out += " href=\""
+                    HTMLEscaper.escape(destination, into: &out)
+                    out.append(0x22)
                 }
             default:
                 if node.kind == .linkTitle {
-                    out +=
-                        " title=\"\(HTMLText.escaped(String(decoding: document.decode(node.range), as: UTF8.self)))\""
+                    out += " title=\""
+                    HTMLEscaper.escape(document.decode(node.range), into: &out)
+                    out.append(0x22)
                 }
         }
     }
@@ -23,9 +26,9 @@ extension HTMLWriter {
         switch node.kind {
             case .text:
                 if let kind = autolinkKind { return writeAutolink(node, kind: kind) }
-                write(text(node.range))
-            case .entity: write(String(decoding: document.decode(node.range), as: UTF8.self))
-            case .htmlInline: out += HTMLText.escaped(text(node.range))
+                writeSource(node.range)
+            case .entity: write(document.decode(node.range))
+            case .htmlInline: writeSource(node.range, smart: false)
             case .softBreak: out += codeDepth > 0 ? " " : "\n"
             case .hardBreak: out += "<br>\n"
             case .thematicBreak: out += "<hr>\n"
@@ -43,15 +46,27 @@ extension HTMLWriter {
                 language = HTMLText.escaped(rawLanguage)
             case .virtualSpaces: pendingSpaces = node.value
             case .codeLine:
-                codeLines.append(String(repeating: " ", count: pendingSpaces) + text(node.range))
+                if codeLineCount > 0 { codeBytes.append(0x0A) }
+                codeLineCount += 1
+                if pendingSpaces > 0 { codeBytes.append(contentsOf: repeatElement(0x20, count: pendingSpaces)) }
+                codeBytes.append(contentsOf: document.source[node.range])
                 pendingSpaces = 0
             default: break
         }
     }
 
-    /// Prose goes through smart punctuation; code does not.
-    mutating func write(_ string: String) {
-        out += HTMLText.escaped(options.smartPunctuation && codeDepth == 0 ? smart.apply(string) : string)
+    /// Prose goes through smart punctuation; code does not. Straight from the source: no `String` in between.
+    mutating func writeSource(_ range: Range<Int>, smart useSmart: Bool = true) {
+        let smartOn = useSmart && options.smartPunctuation && codeDepth == 0
+        document.source.withUnsafeBufferPointer { source in
+            let slice = unsafe UnsafeBufferPointer(rebasing: source[range])
+            unsafe HTMLEscaper.escape(slice, into: &out, smart: &smart, smartOn: smartOn)
+        }
+    }
+
+    mutating func write(_ bytes: [UInt8]) {
+        let smartOn = options.smartPunctuation && codeDepth == 0
+        bytes.withUnsafeBufferPointer { unsafe HTMLEscaper.escape($0, into: &out, smart: &smart, smartOn: smartOn) }
     }
 
     /// An autolink's text is its target: `<https://a.b>`, `<a@b.c>`, a bare `www.a.b`.
@@ -71,24 +86,34 @@ extension HTMLWriter {
     mutating func finishCode(isHTML: Bool) {
         inCode = false
         stack.removeLast()
-        let code = codeLines.joined(separator: "\n")
+        let code = codeBytes
+        codeBytes = []
+        codeLineCount = 0
         if !isHTML, options.drawsDiagrams, language.lowercased() == "mermaid",
-            let svg = MermaidFence.svg(Array(code.utf8), embedsStyle: embedsDiagramStyle)
+            let svg = MermaidFence.svg(Self.wellFormed(code), embedsStyle: embedsDiagramStyle)
         {
             out += "<figure>" + svg + "</figure>\n"
             return
         }
         let classes = isHTML ? " class=\"source\"" : (language.isEmpty ? "" : " class=\"language-\(language)\"")
-        var body = HTMLText.escaped(code)
-        if !isHTML, options.settings.highlightsCode, code.utf8.count <= CodeHighlighter.byteLimit,
+        // The language the fence names, shown in the corner: a label for the eye that a selection does not take.
+        let labelled = !(isHTML || language.isEmpty || !options.settings.showsLanguage)
+        if labelled { out += "<div class=\"code\"><span class=\"lang\">\(language)</span>" }
+        out += "<pre><code\(classes)>"
+        if !isHTML, options.settings.highlightsCode, code.count <= CodeHighlighter.byteLimit,
             let known = CodeHighlighter.language(for: rawLanguage)
         {
-            body = CodeHighlighter.html(Array(code.utf8), language: known)
+            CodeHighlighter.html(Self.wellFormed(code), language: known, into: &out)
+        } else {
+            HTMLEscaper.escape(code, into: &out)
         }
-        let block = "<pre><code\(classes)>" + body + (code.isEmpty ? "" : "\n") + "</code></pre>\n"
-        // The language the fence names, shown in the corner: a label for the eye that a selection does not take.
-        out +=
-            isHTML || language.isEmpty || !options.settings.showsLanguage
-            ? block : "<div class=\"code\"><span class=\"lang\">\(language)</span>" + block + "</div>\n"
+        if !code.isEmpty { out.append(0x0A) }
+        out += "</code></pre>\n"
+        if labelled { out += "</div>\n" }
+    }
+
+    /// `code` as the scanners and the diagram engine read it: UTF-8 with any ill-formed sequence replaced, as a `String` would hold it.
+    static func wellFormed(_ code: [UInt8]) -> [UInt8] {
+        code.contains { $0 >= 0x80 } ? Array(String(decoding: code, as: UTF8.self).utf8) : code
     }
 }

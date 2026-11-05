@@ -28,7 +28,7 @@ struct SmartPunctuation {
     }
 
     /// Whether a quote here opens a quotation.
-    private var opens: Bool {
+    var opens: Bool {
         guard let previous else { return true }
         return previous.properties.isWhitespace || "([{\u{2014}\u{2013}-".unicodeScalars.contains(previous)
     }

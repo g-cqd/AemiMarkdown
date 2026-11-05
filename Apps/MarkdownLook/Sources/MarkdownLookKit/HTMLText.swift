@@ -23,6 +23,30 @@ enum HTMLText {
 
     static func escaped(_ text: String) -> String { escaped(text.unicodeScalars) }
 
+    /// `isSafeDestination` on the bytes of a destination, without making a `String` of them when they are ASCII (nearly always); the scheme is compared without regard to case.
+    static func isSafeDestination(bytes: [UInt8]) -> Bool {
+        if bytes.contains(where: { $0 >= 0x80 }) { return isSafeDestination(String(decoding: bytes, as: UTF8.self)) }
+        var scheme: [UInt8] = []
+        for byte in bytes {
+            if byte <= 0x20 {
+                guard scheme.isEmpty || byte == 0x09 || byte == 0x0A || byte == 0x0D else { break }
+                continue
+            }
+            if byte == 0x3A {
+                switch scheme.count {
+                    case 4: return scheme.elementsEqual("http".utf8, by: { $0 | 0x20 == $1 })
+                    case 5: return scheme.elementsEqual("https".utf8, by: { $0 | 0x20 == $1 })
+                    case 6: return scheme.elementsEqual("mailto".utf8, by: { $0 | 0x20 == $1 })
+                    default: return false
+                }
+            }
+            if byte == 0x2F || byte == 0x3F || byte == 0x23 { return true }
+            scheme.append(byte)
+            if scheme.count > 16 { return true }
+        }
+        return true
+    }
+
     /// A destination a link may carry: `http`, `https`, `mailto`, a fragment, or a relative reference. Anything with another scheme (`javascript:`, `data:`, `file:`, `vbscript:`) is not a link.
     /// The scheme is read as a browser reads it: leading control characters and white space are skipped and tabs and line feeds inside it are ignored.
     static func isSafeDestination(_ destination: String) -> Bool {

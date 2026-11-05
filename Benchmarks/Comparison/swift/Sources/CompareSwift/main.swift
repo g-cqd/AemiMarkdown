@@ -43,6 +43,25 @@ func measure(_ name: String, _ version: String, _ what: String, _ convert: ([UIn
     print(line)
 }
 
+// --dump OUT: writes each document's HTML twice (the plain settings of the benchmark, and the viewer's defaults: highlighting, smart punctuation, diagrams) as OUT/NAME.plain.html and OUT/NAME.default.html,
+// so that a change to the writer can be shown to change no byte.
+if let out = option("--dump") {
+    try? FileManager.default.createDirectory(atPath: out, withIntermediateDirectories: true)
+    var plainSettings = ViewerSettings()
+    plainSettings.drawsDiagrams = false
+    plainSettings.highlightsCode = false
+    plainSettings.smartPunctuation = false
+    let names = ((try? FileManager.default.contentsOfDirectory(atPath: directory)) ?? []).sorted()
+    for (name, bytes) in zip(names, documents) {
+        let document = MarkdownParser.parse(bytes)
+        let plainHTML = MarkdownHTMLRenderer(settings: plainSettings).body(document, embedsDiagramStyle: false)
+        let defaultHTML = MarkdownHTMLRenderer(settings: ViewerSettings()).body(document, embedsDiagramStyle: false)
+        try? plainHTML.write(toFile: out + "/" + name + ".plain.html", atomically: true, encoding: .utf8)
+        try? defaultHTML.write(toFile: out + "/" + name + ".default.html", atomically: true, encoding: .utf8)
+    }
+    exit(0)
+}
+
 var plain = ViewerSettings()
 plain.drawsDiagrams = false
 plain.highlightsCode = false

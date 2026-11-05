@@ -31,7 +31,17 @@ struct TableLayout {
     /// Ends a cell whose markup is `markup[cellStart...]`.
     mutating func endCell(markup: String.UTF8View, from start: Int) {
         if column >= columns.count { columns.append(Column()) }
-        let (length, word) = Self.measure(markup, from: start)
+        finishCell(Self.measure(markup, from: start))
+    }
+
+    /// Ends a cell whose markup is `markup[start...]`, in the writer's byte buffer.
+    mutating func endCell(bytes markup: [UInt8], from start: Int) {
+        if column >= columns.count { columns.append(Column()) }
+        finishCell(Self.measure(bytes: markup, from: start))
+    }
+
+    private mutating func finishCell(_ measured: (length: Int, word: Int)) {
+        let (length, word) = measured
         columns[column].longest = Swift.max(columns[column].longest, length)
         columns[column].longestWord = Swift.max(columns[column].longestWord, word)
         cells.append((cellOffset, column))
@@ -40,12 +50,16 @@ struct TableLayout {
 
     /// The visible characters and the longest word of the markup from `start` on: tags are skipped and an entity counts as one character.
     static func measure(_ markup: String.UTF8View, from start: Int) -> (length: Int, word: Int) {
+        measure(bytes: Array(markup.dropFirst(start)), from: 0)
+    }
+
+    static func measure(bytes markup: [UInt8], from start: Int) -> (length: Int, word: Int) {
         var length = 0
         var word = 0
         var current = 0
         var inTag = false
         var inEntity = false
-        for byte in markup.dropFirst(start) {
+        for byte in markup[start...] {
             if inTag {
                 if byte == 0x3E { inTag = false }
                 continue
@@ -100,22 +114,24 @@ struct TableLayout {
         return " style=\"min-width:\(floor)ch\""
     }
 
+    /// `markup` with each cell's attribute put in, appended to `out`.
+    func apply(to markup: ArraySlice<UInt8>, into out: inout [UInt8]) {
+        out.reserveCapacity(out.count + markup.count + cells.count * 12)
+        let attributes = columns.indices.map { Array(attribute(forColumn: $0).utf8) }
+        var position = markup.startIndex
+        for cell in cells {
+            let at = Swift.min(markup.startIndex + cell.offset, markup.endIndex)
+            if at > position { out.append(contentsOf: markup[position ..< at]) }
+            position = Swift.max(position, at)
+            out.append(contentsOf: attributes[cell.column])
+        }
+        out.append(contentsOf: markup[position...])
+    }
+
     /// `markup` with each cell's attribute put in.
     func apply(to markup: String) -> String {
-        var bytes: [UInt8] = []
-        bytes.reserveCapacity(markup.utf8.count + cells.count * 12)
-        var source = markup.utf8.makeIterator()
-        var position = 0
-        var attributes: [Int: [UInt8]] = [:]
-        for index in columns.indices { attributes[index] = Array(attribute(forColumn: index).utf8) }
-        for cell in cells {
-            while position < cell.offset, let byte = source.next() {
-                bytes.append(byte)
-                position += 1
-            }
-            bytes.append(contentsOf: attributes[cell.column] ?? [])
-        }
-        while let byte = source.next() { bytes.append(byte) }
-        return String(decoding: bytes, as: UTF8.self)
+        var out: [UInt8] = []
+        apply(to: Array(markup.utf8)[...], into: &out)
+        return String(decoding: out, as: UTF8.self)
     }
 }

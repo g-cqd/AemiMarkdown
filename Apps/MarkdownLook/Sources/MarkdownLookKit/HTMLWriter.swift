@@ -8,19 +8,24 @@ struct HTMLWriter {
         var kind: NodeKind
         /// A list that is tight (and the items in it): its paragraphs are not wrapped.
         var tight = false
-        var closing = ""
+        /// The element's name, closed as `</name>`, unless `closing` says otherwise.
+        var tag = ""
+        var closing: String?
     }
 
     let document: MarkdownDocument
     let options: MarkdownHTMLRenderer
     let embedsDiagramStyle: Bool
-    var out = ""
+    /// The page so far, as UTF-8: appending bytes to it costs what a copy costs, where a `String` checks and re-counts.
+    var out: [UInt8] = []
     var stack: [Frame] = []
     /// Whether a start tag is still open (no `>` yet), because attributes may follow.
     var headOpen = false
     var smart = SmartPunctuation()
     var codeDepth = 0
-    var codeLines: [String] = []
+    /// The lines of the code block in progress, joined by line feeds.
+    var codeBytes: [UInt8] = []
+    var codeLineCount = 0
     var language = ""
     /// The info word as the document wrote it, to find the language by; `language` is the same, escaped, for the class.
     var rawLanguage = ""
@@ -28,8 +33,8 @@ struct HTMLWriter {
     var tableBody = false
     var headerRow = false
     var cellTag = "td"
-    /// The text written before the table in progress, and the table's measurements; the table is written on its own so its columns can be sized when it ends.
-    var beforeTable = ""
+    /// Where the table in progress begins in `out`; its cells' offsets are counted from there, and it is rewritten in place when it ends, its columns sized.
+    var tableStart = 0
     var tableLayout = TableLayout()
     /// The kind of the autolink being written (the payload of its node), or nil outside one.
     var autolinkKind: Int?
@@ -44,19 +49,19 @@ struct HTMLWriter {
         self.document = document
         self.options = options
         self.embedsDiagramStyle = embedsDiagramStyle
-        out.reserveCapacity(document.source.count * 2)
+        out.reserveCapacity(document.source.count + document.source.count / 4)
     }
 
     mutating func finish() -> String {
         closeHead()
-        while let frame = stack.popLast() { out += frame.closing }
+        while !stack.isEmpty { closeFrame() }
         closeFootnotes()
-        return out
+        return String(decoding: out, as: UTF8.self)
     }
 
     mutating func closeHead() {
         if headOpen {
-            out += ">"
+            out.append(0x3E)
             headOpen = false
         }
     }
@@ -68,9 +73,13 @@ struct HTMLWriter {
             // A short code span is kept on one line: it would break at a hyphen, in `--flag`.
             if node.range.count <= 40 { out += " data-n" }
         }
-        if case .leaf(let node) = event, [.listStart, .linkDestination, .linkTitle].contains(node.kind) {
-            attribute(node)
-            return
+        if case .leaf(let node) = event {
+            switch node.kind {
+                case .listStart, .linkDestination, .linkTitle:
+                    attribute(node)
+                    return
+                default: break
+            }
         }
         if case .leaf(let node) = event, node.kind == .footnoteLabel, headOpen {
             currentFootnote = text(node.range)
@@ -121,6 +130,8 @@ struct HTMLWriter {
         return result
     }
 
+    static let headingTags = ["h1", "h2", "h3", "h4", "h5", "h6"]
+
     private mutating func open(
         _ node: NodeKind,
         _ tag: String,
@@ -129,9 +140,11 @@ struct HTMLWriter {
         tight: Bool = false,
         headOpen keep: Bool = false
     ) {
-        out += "<" + tag + attributes
-        if keep { headOpen = true } else { out += ">" }
-        stack.append(Frame(kind: node, tight: tight, closing: closing ?? "</\(tag)>"))
+        out.append(0x3C)
+        out += tag
+        if !attributes.isEmpty { out += attributes }
+        if keep { headOpen = true } else { out.append(0x3E) }
+        stack.append(Frame(kind: node, tight: tight, tag: tag, closing: closing))
     }
 
     mutating func enter(_ node: MarkdownNode) {
@@ -141,7 +154,7 @@ struct HTMLWriter {
                 open(.paragraph, "p")
             case .heading:
                 smart = SmartPunctuation()
-                open(.heading, "h\(Swift.min(6, Swift.max(1, node.payload)))")
+                open(.heading, Self.headingTags[Swift.min(6, Swift.max(1, node.payload)) - 1])
             case .blockQuote:
                 if (1 ... 5).contains(node.payload) {
                     let kind = ["note", "tip", "important", "warning", "caution"][node.payload - 1]
@@ -166,14 +179,14 @@ struct HTMLWriter {
                 open(.listItem, "li", tight: stack.last?.tight == true)
             case .codeBlock, .htmlBlock:
                 inCode = true
-                codeLines = []
+                codeBytes = []
+                codeLineCount = 0
                 language = ""
                 rawLanguage = ""
                 stack.append(Frame(kind: node.kind, closing: ""))
             case .table:
                 tableBody = false
-                beforeTable = out
-                out = ""
+                tableStart = out.count
                 tableLayout = TableLayout()
                 open(.table, "table", closing: "</table>\n")
                 out += "\n"
@@ -191,9 +204,9 @@ struct HTMLWriter {
                 smart = SmartPunctuation()
                 let tag = headerRow ? "th" : "td"
                 let alignment = [1: "", 2: " class=\"c\"", 3: " class=\"r\""][node.payload] ?? ""
-                tableLayout.startCell(at: out.utf8.count + 1 + tag.utf8.count)
+                tableLayout.startCell(at: out.count - tableStart + 1 + tag.utf8.count)
                 open(.tableCell, tag, attributes: alignment)
-                tableLayout.cellStart = out.utf8.count
+                tableLayout.cellStart = out.count - tableStart
             case .footnoteDefinition: enterFootnote()
             case .emphasis: open(.emphasis, "em")
             case .strong: open(.strong, "strong")
@@ -227,22 +240,34 @@ struct HTMLWriter {
             case .table:
                 if tableBody { out += "</tbody>" }
                 closeFrame()
-                out =
-                    beforeTable + "<div class=\"table-wrap\(tableLayout.isWide ? " wide" : "")\">"
-                    + tableLayout.apply(to: out) + "</div>\n"
-                beforeTable = ""
+                // The table is rewritten where it stands, inside its wrapper, with each cell's attribute put in.
+                let markup = Array(out[tableStart...])
+                out.removeSubrange(tableStart...)
+                out += "<div class=\"table-wrap\(tableLayout.isWide ? " wide" : "")\">"
+                tableLayout.apply(to: markup[...], into: &out)
+                out += "</div>\n"
             case .codeSpan, .math:
                 codeDepth -= 1
                 closeFrame()
             case .listItem, .list, .blockQuote, .tableRow, .tableCell, .heading, .paragraph:
-                if node.kind == .tableCell { tableLayout.endCell(markup: out.utf8, from: tableLayout.cellStart) }
+                if node.kind == .tableCell {
+                    tableLayout.endCell(bytes: Array(out[(tableStart + tableLayout.cellStart)...]), from: 0)
+                }
                 closeFrame()
                 if [.listItem, .blockQuote, .tableRow, .tableCell, .heading].contains(node.kind) { out += "\n" }
             default: closeFrame()
         }
     }
 
-    private mutating func closeFrame() {
-        if let frame = stack.popLast() { out += frame.closing }
+    mutating func closeFrame() {
+        guard let frame = stack.popLast() else { return }
+        if let closing = frame.closing {
+            out += closing
+        } else {
+            out.append(0x3C)
+            out.append(0x2F)
+            out += frame.tag
+            out.append(0x3E)
+        }
     }
 }

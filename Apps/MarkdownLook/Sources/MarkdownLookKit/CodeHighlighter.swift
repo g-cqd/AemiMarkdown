@@ -56,15 +56,41 @@ enum CodeHighlighter {
 
     /// `code` as escaped HTML with its tokens in spans.
     static func html(_ code: [UInt8], language: Language) -> String {
-        var out = ""
-        out.reserveCapacity(code.count * 2)
+        var out: [UInt8] = []
+        html(code, language: language, into: &out)
+        return String(decoding: out, as: UTF8.self)
+    }
+
+    /// The same, appended to the writer's buffer.
+    static func html(_ code: [UInt8], language: Language, into out: inout [UInt8]) {
+        out.reserveCapacity(out.count + code.count * 2)
         var position = 0
-        for (range, kind) in spans(code, language: language) {
-            out += HTMLText.escaped(String(decoding: code[position ..< range.lowerBound], as: UTF8.self))
-            out +=
-                "<span class=\"\(kind)\">" + HTMLText.escaped(String(decoding: code[range], as: UTF8.self)) + "</span>"
-            position = range.upperBound
+        var unused = SmartPunctuation()
+        let found = spans(code, language: language)
+        code.withUnsafeBufferPointer { buffer in
+            for (range, kind) in found {
+                unsafe HTMLEscaper.escape(
+                    UnsafeBufferPointer(rebasing: buffer[position ..< range.lowerBound]),
+                    into: &out,
+                    smart: &unused,
+                    smartOn: false
+                )
+                out += "<span class=\"\(kind)\">"
+                unsafe HTMLEscaper.escape(
+                    UnsafeBufferPointer(rebasing: buffer[range]),
+                    into: &out,
+                    smart: &unused,
+                    smartOn: false
+                )
+                out += "</span>"
+                position = range.upperBound
+            }
+            unsafe HTMLEscaper.escape(
+                UnsafeBufferPointer(rebasing: buffer[position...]),
+                into: &out,
+                smart: &unused,
+                smartOn: false
+            )
         }
-        return out + HTMLText.escaped(String(decoding: code[position...], as: UTF8.self))
     }
 }
