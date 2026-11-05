@@ -118,7 +118,7 @@ struct SourceEditor: NSViewRepresentable {
         view.isRichText = false
         view.allowsUndo = true
         view.drawsBackground = false
-        view.font = .monospacedSystemFont(ofSize: 13, weight: .regular)
+        view.font = Coordinator.font
         view.textContainerInset = NSSize(width: 14, height: 16)
         for flag in [
             \NSTextView.isAutomaticQuoteSubstitutionEnabled, \.isAutomaticDashSubstitutionEnabled,
@@ -129,19 +129,73 @@ struct SourceEditor: NSViewRepresentable {
         }
         view.delegate = context.coordinator
         view.string = model.session.text
+        context.coordinator.attach(view, in: scroll)
         return scroll
     }
 
     func updateNSView(_ scroll: NSScrollView, context: Context) {}
 
     @MainActor final class Coordinator: NSObject, NSTextViewDelegate {
+        static let font = NSFont.monospacedSystemFont(ofSize: 13, weight: .regular)
         let model: LabModel
+        private weak var view: NSTextView?
+        /// The UTF-16 range last coloured, so scrolling re-colours only when the screen leaves it.
+        private var coloured: NSRange?
+        private var observer: (any NSObjectProtocol)?
 
         init(model: LabModel) { self.model = model }
+
+        isolated deinit { observer.map(NotificationCenter.default.removeObserver) }
+
+        /// Colours what is shown, and keeps doing so as the text changes and the view scrolls.
+        func attach(_ view: NSTextView, in scroll: NSScrollView) {
+            self.view = view
+            scroll.contentView.postsBoundsChangedNotifications = true
+            observer = NotificationCenter.default.addObserver(
+                forName: NSView.boundsDidChangeNotification,
+                object: scroll.contentView,
+                queue: .main
+            ) { [weak self] _ in MainActor.assumeIsolated { self?.scrolled() } }
+            highlight()
+        }
 
         func textView(_ textView: NSTextView, shouldChangeTextIn range: NSRange, replacementString: String?) -> Bool {
             model.replace(utf16: range, with: replacementString ?? "")
             return true
+        }
+
+        func textDidChange(_ notification: Notification) { highlight() }
+
+        private func scrolled() {
+            guard let view, let range = shown(in: view) else { return }
+            if let coloured, NSIntersectionRange(coloured, range) == range { return }
+            highlight()
+        }
+
+        /// The characters on screen, and a screenful more above and below, so a small scroll needs nothing.
+        private func shown(in view: NSTextView) -> NSRange? {
+            let rect = view.visibleRect
+            guard rect.height > 0, view.textStorage != nil else { return nil }
+            let top = view.characterIndexForInsertion(at: CGPoint(x: rect.minX, y: rect.minY))
+            let bottom = view.characterIndexForInsertion(at: CGPoint(x: rect.maxX, y: rect.maxY))
+            guard top != NSNotFound, bottom != NSNotFound, bottom >= top else { return nil }
+            return NSRange(location: top, length: bottom - top)
+        }
+
+        private func highlight() {
+            guard let view, let storage = view.textStorage else { return }
+            let rect = view.visibleRect
+            // A window of three screens centred on the one shown; the whole text when it is short (the kit decides what is short).
+            var window = NSRange(location: 0, length: storage.length)
+            if rect.height > 0 {
+                let above = CGPoint(x: rect.minX, y: rect.minY - rect.height)
+                let below = CGPoint(x: rect.maxX, y: rect.maxY + rect.height)
+                let top = Swift.max(view.characterIndexForInsertion(at: above), 0)
+                let bottom = Swift.min(view.characterIndexForInsertion(at: below), storage.length)
+                if bottom > top { window = NSRange(location: top, length: bottom - top) }
+            }
+            MarkdownSourceHighlight.apply(to: storage, font: Self.font, visible: window)
+            coloured = window
         }
     }
 }

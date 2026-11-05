@@ -16,6 +16,10 @@ Signed ad hoc by default (`Signing.xcconfig`); set `DEVELOPMENT_TEAM` and `CODE_
 Known limits: the system's own thumbnail wins for `.md` on the machine this was tried on (Mermaid thumbnails are drawn by the extension); selection in Quick Look's preview copies rendered text, not
 Markdown source (the app's own view copies the Markdown of the rows it selects whole); edge labels in diagrams are stacked beside the edge rather than placed on it; the macOS 26 runtime has not been tried.
 
+## The lab's source pane is coloured
+
+The lab's left pane colours Markdown as it is typed (`MarkdownSourceHighlight`): markers dimmed, strong bold, emphasis slanted, headings bold and tinted at the size of the rest, code tinted, links and their targets, inline HTML. It is attributes only, so every character, the cursor, the selection and undo are as typed. What the bytes are comes from `MarkdownSourceHighlighter` in AemiMarkdown (the colouring ask's prompt has, made neutral); `AemiTextStyling` in `../../../AemiTextUI` applies it to the text storage over the window shown, so a keystroke in a long text re-colours a screenful. `Package.swift` therefore has a path dependency on the sibling checkout `AemiTextUI`.
+
 ## The native view and its harness
 
 The app draws the document natively and holds it to the page (ADR 0005). To measure the difference, in release and off-screen:

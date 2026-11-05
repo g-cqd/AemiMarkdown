@@ -13,6 +13,7 @@ let package = Package(
     ],
     dependencies: [
         .package(path: "../.."),
+        .package(path: "../../../AemiTextUI"),
         .package(url: "https://github.com/g-cqd/AemiMermaid.git", revision: "1a272f8835a9026cde79e8214ad490070a847774"),
         .package(url: "https://github.com/Aemi-Studio/aemi.git", revision: "e30aad82377cbea62171cc722a88041e97021db2")
     ],
@@ -23,6 +24,7 @@ let package = Package(
                 .product(name: "AemiMarkdown", package: "AemiMarkdown"),
                 .product(name: "AemiLexers", package: "aemi"),
                 .product(name: "AemiKernels", package: "aemi"),
+                .product(name: "AemiTextStyling", package: "AemiTextUI"),
                 .product(name: "AemiMermaidSyntax", package: "AemiMermaid"),
                 .product(name: "AemiMermaidScene", package: "AemiMermaid"),
                 .product(name: "AemiMermaidLayout", package: "AemiMermaid"),
