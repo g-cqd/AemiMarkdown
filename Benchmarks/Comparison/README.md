@@ -56,3 +56,19 @@ decimals. Markdown to HTML unless the row says `tree`.
 What it says: as HTML writers, AemiMarkdown (30 MB/s) is faster than the JavaScript engines, swift-markdown and the pure-Python ones, and **slower than the Rust engines and than cmark-gfm in C**. Its parse alone
 (a tree, not comparable with the HTML rows) is the fastest Swift figure here. Its HTML writer is the viewer's: it escapes, drops controls, checks link schemes and marks up tables and footnotes. That is a finding, not a footnote: the writer is where the viewer's time goes, and the Rust
 engines show what a lean one costs. The Python rows read the files with replacement characters, so their byte count is 50 bytes smaller than the others'.
+
+## After the writer was rewritten (2026-11-05, later)
+
+The profile of the first run said where the 30 MB/s went: a quarter of the time was copying the whole page so far for every table (`out = beforeTable + … + out`), and most of the rest was `String` appends, a `String` made for every text run, and a scalar-by-scalar escape. The writer now appends bytes to
+one buffer, escapes straight from the source in one pass (smart punctuation in the same pass), rewrites a table in place, and keeps no strings for tag names. Its output is **byte for byte what it was** on all 998 documents, with the benchmark's settings and with the viewer's defaults (highlighting, smart punctuation, diagrams): `CompareSwift DIR --dump OUT`
+before and after, `diff -r`. A property test (8,000 random byte strings, ill-formed UTF-8 included) holds the new escaper to the old `String` one.
+
+| Engine | Does | MB/s |
+|---|---|---:|
+| **AemiMarkdown, viewer HTML writer** (parse and write, `String` out) | html | 90 to 115 |
+| AemiMarkdown, same, as bytes (`bodyBytes`) | html | 100 to 115 |
+| AemiMarkdown, the writer alone (documents parsed outside the timing) | write | about 190 |
+| AemiMarkdown, parse only | tree | 140 to 195 |
+
+Read it as a range: the machine was shared (load average 5 to 20), and the same binary gave 60 to 114 MB/s from one run to the next. The ordering against the rows above is what holds: the writer is about three times faster than it was, and AemiMarkdown as an HTML engine is now ahead of comrak (85) and cmark-gfm (43), and still well behind pulldown-cmark (266).
+The parse and the write are now about equal halves of the time, so the next factor has to come from both: the profile of the writer is flat (the scan 11%, event decoding 11%, appends and uniqueness checks 14%), and the parse's own profile starts with `matchOpenBlocks` (6%) and the SIMD search (6%).
