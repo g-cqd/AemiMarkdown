@@ -71,6 +71,7 @@ struct BlockState: Sendable {
         offset = 0
         column = 0
         firstNonspace = 0
+        scannedOffset = -1
         firstNonspaceColumn = 0
         indent = 0
         blank = false
@@ -101,6 +102,10 @@ struct BlockState: Sendable {
     var offset = 0
     var column = 0
     var firstNonspace = 0
+    /// The cursor `firstNonspace`, `indent` and `blank` were found for (the offset is -1 when they are not known).
+    var scannedOffset = -1
+    var scannedColumn = 0
+    var scannedEnd = 0
     var firstNonspaceColumn = 0
     var indent = 0
     var blank = false

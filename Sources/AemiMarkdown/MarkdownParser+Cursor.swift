@@ -7,6 +7,11 @@ extension MarkdownParser {
 
     /// Finds the first byte that is not a space or a tab, from the cursor, and the indent and blankness that follow from it.
     mutating func findFirstNonspace(_ end: Int) {
+        // Each open block of a line asks, and most do not move the cursor: the answer is kept for the cursor it was found at.
+        if state.offset == state.scannedOffset, state.column == state.scannedColumn, end == state.scannedEnd { return }
+        state.scannedOffset = state.offset
+        state.scannedColumn = state.column
+        state.scannedEnd = end
         var i = state.offset
         var column = state.column
         var toTab = Self.tabStop - column % Self.tabStop
