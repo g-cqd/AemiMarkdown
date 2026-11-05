@@ -8,7 +8,8 @@ let package = Package(
     platforms: [.macOS(.v26)],
     products: [
         .library(name: "MarkdownLookKit", targets: ["MarkdownLookKit"]),
-        .executable(name: "markdown-look-html", targets: ["markdown-look-html"])
+        .executable(name: "markdown-look-html", targets: ["markdown-look-html"]),
+        .executable(name: "markdown-look-compare", targets: ["markdown-look-compare"])
     ],
     dependencies: [
         .package(path: "../.."),
@@ -33,6 +34,12 @@ let package = Package(
             ]
         ),
         .executableTarget(name: "markdown-look-html", dependencies: ["MarkdownLookKit"]),
+        // A tool for the work on the native view: the same page in WebKit and in SwiftUI, side by side, with how alike they are.
+        .executableTarget(
+            name: "markdown-look-compare",
+            dependencies: ["MarkdownLookKit", .product(name: "AemiMarkdown", package: "AemiMarkdown")],
+            swiftSettings: [.swiftLanguageMode(.v6)]
+        ),
         .testTarget(
             name: "MarkdownLookKitTests",
             dependencies: [
