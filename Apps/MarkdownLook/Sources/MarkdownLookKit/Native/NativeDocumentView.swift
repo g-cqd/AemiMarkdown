@@ -7,22 +7,58 @@ public import SwiftUI
 public struct NativeDocumentView: View {
     private let document: NativeDocument
     private let settings: ViewerSettings
+    @State private var selection: DocumentSelection
+    @State private var pressed = false
+    @FocusState private var focused: Bool
 
     public init(document: NativeDocument, settings: ViewerSettings) {
+        self.init(document: document, settings: settings, selection: DocumentSelection(document: document))
+    }
+
+    /// With the selection it keeps: a test holds it to see what a gesture did.
+    init(document: NativeDocument, settings: ViewerSettings, selection: DocumentSelection) {
         self.document = document
         self.settings = settings
+        _selection = State(initialValue: selection)
     }
+
+    /// What tells a changed document from the same one: its rows' Markdown.
+    private var signature: Int { document.rows.map(\.source).hashValue }
 
     public var body: some View {
         ScrollViewReader { proxy in
             ScrollView {
                 NativeDocumentColumn(document: document, settings: settings, lazy: true)
-                    .textSelection(.enabled)
+                    .coordinateSpace(.named(NativeDocumentColumn.space))
+                    .environment(\.documentSelection, selection)
+                    .simultaneousGesture(selecting)
+                    .focusable()
+                    .focusEffectDisabled()
+                    .focused($focused)
+                    .onCopyCommand { selection.text.map { [NSItemProvider(object: $0 as NSString)] } ?? [] }
+                    .onCommand(#selector(NSResponder.selectAll(_:))) { selection.selectAll() }
+                    .onChange(of: signature) { selection.load(document) }
             }
             .scrollEdgeEffectStyle(.soft, for: .top)
             .tint(Color(nsColor: .linkColor))
             .environment(\.openURL, OpenURLAction { url in open(url, proxy: proxy) })
         }
+    }
+
+    /// A press and a drag across the page select, from where the press was to where the pointer is, across rows.
+    private var selecting: some Gesture {
+        DragGesture(minimumDistance: 0, coordinateSpace: .named(NativeDocumentColumn.space))
+            .onChanged { value in
+                if !pressed {
+                    pressed = true
+                    focused = true
+                    selection.press(at: value.startLocation)
+                }
+                if abs(value.translation.width) + abs(value.translation.height) > 3 {
+                    selection.drag(to: value.location)
+                }
+            }
+            .onEnded { _ in pressed = false }
     }
 
     /// A footnote link scrolls to its note and a back link to the first reference; a web link opens in the browser; anything else does nothing.
@@ -58,6 +94,7 @@ struct NativeRowView: View {
     let size: CGFloat
     let settings: ViewerSettings
     @Environment(\.openURL) private var openURL
+    @Environment(\.documentSelection) private var selection
 
     private var indent: CGFloat { size * 1.75 }
     private var gap: CGFloat { size * row.gap }
@@ -68,6 +105,16 @@ struct NativeRowView: View {
         HStack(alignment: .top, spacing: 0) {
             ForEach(Array(row.guides.enumerated()), id: \.offset) { _, guide in guideView(guide) }
             content.padding(.top, gap)
+                .overlay {
+                    if let selection, selection.covers(row: row.id) {
+                        Color(nsColor: .selectedTextBackgroundColor).opacity(0.5).allowsHitTesting(false)
+                    }
+                }
+        }
+        .onGeometryChange(for: CGRect.self) {
+            $0.frame(in: .named(NativeDocumentColumn.space))
+        } action: { frame in
+            selection?.frames[row.id] = frame
         }
     }
 
@@ -140,7 +187,8 @@ struct NativeRowView: View {
                 lineHeight: size * scale * lineFactor(text.style),
                 tracking: size * scale * tracking(text.style),
                 uppercase: text.style == .alertTitle,
-                balances: isHeading
+                balances: isHeading,
+                row: row.id
             )
             .frame(maxWidth: text.back == nil ? .infinity : nil, alignment: .leading)
             if let label = text.back {
@@ -192,6 +240,9 @@ struct NativeRowView: View {
 
 /// The rows of a document in a column with the page's padding, with no scroll view around it: what the scroll view holds, and what a snapshot draws.
 public struct NativeDocumentColumn: View {
+    /// The name of the coordinate space the rows report their frames in.
+    static let space = "page"
+
     let document: NativeDocument
     let settings: ViewerSettings
     let lazy: Bool

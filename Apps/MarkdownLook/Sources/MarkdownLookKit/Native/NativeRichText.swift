@@ -18,9 +18,11 @@ struct PageTextRenderer: TextRenderer {
     let link: Color
     let radius: CGFloat
     let size: CGFloat
+    var recorder: SelectionRecorder?
     var raise: CGFloat { size * 0.40 }
 
     func draw(layout: Text.Layout, in context: inout GraphicsContext) {
+        recorder?.capture(layout)
         for line in layout {
             // The runs of one code span (its padding and its text) are one rectangle, drawn under the text.
             var pill: CGRect?
@@ -64,9 +66,12 @@ struct PageTextRenderer: TextRenderer {
 enum NativeRichText {
     /// The text, and whether it needs the page's renderer.
     static func text(_ string: AttributedString, size: CGFloat, code codeScale: CGFloat = 0.9) -> (
-        text: Text, needsRenderer: Bool
+        text: Text, needsRenderer: Bool, map: [Int]
     ) {
         var needsRenderer = false
+        // Where each UTF-16 unit of the text as laid out is in the text as written, for a selection: the room a code span or a note's number takes at its sides is at the span's edge.
+        var map: [Int] = []
+        var written = 0
         var interpolation = LocalizedStringKey.StringInterpolation(
             literalCapacity: 0,
             interpolationCount: string.runs.count
@@ -78,7 +83,18 @@ enum NativeRichText {
             plain.strikethroughStyle = nil
             plain.foregroundColor = nil
             let intent = run.inlinePresentationIntent ?? []
-            if intent.contains(.code) { plain = Self.breakableAfterHyphens(plain) }
+            let isEdged = intent.contains(.code) || (run.link.flatMap(NativeLink.parse)?.scheme == NativeLink.note)
+            if isEdged { map.append(written) }
+            var inserted: Set<Int> = []
+            if intent.contains(.code) { (plain, inserted) = Self.breakableAfterHyphens(plain) }
+            for (index, character) in string[run.range].characters.enumerated() {
+                for _ in 0 ..< character.utf16.count {
+                    map.append(written)
+                    written += 1
+                }
+                if inserted.contains(index) { map.append(written) }
+            }
+            if isEdged { map.append(written) }
             var piece = Text(plain)
             if intent.contains(.emphasized) { piece = piece.italic() }
             if intent.contains(.stronglyEmphasized) { piece = piece.fontWeight(.semibold) }
@@ -107,14 +123,16 @@ enum NativeRichText {
             }
             interpolation.appendInterpolation(piece)
         }
-        return (Text(LocalizedStringKey(stringInterpolation: interpolation)), needsRenderer)
+        map.append(written)
+        return (Text(LocalizedStringKey(stringInterpolation: interpolation)), needsRenderer, map)
     }
 
     /// A code span breaks as the page breaks it: after a hyphen, which the typesetter takes as no place to break (it falls back to a slash), and not after a slash, which it takes as one.
-    private static func breakableAfterHyphens(_ text: AttributedString) -> AttributedString {
+    private static func breakableAfterHyphens(_ text: AttributedString) -> (AttributedString, Set<Int>) {
         var out = text
         let characters = Array(text.characters)
         var offset = 0
+        var inserted: Set<Int> = []
         for index in characters.indices where index + 1 < characters.count {
             let mark: Character
             switch characters[index] {
@@ -125,9 +143,10 @@ enum NativeRichText {
             guard characters[index + 1].isLetter || characters[index + 1].isNumber else { continue }
             let at = out.index(out.startIndex, offsetByCharacters: index + 1 + offset)
             out.characters.insert(mark, at: at)
+            inserted.insert(index)
             offset += 1
         }
-        return out
+        return (out, inserted)
     }
 
     /// The width of a space of the monospaced font, in ems: the room a code span's side padding is made of (a space of a smaller font than the code's, so that the line's height does not change).
@@ -151,6 +170,9 @@ struct PageText: View {
     var balances = false
     var digits = false
     var wraps = true
+    /// The row of the document this text is, if it can be selected.
+    var row: Int?
+    @Environment(\.documentSelection) private var selection
 
     var body: some View {
         let rich = NativeRichText.text(string, size: size, code: codeScale)
@@ -165,16 +187,25 @@ struct PageText: View {
             layout.font = NSFont.systemFont(ofSize: size, weight: weight == .semibold ? .semibold : .regular)
             layout.kern = tracking
         }
+        var recorder: SelectionRecorder?
+        if let row, let selection { recorder = SelectionRecorder(store: selection.store, row: row, map: rich.map) }
         return layout {
-            if rich.needsRenderer {
+            if rich.needsRenderer || recorder != nil {
                 line.textRenderer(
                     PageTextRenderer(
                         tint: NativeTheme.tint,
                         link: NativeTheme.link,
                         radius: size * codeScale * 0.3,
-                        size: size
+                        size: size,
+                        recorder: recorder
                     )
                 )
+                .background { if let row, let selection { SelectionLayer(row: row, selection: selection) } }
+                .onGeometryChange(for: CGPoint.self) {
+                    $0.frame(in: .named(NativeDocumentColumn.space)).origin
+                } action: { origin in
+                    if let row, let selection { selection.origins[row] = origin }
+                }
             } else {
                 line
             }

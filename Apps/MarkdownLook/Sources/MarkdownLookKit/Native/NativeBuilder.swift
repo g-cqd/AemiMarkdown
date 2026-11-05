@@ -42,7 +42,7 @@ private struct Frame {
 }
 
 struct NativeBuilder {
-    private let document: MarkdownDocument
+    let document: MarkdownDocument
     let settings: ViewerSettings
     private var result = NativeDocument()
     private var frames: [Frame] = []
@@ -55,6 +55,9 @@ struct NativeBuilder {
     var table: TableState?
     private var cell: NativeInline?
     private var inNotes = false
+    /// The source bytes the leaves of the block being read name, and the source to give its row when that is not the lines they are on.
+    var span: Range<Int>?
+    var pendingSource: String?
 
     struct CodeState {
         var isHTML: Bool
@@ -95,11 +98,12 @@ struct NativeBuilder {
                 )
             )
         }
-        document.rows = [NativeRow(id: 0, guides: [], gap: 0, content: content)]
+        document.rows = [NativeRow(id: 0, guides: [], gap: 0, content: content, source: source)]
         return document
     }
 
     mutating func handle(_ event: MarkdownEvent) {
+        if case .leaf(let node) = event, !node.range.isEmpty { widen(node.range) }
         switch event {
             case .enter(let node): enter(node)
             case .exit(let node): exit(node)
@@ -364,7 +368,8 @@ struct NativeBuilder {
         }
         if result.rows.isEmpty { gap = 0 }
         let id = result.rows.count
-        result.rows.append(NativeRow(id: id, guides: guides, gap: gap, content: content))
+        let source = takeSource(for: content)
+        result.rows.append(NativeRow(id: id, guides: guides, gap: gap, content: content, source: source))
         for label in pendingReferences where result.referenceRow[label] == nil { result.referenceRow[label] = id }
         pendingReferences = []
         if let note = frames.lastIndex(where: { if case .note = $0.kind { true } else { false } }),

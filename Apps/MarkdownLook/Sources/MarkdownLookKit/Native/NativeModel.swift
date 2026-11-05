@@ -11,6 +11,8 @@ public struct NativeRow: Identifiable, Sendable {
     /// The space above the row in em of the body text: what the web page's style sheet gives it, in the em of its own font (a heading's space is in em of the heading).
     public var gap: Double
     public var content: NativeContent
+    /// The Markdown the row was read from, for copying.
+    public var source = ""
 }
 
 /// A column to the left of a row, one indent wide.

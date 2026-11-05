@@ -11,6 +11,7 @@ extension NativeBuilder {
         guard let state = code else { return }
         code = nil
         let raw = state.lines.joined(separator: "\n")
+        pendingSource = state.isHTML ? raw : "```\(state.language)\n\(raw)\n```"
         if !state.isHTML, settings.drawsDiagrams, state.language.lowercased() == "mermaid",
             let diagram = Self.diagram(raw)
         {
@@ -77,5 +78,30 @@ extension NativeBuilder {
         guard let state = table else { return }
         table = nil
         emit(.table(NativeTable(alignments: state.alignments, header: state.header, rows: state.rows)), kind: .box)
+    }
+}
+
+extension NativeBuilder {
+    /// Takes in the bytes a leaf of the block names.
+    mutating func widen(_ range: Range<Int>) {
+        span =
+            span.map { Swift.min($0.lowerBound, range.lowerBound) ..< Swift.max($0.upperBound, range.upperBound) }
+            ?? range
+    }
+
+    /// The Markdown a row is made from, for copying: the lines its leaves are on (whole lines, so a heading keeps its `#` and an item its marker), a code block as its fence, a rule as a rule.
+    mutating func takeSource(for content: NativeContent) -> String {
+        defer {
+            span = nil
+            pendingSource = nil
+        }
+        if let pendingSource { return pendingSource }
+        if case .rule = content { return "---" }
+        guard let span, span.upperBound <= document.source.count else { return "" }
+        var start = span.lowerBound
+        while start > 0, document.source[start - 1] != 0x0A { start -= 1 }
+        var end = span.upperBound
+        while end < document.source.count, document.source[end] != 0x0A { end += 1 }
+        return String(decoding: document.source[start ..< end], as: UTF8.self)
     }
 }
