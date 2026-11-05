@@ -17,6 +17,7 @@ struct MarkdownLookApp: App {
                 settings: store.settings
             )
             .ignoresSafeArea()
+            .background(TitlebarSeparator())
             .toolbar {
                 ToolbarItem(placement: .automatic) {
                     SettingsLink { Label("Settings", systemImage: "slider.horizontal.3") }
@@ -147,7 +148,6 @@ struct PageView: View {
 
     var body: some View {
         NativeDocumentView(document: document.native(settings: settings), settings: settings)
-            .scrollEdgeEffectStyle(.soft, for: .top)
             .containerBackground(for: .window) { WindowBackdrop(mode: settings.backdrop) }
     }
 }
@@ -161,6 +161,24 @@ struct WindowBackdrop: View {
             case .solid: Color(nsColor: .windowBackgroundColor)
             case .blurred: Rectangle().fill(.thinMaterial)
             case .clear: Color.clear
+        }
+    }
+}
+
+/// The window's title bar without its hairline: the page scrolls under the toolbar and the system's soft edge fades it, which a line across the window would undo.
+struct TitlebarSeparator: NSViewRepresentable {
+    func makeNSView(context: Context) -> NSView { Probe() }
+    func updateNSView(_ view: NSView, context: Context) { (view as? Probe)?.apply() }
+
+    private final class Probe: NSView {
+        override func viewDidMoveToWindow() {
+            super.viewDidMoveToWindow()
+            apply()
+        }
+
+        func apply() {
+            window?.titlebarSeparatorStyle = .none
+            DispatchQueue.main.async { [weak self] in self?.window?.titlebarSeparatorStyle = .none }
         }
     }
 }

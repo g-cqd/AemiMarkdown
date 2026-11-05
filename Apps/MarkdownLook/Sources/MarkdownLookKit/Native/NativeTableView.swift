@@ -99,7 +99,10 @@ struct NativeTableView: View {
             ) + (column == 0 ? (edge ? side : 0) : side) + (column == columns - 1 ? (edge ? side : 0) : side)
         )
         .overlay(alignment: .bottom) {
-            if settings.rowLines { Capsule().fill(header ? NativeTheme.mark : NativeTheme.rule).frame(height: 1.5) }
+            // With an outline the last row's rule would lie on the outline's bottom edge, so the page leaves it out.
+            if settings.rowLines, !(last && edge) {
+                Capsule().fill(header ? NativeTheme.mark : NativeTheme.rule).frame(height: 1.5)
+            }
         }
         .overlay(alignment: .leading) {
             if settings.columnLines, column > 0 { Capsule().fill(NativeTheme.rule).frame(width: 1.5) }

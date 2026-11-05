@@ -19,6 +19,7 @@ public struct NativeDocumentView: View {
                 NativeDocumentColumn(document: document, settings: settings, lazy: true)
                     .textSelection(.enabled)
             }
+            .scrollEdgeEffectStyle(.soft, for: .top)
             .tint(Color(nsColor: .linkColor))
             .environment(\.openURL, OpenURLAction { url in open(url, proxy: proxy) })
         }
