@@ -139,6 +139,22 @@ struct NativeDocumentTests {
         #expect(width("ab/cd") == width("ab/cd ab"))
     }
 
+    @Test func `the choices of the page about tables and alignment reach its style sheet, and only those`() {
+        var settings = ViewerSettings()
+        #expect(!settings.css.contains("100vw"))
+        settings.bleedsTables = true
+        #expect(settings.css.contains("padding-inline") && settings.css.contains("100vw"))
+        settings.alignsLeft = true
+        #expect(settings.css.contains("main { margin-inline: 0 auto; }"))
+    }
+
+    @Test
+    func `a table's column widths are shared as the page shares them: short columns on a line, the room in proportion`()
+    {
+        let grid = NativeTableGrid(columns: 2, keeps: [true, false], floors: [0, 50], available: 300)
+        #expect(grid.columns == 2 && grid.available == 300)
+    }
+
     @Test func `links keep a safe destination only, and an image is named and not loaded`() {
         func links(_ source: String) -> [URL] {
             rows(source)

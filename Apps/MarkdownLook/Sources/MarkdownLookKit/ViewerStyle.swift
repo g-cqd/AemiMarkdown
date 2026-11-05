@@ -59,8 +59,7 @@ public enum ViewerStyle {
         @media (prefers-color-scheme: dark) { li input[type=checkbox]:checked { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 247 243'%3E%3Cpath d='M98 230c6 0 11-3 15-8L230 39c3-4 4-8 4-11 0-9-6-15-15-15-6 0-10 2-14 8L97 194 41 122c-4-5-8-7-13-7-9 0-15 6-15 15 0 4 1 8 5 11l65 81c4 5 9 8 15 8z' fill='%2398989d'/%3E%3C/svg%3E"); } }
         hr { border: 0; height: var(--hair); border-radius: 1px; background: var(--rule); }
         .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
-        .table-wrap::-webkit-scrollbar { height: 8px; } .table-wrap::-webkit-scrollbar-track { background: transparent; }
-        .table-wrap::-webkit-scrollbar-thumb { background: var(--mark); border-radius: 4px; border: 2px solid transparent; background-clip: content-box; }
+        .table-wrap { scrollbar-width: none; } .table-wrap::-webkit-scrollbar { display: none; }
         .table-wrap.wide { margin-inline: calc((100% - min(68em, 100vw - 5em)) / 2); }
         .table-wrap.wide table { margin-inline: auto; }
         table { border-collapse: collapse; font-variant-numeric: tabular-nums; line-height: 1.45; font-size: 0.96em; }

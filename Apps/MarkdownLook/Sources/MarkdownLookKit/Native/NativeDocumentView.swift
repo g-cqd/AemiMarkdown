@@ -44,6 +44,11 @@ extension NativeRow {
         return 40
     }
 
+    /// Whether a table row is as wide as the window: the setting is on and the table is not inside a list or a quote.
+    fileprivate func bleeds(_ settings: ViewerSettings) -> Bool {
+        settings.bleedsTables && guides.isEmpty && isTable
+    }
+
     fileprivate var isTable: Bool { if case .table = content { true } else { false } }
 }
 
@@ -112,7 +117,8 @@ struct NativeRowView: View {
         switch row.content {
             case .text(let text): textView(text)
             case .code(let code): NativeCodeView(code: code, size: size, settings: settings)
-            case .table(let table): NativeTableView(table: table, size: size, settings: settings)
+            case .table(let table):
+                NativeTableView(table: table, size: size, settings: settings, bleeds: row.bleeds(settings))
             case .diagram(let diagram): NativeDiagramView(diagram: diagram, size: size)
             case .rule: Capsule().fill(Color.primary.opacity(0.1)).frame(height: 1.5)
             case .footnoteRule:
@@ -212,10 +218,15 @@ public struct NativeDocumentColumn: View {
 
     @ViewBuilder private func rows(_ size: CGFloat) -> some View {
         ForEach(document.rows) { row in
-            NativeRowView(row: row, size: size, settings: settings)
-                .frame(maxWidth: settings.fullWidth ? .infinity : size * row.measure, alignment: .leading)
-                .frame(maxWidth: .infinity)
-                .id(row.id)
+            if row.bleeds(settings) {
+                // As wide as the window: the column's own padding is taken back, and the table puts it in again where it wants it.
+                NativeRowView(row: row, size: size, settings: settings).padding(.horizontal, -size * 2.5).id(row.id)
+            } else {
+                NativeRowView(row: row, size: size, settings: settings)
+                    .frame(maxWidth: settings.fullWidth ? .infinity : size * row.measure, alignment: .leading)
+                    .frame(maxWidth: .infinity, alignment: settings.alignsLeft ? .leading : .center)
+                    .id(row.id)
+            }
         }
     }
 }

@@ -95,6 +95,8 @@ struct SettingsView: View {
     @AppStorage(Key.columnLines, store: .shared) private var columnLines = false
     @AppStorage(Key.outerBorder, store: .shared) private var outerBorder = false
     @AppStorage(Key.scrollsTables, store: .shared) private var scrollsTables = false
+    @AppStorage(Key.bleedsTables, store: .shared) private var bleedsTables = false
+    @AppStorage(Key.alignsLeft, store: .shared) private var alignsLeft = false
     @AppStorage(Key.drawsDiagrams, store: .shared) private var drawsDiagrams = true
     @AppStorage(Key.backdrop, store: .shared) private var backdrop = Backdrop.blurred.rawValue
 
@@ -103,6 +105,7 @@ struct SettingsView: View {
             Section("Text") {
                 Stepper(value: $textSize, in: ViewerSettings.textSizes) { Text("Text size: \(textSize) pt") }
                 Toggle("Text uses the full width of the window", isOn: $fullWidth)
+                Toggle("Align the text to the leading edge of the window", isOn: $alignsLeft)
                 Toggle("Curly quotes and ellipses", isOn: $smartPunctuation)
             }
             Section("Code") {
@@ -118,6 +121,7 @@ struct SettingsView: View {
                 Toggle("Lines between columns", isOn: $columnLines)
                 Toggle("Outline around the table", isOn: $outerBorder)
                 Toggle("Keep cells on one line and scroll wide tables", isOn: $scrollsTables)
+                Toggle("Scroll a table across the whole window, from the text's edge", isOn: $bleedsTables)
             }
             Section("Diagrams") {
                 Toggle("Draw Mermaid diagrams", isOn: $drawsDiagrams)

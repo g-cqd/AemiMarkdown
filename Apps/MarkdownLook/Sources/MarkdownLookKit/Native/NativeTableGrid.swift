@@ -136,16 +136,19 @@ struct NativeTableGrid: Layout {
         let sumMost = most.reduce(0, +)
         if sumMost <= available { return most }
         if least.reduce(0, +) >= available { return least }
-        // As WebKit's automatic table layout shares it: column by column, each takes its share of what is left in proportion to its text on one line, and never less than its narrowest.
-        var room = available
-        var total = sumMost
-        return (0 ..< columns)
-            .map { column in
-                let width = Swift.max(least[column], total > 0 ? room * most[column] / total : 0)
-                room -= width
-                total -= most[column]
-                return width
-            }
+        // As the browser's automatic layout shares it (measured against WebKit, ADR 0004): a column that keeps its text on a line is as wide as that; the others each take their share of the whole room in
+        // proportion to the width of their text on one line, never less than their narrowest, and the last of them takes what is left.
+        var widths = least
+        let flexible = (0 ..< columns).filter { most[$0] > least[$0] }
+        var left =
+            available
+            - zip(least, most).enumerated().reduce(0) { $0 + (flexible.contains($1.offset) ? 0 : $1.element.0) }
+        for column in flexible.dropLast() {
+            widths[column] = Swift.max(least[column], available * most[column] / sumMost)
+            left -= widths[column]
+        }
+        if let last = flexible.last { widths[last] = Swift.max(least[last], left) }
+        return widths
     }
 
     private func heights(_ widths: [CGFloat], _ subviews: Subviews) -> [CGFloat] {

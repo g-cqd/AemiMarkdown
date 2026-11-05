@@ -8,38 +8,73 @@ struct NativeTableView: View {
     let table: NativeTable
     let size: CGFloat
     let settings: ViewerSettings
+    /// The table starts at the text's leading edge and scrolls across the whole window: the row is as wide as the window.
+    var bleeds = false
     @State private var natural: CGFloat = 0
     @State private var available: CGFloat = 0
 
     private var edge: Bool { settings.outerBorder }
     private var shape: NativeTableShape { NativeTableShape(table) }
+    private var margin: CGFloat { size * 2.5 }
+    /// The width of the text column the table sits in, and how far its leading edge is from the window's.
+    private var column: CGFloat {
+        let room = Swift.max(0, available - 2 * margin)
+        return settings.fullWidth ? room : Swift.min(room, size * 40)
+    }
+    private var lead: CGFloat {
+        settings.alignsLeft || settings.fullWidth ? margin : margin + (available - 2 * margin - column) / 2
+    }
+    /// What the table may take: the column, or the room beside it for a wide table.
+    private var room: CGFloat {
+        let room = Swift.max(0, available - 2 * margin)
+        let cap = settings.fullWidth ? room : Swift.min(room, size * (shape.isWide ? 68 : 40))
+        return Swift.max(0, Swift.min(cap, available - lead - margin))
+    }
 
     var body: some View {
         let shape = shape
-        ScrollView(.horizontal) {
-            grid(shape)
-                .background(NoBounce())
-                .onGeometryChange(for: CGFloat.self) {
-                    $0.size.width
-                } action: {
-                    natural = $0
-                }
-        }
-        .overlay {
-            if settings.outerBorder {
-                RoundedRectangle(cornerRadius: size * 0.6).strokeBorder(NativeTheme.rule, lineWidth: 1.5)
+        if bleeds {
+            ScrollView(.horizontal, showsIndicators: false) {
+                grid(shape, room: room)
+                    .overlay { outline }
+                    .padding(.leading, lead)
+                    .padding(.trailing, margin)
+                    .background(NoBounce())
             }
-        }
-        .frame(maxWidth: natural > 0 ? natural : nil, alignment: .leading)
-        .frame(maxWidth: .infinity, alignment: shape.isWide ? .center : .leading)
-        .onGeometryChange(for: CGFloat.self) {
-            $0.size.width
-        } action: {
-            available = $0
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .onGeometryChange(for: CGFloat.self) {
+                $0.size.width
+            } action: {
+                available = $0
+            }
+        } else {
+            ScrollView(.horizontal, showsIndicators: false) {
+                grid(shape, room: available > 0 ? available : nil)
+                    .background(NoBounce())
+                    .onGeometryChange(for: CGFloat.self) {
+                        $0.size.width
+                    } action: {
+                        natural = $0
+                    }
+            }
+            .overlay { outline }
+            .frame(maxWidth: natural > 0 ? natural : nil, alignment: .leading)
+            .frame(maxWidth: .infinity, alignment: shape.isWide && !settings.alignsLeft ? .center : .leading)
+            .onGeometryChange(for: CGFloat.self) {
+                $0.size.width
+            } action: {
+                available = $0
+            }
         }
     }
 
-    private func grid(_ shape: NativeTableShape) -> some View {
+    @ViewBuilder private var outline: some View {
+        if settings.outerBorder {
+            RoundedRectangle(cornerRadius: size * 0.6).strokeBorder(NativeTheme.rule, lineWidth: 1.5)
+        }
+    }
+
+    private func grid(_ shape: NativeTableShape, room: CGFloat?) -> some View {
         let own = size * 0.96
         let side = own * 1.4
         let zero = ("0" as NSString)
@@ -54,7 +89,7 @@ struct NativeTableView: View {
             columns: shape.columns,
             keeps: keeps,
             floors: floors,
-            available: available > 0 ? available : nil
+            available: room
         ) {
             ForEach(table.header.indices, id: \.self) { cell(table.header[$0], column: $0, header: true, last: false) }
             ForEach(table.rows.indices, id: \.self) { index in

@@ -65,6 +65,22 @@ extension Picture {
         return result
     }
 
+    /// The x positions (pixels) of vertical lines between `top` and `bottom`: columns where nearly every row differs from the fill, joined when they touch.
+    func verticalLines(fill: (UInt8, UInt8, UInt8), top: Int, bottom: Int, share: Double = 0.8) -> [Int] {
+        let rows = max(1, bottom - top)
+        var found: [Int] = []
+        var previous = -2
+        for x in 0 ..< width {
+            var count = 0
+            for y in max(0, top) ..< min(height, bottom) where distance(x, y, from: fill) > 20 { count += 1 }
+            if Double(count) / Double(rows) >= share {
+                if x != previous + 1 { found.append(x) }
+                previous = x
+            }
+        }
+        return found
+    }
+
     func blurred(radius: Int = 2) -> Picture {
         var out = self
         var temp = self

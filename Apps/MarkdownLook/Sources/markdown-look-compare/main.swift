@@ -3,7 +3,7 @@ import AppKit
 import Foundation
 import MarkdownLookKit
 
-// markdown-look-compare FILE.md [--width N] [--dark] [--scale N] [--out DIR] [--text-size N] [--blocks] [--scroll-tables] [--outline] [--column-lines]: the page as HTML in WebKit (the oracle) and as the native view, at one width, with a measure of how alike they are.
+// markdown-look-compare FILE.md [--width N] [--dark] [--scale N] [--out DIR] [--text-size N] [--blocks] [--columns] [--bleed] [--left] [--scroll-tables] [--outline] [--column-lines]: the page as HTML in WebKit (the oracle) and as the native view, at one width, with a measure of how alike they are.
 let arguments = Array(CommandLine.arguments.dropFirst())
 func option(_ name: String) -> String? {
     guard let index = arguments.firstIndex(of: name), index + 1 < arguments.count else { return nil }
@@ -17,7 +17,7 @@ guard let path = arguments.first(where: { !$0.hasPrefix("--") && FileManager.def
     let data = FileManager.default.contents(atPath: path)
 else {
     print(
-        "usage: markdown-look-compare FILE.md [--width N] [--dark] [--scale N] [--out DIR] [--text-size N] [--blocks] [--scroll-tables] [--outline] [--column-lines]"
+        "usage: markdown-look-compare FILE.md [--width N] [--dark] [--scale N] [--out DIR] [--text-size N] [--blocks] [--columns] [--bleed] [--left] [--scroll-tables] [--outline] [--column-lines]"
     )
     exit(2)
 }
@@ -26,6 +26,8 @@ var settings = ViewerSettings()
 if let size = option("--text-size").flatMap(Int.init) { settings.textSize = size }
 // The choices a person may have made in the Settings window, by name.
 if arguments.contains("--scroll-tables") { settings.scrollsTables = true }
+if arguments.contains("--bleed") { settings.bleedsTables = true }
+if arguments.contains("--left") { settings.alignsLeft = true }
 if arguments.contains("--outline") { settings.outerBorder = true }
 if arguments.contains("--column-lines") { settings.columnLines = true }
 settings.copyButton = false
@@ -94,6 +96,21 @@ func describe(_ band: Band?) -> String {
             )
         }
         print("\(describe(x)) | \(describe(y)) | \(delta)")
+    }
+    if arguments.contains("--columns") {
+        // Each table's column rules in points, in the page and in the native view (turn on `--column-lines`).
+        for block in blocks where block.name.hasPrefix("div.table-wrap") {
+            let top = Int((block.y + 6) * Double(scale))
+            let bottom = Int((block.y + block.height - 6) * Double(scale))
+            func points(_ picture: Picture) -> String {
+                picture.verticalLines(fill: fill, top: top, bottom: bottom)
+                    .map {
+                        String(format: "%.1f", Double($0) / Double(scale))
+                    }
+                    .joined(separator: " ")
+            }
+            print("table y \(Int(block.y)): web [\(points(a))]  native [\(points(b))]")
+        }
     }
     if arguments.contains("--blocks") {
         for block in blocks {

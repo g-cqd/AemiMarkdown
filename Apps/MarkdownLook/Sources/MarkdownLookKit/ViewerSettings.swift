@@ -31,6 +31,8 @@ public struct ViewerSettings: Sendable, Equatable {
         public static let columnLines = "columnLines"
         public static let outerBorder = "outerBorder"
         public static let scrollsTables = "scrollsTables"
+        public static let bleedsTables = "bleedsTables"
+        public static let alignsLeft = "alignsLeft"
         public static let backdrop = "backdrop"
     }
     public static let tabSizes = 1 ... 8
@@ -62,6 +64,10 @@ public struct ViewerSettings: Sendable, Equatable {
     public var outerBorder = false
     /// A table keeps each cell on one line and scrolls sideways when it is wider than the window; off, long cells wrap down to their longest word before it scrolls.
     public var scrollsTables = false
+    /// A table starts at the leading edge of the text and scrolls on its own across the whole window, past the margins of the text on both sides, instead of inside the text's column.
+    public var bleedsTables = false
+    /// The text column sits on the leading edge of the window instead of in its middle.
+    public var alignsLeft = false
     public var backdrop = Backdrop.blurred
 
     public init() {}
@@ -91,6 +97,8 @@ public struct ViewerSettings: Sendable, Equatable {
         settings.columnLines = value(Key.columnLines) as? Bool ?? settings.columnLines
         settings.outerBorder = value(Key.outerBorder) as? Bool ?? settings.outerBorder
         settings.scrollsTables = value(Key.scrollsTables) as? Bool ?? settings.scrollsTables
+        settings.bleedsTables = value(Key.bleedsTables) as? Bool ?? settings.bleedsTables
+        settings.alignsLeft = value(Key.alignsLeft) as? Bool ?? settings.alignsLeft
         settings.backdrop = (value(Key.backdrop) as? String).flatMap(Backdrop.init(rawValue:)) ?? settings.backdrop
         return settings
     }
@@ -99,6 +107,14 @@ public struct ViewerSettings: Sendable, Equatable {
     var css: String {
         var rules = "html { font-size: \(textSize)px; }\npre, code { tab-size: \(tabSize); }\n"
         if fullWidth { rules += "main { max-width: none; } .table-wrap.wide { margin-inline: 0; }\n" }
+        if alignsLeft {
+            rules += "main { margin-inline: 0 auto; }\n"
+            if !fullWidth {
+                rules +=
+                    ".table-wrap.wide { margin-inline: 0 calc(100% - min(68em, 100vw - 5em)); } .table-wrap.wide table { margin-inline: 0; }\n"
+            }
+        }
+        if bleedsTables { rules += bleedRules }
         if backdrop == .solid { rules += "html, body { background: Canvas; }\n" }
         if scrollsTables { rules += "th, td { white-space: nowrap; } td[style] { min-width: 0 !important; }\n" }
         if !rowLines { rules += "th::after, td::after { display: none; }\n" }
@@ -106,16 +122,39 @@ public struct ViewerSettings: Sendable, Equatable {
             rules +=
                 "th + th::before, td + td::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: var(--hair); border-radius: 1px; background: var(--rule); }\n"
         }
-        if outerBorder {
+        if outerBorder && bleedsTables {
+            rules +=
+                "table { outline: var(--hair) solid var(--rule); outline-offset: calc(-1 * var(--hair)); border-radius: var(--radius); }\n"
+            rules +=
+                "th:first-child, td:first-child { padding-left: 1.4em; } th:last-child, td:last-child { padding-right: 1.4em; }\n"
+            rules += "tbody tr:last-child td::after { display: none; }\n"
+        } else if outerBorder {
             rules +=
                 ".table-wrap { border: var(--hair) solid var(--rule); border-radius: var(--radius); width: fit-content; max-width: 100%; }\n"
             // A wide table's outline hugs the table, which is centred on the text column as far out as the window allows.
+            let place = alignsLeft ? "" : " position: relative; left: 50%; transform: translateX(-50%);"
             rules +=
-                ".table-wrap.wide { width: max-content; max-width: min(68em, 100vw - 5em); margin-inline: 0; position: relative; left: 50%; transform: translateX(-50%); }\n"
+                ".table-wrap.wide { width: max-content; max-width: min(68em, 100vw - 5em); margin-inline: 0;\(place) }\n"
             rules +=
                 "th:first-child, td:first-child { padding-left: 1.4em; } th:last-child, td:last-child { padding-right: 1.4em; }\n"
             rules += "tbody tr:last-child td::after { display: none; }\n"
         }
         return rules
+    }
+
+    /// A table's box as wide as the window, with the text's margin as its own padding on the leading side: the table starts where the text does, is as wide as the text's column (or as the room a wide
+    /// table takes) and scrolls across the whole window past that. Lengths are in `rem`, as a table's own `em` is 0.96 of the text's.
+    private var bleedRules: String {
+        let main = fullWidth ? "calc(100vw - 5rem)" : "min(40rem, 100vw - 5rem)"
+        let wide = fullWidth ? main : "min(68rem, 100vw - 5rem)"
+        let lead = alignsLeft || fullWidth ? "2.5rem" : "calc((100vw - \(main)) / 2)"
+        let end = "max(2.5rem, calc(100vw - \(lead) - \(main)))"
+        let endWide = "max(2.5rem, calc(100vw - \(lead) - \(wide)))"
+        return """
+            .table-wrap, .table-wrap.wide { width: 100vw; margin-inline: calc(-1 * \(lead)) 0; padding-inline: \(lead) \(end); box-sizing: border-box; }
+            .table-wrap.wide { padding-inline-end: \(endWide); }
+            .table-wrap table, .table-wrap.wide table { margin-inline: 0; }
+
+            """
     }
 }

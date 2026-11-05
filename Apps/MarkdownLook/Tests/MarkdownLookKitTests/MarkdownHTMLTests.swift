@@ -402,7 +402,7 @@ struct ViewerSettingsTests {
 
     @Test func `table lines are each a choice`() {
         var settings = ViewerSettings()
-        #expect(!page(settings).contains("display: none") && !page(settings).contains("td + td::before"))
+        #expect(!page(settings).contains("td::after { display: none; }") && !page(settings).contains("td + td::before"))
         settings.rowLines = false
         settings.columnLines = true
         settings.outerBorder = true
