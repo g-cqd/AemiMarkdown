@@ -34,21 +34,40 @@ struct NativeDiagramView: View {
 
     static func draw(_ scene: DiagramScene, in context: inout GraphicsContext) {
         let line = 1.5
-        let stroke = Color.secondary
+        let stroke = NativeTheme.secondary
         for shape in scene.shapes { drawShape(shape, scene, &context, line: line, stroke: stroke) }
         for path in scene.paths { drawPath(path, scene, &context, line: line, stroke: stroke) }
         for text in scene.texts {
-            let anchor: UnitPoint =
-                text.anchor == .leading ? .leading : (text.anchor == .trailing ? .trailing : .center)
             let x = text.anchor == .center ? px(Int32(text.x)) : CGFloat(text.x) * cell.width
-            let styled = Text(scene.string(text.text))
-                .font(.system(size: 11.5, weight: text.role == .clusterTitle ? .medium : .regular))
-            context.draw(
-                context.resolve(styled.foregroundStyle(.secondary)),
-                at: CGPoint(x: x, y: py(Int32(text.y))),
-                anchor: anchor
+            let muted = text.role == .label || text.role == .clusterTitle
+            setText(
+                scene.string(text.text),
+                x: x,
+                baseline: py(Int32(text.y)) + 4.5,
+                anchor: text.anchor,
+                size: text.role == .label ? 13 * 0.92 : 13,
+                weight: text.role == .clusterTitle ? .medium : .regular,
+                color: muted ? NativeTheme.pieMuted : NativeTheme.text,
+                in: &context
             )
         }
+    }
+
+    /// A line of text on a baseline, at 13 points, as the page's SVG sets it.
+    static func setText(
+        _ string: String,
+        x: CGFloat,
+        baseline: CGFloat,
+        anchor: SceneAnchor,
+        size: CGFloat = 13,
+        weight: Font.Weight = .regular,
+        color: Color,
+        in context: inout GraphicsContext
+    ) {
+        let resolved = context.resolve(Text(string).font(.system(size: size, weight: weight)).foregroundColor(color))
+        let box = resolved.measure(in: CGSize(width: 10_000, height: 10_000))
+        let left = anchor == .leading ? x : (anchor == .center ? x - box.width / 2 : x - box.width)
+        context.draw(resolved, at: CGPoint(x: left, y: baseline - resolved.firstBaseline(in: box)), anchor: .topLeading)
     }
 
     /// The outline of a shape's box in the cell grid: where a line meets it is the middle of its edge cells.
@@ -148,12 +167,16 @@ struct NativeDiagramView: View {
         if shape.kind == .frame {
             context.stroke(
                 path,
-                with: .color(.secondary.opacity(0.6)),
+                with: .color(NativeTheme.pieMuted.opacity(0.8)),
                 style: StrokeStyle(lineWidth: line, lineCap: .round, lineJoin: .round, dash: [4, 3])
             )
         } else {
-            context.fill(path, with: .color(.primary.opacity(0.04)))
-            context.stroke(path, with: .color(stroke), style: StrokeStyle(lineWidth: line, lineJoin: .round))
+            context.fill(path, with: .color(shape.kind == .note ? NativeTheme.surface : NativeTheme.diagramFill))
+            context.stroke(
+                path,
+                with: .color(shape.kind == .note ? NativeTheme.pieMuted : stroke),
+                style: StrokeStyle(lineWidth: line, lineJoin: .round)
+            )
         }
         context.stroke(
             inner(shape.kind, in: rect),
@@ -163,20 +186,27 @@ struct NativeDiagramView: View {
         let words = scene.string(shape.text)
         guard !words.isEmpty else { return }
         if shape.kind == .frame {
-            context.draw(
-                context.resolve(Text(words).font(.system(size: 11.5, weight: .medium)).foregroundStyle(.secondary)),
-                at: CGPoint(x: rect.minX + 14, y: rect.minY),
-                anchor: .leading
+            setText(
+                words,
+                x: rect.minX + 14,
+                baseline: rect.minY + 4.5,
+                anchor: .leading,
+                weight: .medium,
+                color: NativeTheme.pieMuted,
+                in: &context
             )
             return
         }
         let lines = words.split(separator: "\n", omittingEmptySubsequences: false)
+        let first = rect.midY - CGFloat(lines.count - 1) * cell.height / 2 + 4.5
         for (index, piece) in lines.enumerated() {
-            let y = rect.midY + (CGFloat(index) - CGFloat(lines.count - 1) / 2) * cell.height
-            context.draw(
-                context.resolve(Text(String(piece)).font(.system(size: 12))),
-                at: CGPoint(x: rect.midX, y: y),
-                anchor: .center
+            setText(
+                String(piece),
+                x: rect.midX,
+                baseline: first + CGFloat(index) * cell.height,
+                anchor: .center,
+                color: NativeTheme.text,
+                in: &context
             )
         }
     }
@@ -210,10 +240,10 @@ struct NativeDiagramView: View {
                 color = stroke.opacity(0.45)
             case (.muted, _):
                 style.dash = [0.1, 5]
-                color = Color.secondary.opacity(0.8)
+                color = NativeTheme.pieMuted.opacity(0.8)
             case (.cluster, _):
                 style.dash = [4, 3]
-                color = Color.secondary.opacity(0.8)
+                color = NativeTheme.pieMuted.opacity(0.8)
             case (_, .dashed): style.dash = [5, 4]
             case (_, .thick): style.lineWidth = 3
             default: break
@@ -244,7 +274,7 @@ struct NativeDiagramView: View {
                     tip, CGPoint(x: bx + nx * 4, y: by + ny * 4), CGPoint(x: bx - nx * 4, y: by - ny * 4), tip
                 ])
                 context.fill(path, with: .color(stroke))
-                context.stroke(path, with: .color(stroke), style: StrokeStyle(lineWidth: 1, lineJoin: .round))
+                context.stroke(path, with: .color(stroke), style: StrokeStyle(lineWidth: line, lineJoin: .round))
             case .async:
                 path.addLines([CGPoint(x: bx + nx * 4, y: by + ny * 4), tip, CGPoint(x: bx - nx * 4, y: by - ny * 4)])
                 context.stroke(
@@ -256,7 +286,7 @@ struct NativeDiagramView: View {
                 path.addEllipse(
                     in: CGRect(x: tip.x - heading.dx * 5 - 4.5, y: tip.y - heading.dy * 5 - 4.5, width: 9, height: 9)
                 )
-                context.fill(path, with: .color(.primary.opacity(0.04)))
+                context.fill(path, with: .color(NativeTheme.diagramFill))
                 context.stroke(path, with: .color(stroke), style: StrokeStyle(lineWidth: line))
             case .cross:
                 let (cx, cy) = (tip.x - heading.dx * 5, tip.y - heading.dy * 5)
@@ -269,72 +299,110 @@ struct NativeDiagramView: View {
     }
 }
 
-/// A pie chart: sectors that meet at the centre and a legend with the share of each.
+/// A pie chart drawn on the page's own geometry (`PieSVG`): a circle of radius 90 with the legend 40 to the right of it, the title centred over the whole at the top, 13 point text, the figure at its
+/// natural size and no wider than its column.
 struct NativePieView: View {
     let pie: PieDiagram
     let size: CGFloat
 
+    private let radius = 90.0
+
+    private var labels: [String] { pie.slices.map { String(decoding: pie.labels.slice($0.label), as: UTF8.self) } }
+    private var width: Double { radius * 2 + 40 + Double((labels.map(\.count).max() ?? 0) * 8 + 90) }
+    private var top: Double { pie.title == nil ? 20 : 44 }
+    private var height: Double { Swift.max(radius * 2 + top + 20, Double(pie.slices.count) * 20 + top + 20) }
+
     var body: some View {
-        let total = pie.slices.reduce(0) { $0 + $1.value }
-        HStack(alignment: .center, spacing: size * 2) {
-            Canvas { context, canvas in
-                let radius = Swift.min(canvas.width, canvas.height) / 2 - 1
-                let centre = CGPoint(x: canvas.width / 2, y: canvas.height / 2)
-                var angle = Angle.degrees(-90)
-                for (index, slice) in pie.slices.enumerated() {
-                    let sweep = Angle.degrees(slice.value / total * 360)
-                    var path = Path()
-                    path.move(to: centre)
-                    if pie.slices.count == 1 {
-                        path.addEllipse(
-                            in: CGRect(
-                                x: centre.x - radius,
-                                y: centre.y - radius,
-                                width: radius * 2,
-                                height: radius * 2
-                            )
-                        )
-                    } else {
-                        path.addArc(
-                            center: centre,
-                            radius: radius,
-                            startAngle: angle,
-                            endAngle: angle + sweep,
-                            clockwise: false
-                        )
-                        path.closeSubpath()
-                    }
-                    context.fill(path, with: .color(NativeTheme.pie(index)))
-                    context.stroke(
-                        path,
-                        with: .color(Color(nsColor: .windowBackgroundColor)),
-                        style: StrokeStyle(lineWidth: 1.5, lineJoin: .round)
-                    )
-                    angle += sweep
-                }
-            }
-            .frame(width: size * 14, height: size * 14)
-            VStack(alignment: .leading, spacing: size * 0.4) {
-                if let title = pie.title {
-                    Text(String(decoding: pie.labels.slice(title), as: UTF8.self))
-                        .font(.system(size: size, weight: .medium)).padding(.bottom, size * 0.3)
-                }
-                ForEach(Array(pie.slices.enumerated()), id: \.offset) { index, slice in
-                    HStack(spacing: size * 0.6) {
-                        RoundedRectangle(cornerRadius: 2).fill(NativeTheme.pie(index))
-                            .frame(width: size * 0.9, height: size * 0.9)
-                        Text(caption(index, slice, total)).font(.system(size: size * 0.95).monospacedDigit())
-                    }
-                }
-            }
+        Canvas { context, canvas in
+            let scale = canvas.width / width
+            context.scaleBy(x: scale, y: scale)
+            draw(&context)
         }
-        .frame(maxWidth: .infinity, alignment: .center)
+        .aspectRatio(width / height, contentMode: .fit)
+        .frame(maxWidth: width)
+        .frame(maxWidth: .infinity)
         .accessibilityLabel("Pie chart")
+    }
+
+    private func draw(_ context: inout GraphicsContext) {
+        let total = pie.slices.reduce(0) { $0 + $1.value }
+        let centre = CGPoint(x: radius + 20, y: top + radius)
+        if let title = pie.title {
+            let text = String(decoding: pie.labels.slice(title), as: UTF8.self)
+            baseline(
+                text,
+                at: CGPoint(x: width / 2, y: 24),
+                weight: .medium,
+                color: NativeTheme.pieMuted,
+                centered: true,
+                in: &context
+            )
+        }
+        var angle = Angle.degrees(-90)
+        for (index, slice) in pie.slices.enumerated() {
+            let sweep = Angle.degrees(slice.value / total * 360)
+            var path = Path()
+            if pie.slices.count == 1 {
+                path.addEllipse(
+                    in: CGRect(x: centre.x - radius, y: centre.y - radius, width: radius * 2, height: radius * 2)
+                )
+            } else {
+                path.move(to: centre)
+                path.addArc(
+                    center: centre,
+                    radius: radius,
+                    startAngle: angle,
+                    endAngle: angle + sweep,
+                    clockwise: false
+                )
+                path.closeSubpath()
+            }
+            context.fill(path, with: .color(NativeTheme.pie(index)))
+            if pie.slices.count > 1 {
+                context.stroke(
+                    path,
+                    with: .color(Color(nsColor: .windowBackgroundColor)),
+                    style: StrokeStyle(lineWidth: 1.5, lineJoin: .miter)
+                )
+            }
+            angle += sweep
+            let legend = CGPoint(x: radius * 2 + 40, y: top + 4 + Double(index) * 20)
+            context.fill(
+                Path(roundedRect: CGRect(x: legend.x, y: legend.y, width: 12, height: 12), cornerRadius: 2),
+                with: .color(NativeTheme.pie(index))
+            )
+            baseline(
+                caption(index, slice, total),
+                at: CGPoint(x: legend.x + 18, y: legend.y + 10.5),
+                weight: .regular,
+                color: NativeTheme.text,
+                centered: false,
+                in: &context
+            )
+        }
+    }
+
+    /// Text set on a baseline, as an SVG text is.
+    private func baseline(
+        _ string: String,
+        at point: CGPoint,
+        weight: Font.Weight,
+        color: Color,
+        centered: Bool,
+        in context: inout GraphicsContext
+    ) {
+        let resolved = context.resolve(Text(string).font(.system(size: 13, weight: weight)).foregroundColor(color))
+        let box = resolved.measure(in: CGSize(width: 10_000, height: 10_000))
+        let origin = CGPoint(
+            x: centered ? point.x - box.width / 2 : point.x,
+            y: point.y - resolved.firstBaseline(in: box)
+        )
+        context.draw(resolved, at: origin, anchor: .topLeading)
     }
 
     private func caption(_ index: Int, _ slice: PieDiagram.Slice, _ total: Double) -> String {
         let share = Int((slice.value / total * 1000).rounded())
-        var text = String(decoding: pie.labels.slice(slice.label), as: UTF8.self) + "  \(share / 10).\(share % 10)%"
+        var text = labels[index] + " \(share / 10).\(share % 10)%"
         if pie.showData { text += " (\(slice.value.formatted()))" }
         return text
     }
