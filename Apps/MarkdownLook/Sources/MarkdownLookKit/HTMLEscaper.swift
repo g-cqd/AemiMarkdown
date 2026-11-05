@@ -1,3 +1,5 @@
+internal import AemiKernels
+
 /// `HTMLText.escaped` on bytes, in one pass: the text of the source goes to the output buffer without becoming a `String` or being read a scalar at a time. A run of plain ASCII is copied whole; the five reserved characters are
 /// written as references; the scalars a page should not carry are dropped (the same ones `HTMLText.escaped` drops); a byte sequence that is not UTF-8 becomes U+FFFD, one for each maximal ill-formed subpart, as
 /// `String(decoding:as:)` would have made it. With smart punctuation on, the same pass makes the curly quotes and the ellipsis (`SmartPunctuation`'s rules, with its state carried across calls).
@@ -5,6 +7,18 @@ enum HTMLEscaper {
     /// For each byte: 0 if it is copied as it is, 1 if the pass has to look at it. Bytes above 0x7F, controls, the five reserved characters; with smart punctuation also the full stop.
     private static let plainClasses: [UInt8] = classes(smart: false)
     private static let smartClasses: [UInt8] = classes(smart: true)
+
+    /// The same bytes as a set for the SIMD scan: every byte above 0x7F, the controls except tab and line feed, DEL, the five reserved characters, and with smart punctuation the full stop. Five rows of nibbles, so the tables hold it exactly.
+    private static let plainSet = byteSet(smart: false)
+    private static let smartSet = byteSet(smart: true)
+
+    private static func byteSet(smart: Bool) -> AemiKernels.ByteSet {
+        let bytes = (0 ..< 256).filter { (smart ? smartClasses : plainClasses)[$0] != 0 }.map { UInt8($0) }
+        guard let set = AemiKernels.ByteSet(bytes) else {
+            preconditionFailure("the escaper's bytes do not fit nibble tables")
+        }
+        return set
+    }
 
     private static func classes(smart: Bool) -> [UInt8] {
         (0 ..< 256)
@@ -69,17 +83,17 @@ enum HTMLEscaper {
     /// Appends `bytes` to `out` as HTML text. `smart` is nil for text that keeps its straight quotes (code, attributes), or the state of the paragraph's punctuation.
     static func escape(
         _ bytes: UnsafeBufferPointer<UInt8>,
-        into out: inout [UInt8],
+        into out: inout OutputBuffer,
         smart: inout SmartPunctuation,
         smartOn: Bool
     ) {
         let count = bytes.count
         var index = 0
-        let classes = smartOn ? smartClasses : plainClasses
-        classes.withUnsafeBufferPointer { classes in
+        let set = smartOn ? smartSet : plainSet
+        if let base = bytes.baseAddress {
             while index < count {
-                var end = index
-                while end < count, unsafe classes[Int(bytes[end])] == 0 { end += 1 }
+                // The run of bytes that are copied as they are, found 16 at a time.
+                let end = unsafe index + AemiKernels.firstIndex(inSet: set, base: base + index, count: count - index)
                 if end > index {
                     unsafe out.append(contentsOf: UnsafeBufferPointer(rebasing: bytes[index ..< end]))
                     // A run holds ASCII only, so its last byte is its last scalar.
@@ -152,7 +166,7 @@ enum HTMLEscaper {
         }
     }
 
-    private static func appendCurly(_ scalar: Unicode.Scalar, to out: inout [UInt8]) {
+    private static func appendCurly(_ scalar: Unicode.Scalar, to out: inout OutputBuffer) {
         let value = scalar.value
         out.append(0xE0 | UInt8(value >> 12))
         out.append(0x80 | UInt8((value >> 6) & 0x3F))
@@ -160,7 +174,7 @@ enum HTMLEscaper {
     }
 
     /// `bytes` escaped, with the straight quotes kept.
-    static func escape(_ bytes: [UInt8], into out: inout [UInt8]) {
+    static func escape(_ bytes: [UInt8], into out: inout OutputBuffer) {
         var unused = SmartPunctuation()
         bytes.withUnsafeBufferPointer { unsafe escape($0, into: &out, smart: &unused, smartOn: false) }
     }

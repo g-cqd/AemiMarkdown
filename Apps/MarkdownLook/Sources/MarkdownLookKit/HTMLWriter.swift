@@ -17,7 +17,7 @@ struct HTMLWriter {
     let options: MarkdownHTMLRenderer
     let embedsDiagramStyle: Bool
     /// The page so far, as UTF-8: appending bytes to it costs what a copy costs, where a `String` checks and re-counts.
-    var out: [UInt8] = []
+    var out = OutputBuffer()
     var stack: [Frame] = []
     /// Whether a start tag is still open (no `>` yet), because attributes may follow.
     var headOpen = false
@@ -58,7 +58,7 @@ struct HTMLWriter {
         closeHead()
         while !stack.isEmpty { closeFrame() }
         closeFootnotes()
-        return out
+        return out.array
     }
 
     mutating func finish() -> String { String(decoding: finishBytes(), as: UTF8.self) }
@@ -257,8 +257,8 @@ struct HTMLWriter {
                 if tableBody { out += "</tbody>" }
                 closeFrame()
                 // The table is rewritten where it stands, inside its wrapper, with each cell's attribute put in.
-                let markup = Array(out[tableStart...])
-                out.removeSubrange(tableStart...)
+                let markup = out.bytes(from: tableStart)
+                out.truncate(to: tableStart)
                 out += "<div class=\"table-wrap\(tableLayout.isWide ? " wide" : "")\">"
                 tableLayout.apply(to: markup[...], into: &out)
                 out += "</div>\n"
@@ -267,7 +267,7 @@ struct HTMLWriter {
                 closeFrame()
             case .listItem, .list, .blockQuote, .tableRow, .tableCell, .heading, .paragraph:
                 if node.kind == .tableCell {
-                    tableLayout.endCell(bytes: Array(out[(tableStart + tableLayout.cellStart)...]), from: 0)
+                    tableLayout.endCell(bytes: out.bytes(from: tableStart + tableLayout.cellStart), from: 0)
                 }
                 closeFrame()
                 if [.listItem, .blockQuote, .tableRow, .tableCell, .heading].contains(node.kind) { out += "\n" }

@@ -115,7 +115,7 @@ struct TableLayout {
     }
 
     /// `markup` with each cell's attribute put in, appended to `out`.
-    func apply(to markup: ArraySlice<UInt8>, into out: inout [UInt8]) {
+    func apply(to markup: ArraySlice<UInt8>, into out: inout OutputBuffer) {
         let attributes = columns.indices.map { Array(attribute(forColumn: $0).utf8) }
         var position = markup.startIndex
         for cell in cells {
@@ -129,8 +129,8 @@ struct TableLayout {
 
     /// `markup` with each cell's attribute put in.
     func apply(to markup: String) -> String {
-        var out: [UInt8] = []
+        var out = OutputBuffer()
         apply(to: Array(markup.utf8)[...], into: &out)
-        return String(decoding: out, as: UTF8.self)
+        return String(decoding: out.array, as: UTF8.self)
     }
 }

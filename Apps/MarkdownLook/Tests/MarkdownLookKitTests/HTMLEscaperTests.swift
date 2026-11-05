@@ -52,9 +52,9 @@ struct HTMLEscaperTests {
             let expected = HTMLText.escaped(smartOn ? old.apply(text) : text)
             var new = SmartPunctuation()
             new.previous = start
-            var out: [UInt8] = []
+            var out = OutputBuffer()
             bytes.withUnsafeBufferPointer { unsafe HTMLEscaper.escape($0, into: &out, smart: &new, smartOn: smartOn) }
-            #expect(String(decoding: out, as: UTF8.self) == expected, "\(bytes)")
+            #expect(String(decoding: out.array, as: UTF8.self) == expected, "\(bytes)")
             if smartOn { #expect(new.previous == old.previous, "\(bytes)") }
         }
     }

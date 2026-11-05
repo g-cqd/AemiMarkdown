@@ -56,13 +56,13 @@ enum CodeHighlighter {
 
     /// `code` as escaped HTML with its tokens in spans.
     static func html(_ code: [UInt8], language: Language) -> String {
-        var out: [UInt8] = []
+        var out = OutputBuffer()
         html(code, language: language, into: &out)
-        return String(decoding: out, as: UTF8.self)
+        return String(decoding: out.array, as: UTF8.self)
     }
 
     /// The same, appended to the writer's buffer.
-    static func html(_ code: [UInt8], language: Language, into out: inout [UInt8]) {
+    static func html(_ code: [UInt8], language: Language, into out: inout OutputBuffer) {
         var position = 0
         var unused = SmartPunctuation()
         let found = spans(code, language: language)

@@ -22,6 +22,7 @@ let package = Package(
             dependencies: [
                 .product(name: "AemiMarkdown", package: "AemiMarkdown"),
                 .product(name: "AemiLexers", package: "aemi"),
+                .product(name: "AemiKernels", package: "aemi"),
                 .product(name: "AemiMermaidSyntax", package: "AemiMermaid"),
                 .product(name: "AemiMermaidScene", package: "AemiMermaid"),
                 .product(name: "AemiMermaidLayout", package: "AemiMermaid"),
