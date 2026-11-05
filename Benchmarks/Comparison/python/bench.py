@@ -23,7 +23,7 @@ def measure(name, package, convert):
         produced = sum(len(convert(d)) for d in docs)
         best = min(best, time.thread_time() - start)
         out = produced
-    print(json.dumps({"engine": name, "version": version(package), "what": "html", "documents": len(docs), "bytes": total, "seconds": best, "mbps": total / best / 1e6, "output_bytes": out}))
+    print(json.dumps({"engine": name, "version": version(package), "what": "html", "documents": len(docs), "bytes": total, "seconds": best, "mbps": total / best / 1e6, "output_bytes": out}), flush=True)
 
 import cmarkgfm, cmarkgfm.cmark
 measure("cmark-gfm", "cmarkgfm", lambda d: cmarkgfm.github_flavored_markdown_to_html(d))
