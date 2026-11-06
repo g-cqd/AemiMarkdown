@@ -51,6 +51,8 @@ documents from the fences' alphabet, streamed and edited. The release suite pass
 
 ## Amendment, 2026-11-06: MarkdownLook draws a head as GitHub does
 
+Replaced the same day by ADR 0007, a panel of the head's properties.
+
 MarkdownLook reads with `[.github, .frontMatter]` (`MarkdownLook.extensions`) in its preview, its app and its lab. Both renderers
 draw a head from one model, `FrontMatterTable`: its keys as a header row and its values as one row. A scalar shows its text, a list
 of scalars its items joined by commas, and anything deeper its compact JSON (AemiHMMML's projection, at the revision pinned here).

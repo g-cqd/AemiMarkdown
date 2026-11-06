@@ -48,6 +48,8 @@ public enum NativeContent: Sendable {
     case code(NativeCode)
     case table(NativeTable)
     case diagram(NativeDiagram)
+    /// A document's head, as a panel of its properties.
+    case frontMatter(FrontMatterPanel)
     case rule
     /// The short rule above the notes of a document.
     case footnoteRule

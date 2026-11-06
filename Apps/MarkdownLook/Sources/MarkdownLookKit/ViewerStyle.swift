@@ -63,6 +63,24 @@ public enum ViewerStyle {
         .table-wrap.wide { margin-inline: calc((100% - min(68em, 100vw - 5em)) / 2); }
         .table-wrap.wide table { margin-inline: auto; }
         table { border-collapse: collapse; font-variant-numeric: tabular-nums; line-height: 1.45; font-size: 0.96em; }
+        /* A document's head: a card of its properties, closed to one line (its format, its title, how many) until opened. */
+        .front-matter { border: var(--hair) solid var(--rule); border-radius: var(--radius); background: var(--tint); }
+        * + .front-matter, .front-matter + * { margin-block-start: var(--gap-box); }
+        .front-matter > summary { list-style: none; display: flex; align-items: baseline; gap: 0.75em; padding: 0.6em 1.1em; color: var(--secondary); cursor: default; }
+        .front-matter > summary::-webkit-details-marker { display: none; }
+        .front-matter > summary::before { content: '\\203A'; display: inline-block; width: 0.6em; color: var(--tertiary); transition: transform 0.15s; }
+        .front-matter[open] > summary::before { transform: rotate(90deg); }
+        .fm-kind { font-size: 0.76em; font-weight: 600; letter-spacing: 0.06em; color: var(--tertiary); }
+        .fm-title { flex: 1; min-width: 0; color: var(--text); font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .fm-count { margin-inline-start: auto; font-size: 0.86em; color: var(--tertiary); white-space: nowrap; }
+        table.fm { width: 100%; font-size: 0.96em; border-top: var(--hair) solid var(--rule); }
+        table.fm th, table.fm td { padding: 0.32em 1.1em; vertical-align: baseline; }
+        table.fm th { width: 1%; white-space: nowrap; font-weight: 400; color: var(--secondary); padding-inline-end: 0.6em; }
+        table.fm td { padding-inline-start: 0.6em; overflow-wrap: anywhere; }
+        table.fm tr:first-child > * { padding-block-start: 0.7em; } table.fm tr:last-child > * { padding-block-end: 0.7em; }
+        .fm-tag { display: inline-block; margin: 0.08em 0.3em 0.08em 0; padding: 0 0.6em; border-radius: 1em; border: var(--hair) solid var(--rule); background: var(--tint); font-size: 0.92em; line-height: 1.6; }
+        .fm-flag { color: var(--tertiary); } .fm-flag.on { color: var(--text); font-weight: 600; }
+        table.fm :is(th, td)::after { content: none; } table.fm th { font-size: 1em; }
         th, td { position: relative; padding: var(--cell); text-align: left; vertical-align: top; }
         th::after, td::after { content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: var(--hair); background: var(--rule); }
         th:first-child::after, td:first-child::after { border-radius: 1px 0 0 1px; } th:last-child::after, td:last-child::after { border-radius: 0 1px 1px 0; }

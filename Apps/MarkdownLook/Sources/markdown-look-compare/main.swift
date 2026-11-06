@@ -35,6 +35,7 @@ if arguments.contains("--bleed") { settings.bleedsTables = true }
 if arguments.contains("--left") { settings.alignsLeft = true }
 if arguments.contains("--outline") { settings.outerBorder = true }
 if arguments.contains("--column-lines") { settings.columnLines = true }
+if arguments.contains("--front-matter-open") { settings.opensFrontMatter = true }
 settings.copyButton = false
 let name = ((path as NSString).lastPathComponent as NSString).deletingPathExtension
 let fill: (UInt8, UInt8, UInt8) = dark ? (30, 30, 30) : (255, 255, 255)
@@ -54,7 +55,7 @@ func describe(_ band: Band?) -> String {
 @MainActor func run() async {
     let bytes = Array(data)
     let page = MarkdownHTMLRenderer(settings: settings).page(markdown: bytes, title: name)
-    let native = NativeDocument(MarkdownParser.parse(bytes), settings: settings)
+    let native = NativeDocument(MarkdownParser.parse(bytes, extensions: MarkdownLook.extensions), settings: settings)
     guard let (web, blocks) = await webSnapshot(html: page, width: width, dark: dark, scale: scale),
         let drawn = await nativeSnapshot(document: native, settings: settings, width: width, dark: dark, scale: scale)
     else {

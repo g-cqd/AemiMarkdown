@@ -77,7 +77,7 @@ extension NativeBuilder {
     /// A block of kept lines starting: a code block, an HTML block, or the document's head (code in its format, if not a table).
     func codeState(for kind: NodeKind) -> CodeState {
         kind == .frontMatter
-            ? CodeState(isHTML: false, language: FrontMatterTable.language(of: document))
+            ? CodeState(isHTML: false, language: FrontMatterPanel.language(of: document))
             : CodeState(isHTML: kind == .htmlBlock)
     }
 
@@ -86,21 +86,12 @@ extension NativeBuilder {
         if kind == .frontMatter { exitFrontMatter() } else { exitCode() }
     }
 
-    /// The document's head: a table, as GitHub draws one, or its lines as code. Copying it gives the head as written.
+    /// The document's head: its properties' panel, or its lines as code. Copying it gives the head as written.
     mutating func exitFrontMatter() {
-        guard let table = FrontMatterTable(document) else { return exitCode() }
+        guard let panel = FrontMatterPanel(document) else { return exitCode() }
         code = nil
-        pendingSource = FrontMatterTable.source(of: document)
-        emit(
-            .table(
-                NativeTable(
-                    alignments: table.keys.map { _ in .leading },
-                    header: table.keys.map(AttributedString.init),
-                    rows: [table.values.map(AttributedString.init)]
-                )
-            ),
-            kind: .box
-        )
+        pendingSource = FrontMatterPanel.source(of: document)
+        emit(.frontMatter(panel), kind: .box)
     }
 
     mutating func exitTable() {

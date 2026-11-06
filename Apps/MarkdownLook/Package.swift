@@ -28,6 +28,7 @@ let package = Package(
                 .product(name: "AemiFrontMatter", package: "AemiHMMML"),
                 .product(name: "AemiHMMML", package: "AemiHMMML"),
                 .product(name: "AemiJSONCore", package: "AemiJSON"),
+                .product(name: "AemiKernel", package: "aemi"),
                 .product(name: "AemiLexers", package: "aemi"),
                 .product(name: "AemiKernels", package: "aemi"),
                 .product(name: "AemiTextStyling", package: "AemiTextUI"),

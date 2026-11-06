@@ -103,6 +103,7 @@ struct SettingsView: View {
     @AppStorage(Key.diagramFont, store: .shared) private var diagramFont = "text"
     @AppStorage(Key.fontFeatures, store: .shared) private var fontFeatures = ""
     @AppStorage(Key.drawsDiagrams, store: .shared) private var drawsDiagrams = true
+    @AppStorage(Key.opensFrontMatter, store: .shared) private var opensFrontMatter = false
     @AppStorage(Key.backdrop, store: .shared) private var backdrop = Backdrop.blurred.rawValue
     @AppStorage(Key.material, store: .shared) private var material = BackdropMaterial.thin.rawValue
     @AppStorage(Key.glass, store: .shared) private var glass = GlassVariant.regular.rawValue
@@ -169,6 +170,9 @@ struct SettingsView: View {
             }
             Section("Diagrams") {
                 Toggle("Draw Mermaid diagrams", isOn: $drawsDiagrams)
+            }
+            Section("Front matter") {
+                Toggle("Show a document's properties open", isOn: $opensFrontMatter)
             }
             Section {
                 Picker("Background", selection: $backdrop) {

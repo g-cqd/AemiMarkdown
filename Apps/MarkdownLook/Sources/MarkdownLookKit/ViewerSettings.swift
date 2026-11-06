@@ -39,6 +39,7 @@ public struct ViewerSettings: Sendable, Equatable {
         public static let showsLanguage = "showsLanguage"
         public static let copyButton = "copyButton"
         public static let drawsDiagrams = "drawsDiagrams"
+        public static let opensFrontMatter = "opensFrontMatter"
         public static let rowLines = "rowLines"
         public static let columnLines = "columnLines"
         public static let outerBorder = "outerBorder"
@@ -75,6 +76,8 @@ public struct ViewerSettings: Sendable, Equatable {
     public var copyButton = true
     /// Mermaid fences as diagrams; off shows them as code.
     public var drawsDiagrams = true
+    /// A document's head (its front matter) drawn open; closed to one line by default.
+    public var opensFrontMatter = false
     /// A hairline between the rows of a table.
     public var rowLines = true
     /// A hairline between the columns of a table.
@@ -117,6 +120,7 @@ public struct ViewerSettings: Sendable, Equatable {
         settings.showsLanguage = value(Key.showsLanguage) as? Bool ?? settings.showsLanguage
         settings.copyButton = value(Key.copyButton) as? Bool ?? settings.copyButton
         settings.drawsDiagrams = value(Key.drawsDiagrams) as? Bool ?? settings.drawsDiagrams
+        settings.opensFrontMatter = value(Key.opensFrontMatter) as? Bool ?? settings.opensFrontMatter
         settings.rowLines = value(Key.rowLines) as? Bool ?? settings.rowLines
         settings.columnLines = value(Key.columnLines) as? Bool ?? settings.columnLines
         settings.outerBorder = value(Key.outerBorder) as? Bool ?? settings.outerBorder

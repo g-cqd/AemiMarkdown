@@ -211,7 +211,7 @@ struct HTMLWriter {
                 inCode = true
                 codeBytes = []
                 codeLineCount = 0
-                rawLanguage = FrontMatterTable.language(of: document)
+                rawLanguage = FrontMatterPanel.language(of: document)
                 language = rawLanguage
                 stack.append(Frame(kind: .frontMatter, closing: ""))
             case .table:
