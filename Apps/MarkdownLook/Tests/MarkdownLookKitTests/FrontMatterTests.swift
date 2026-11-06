@@ -81,22 +81,20 @@ struct FrontMatterTests {
         )
     }
 
-    @Test("as HTML the panel is closed, with its format, title and count; the settings open it; its text is escaped")
+    @Test("as HTML the panel is closed, with its title, format and count; the settings open it; its text is escaped")
     func page() {
         let closed = html(Self.post)
-        #expect(closed.contains("<details class=\"front-matter\"><summary><span class=\"fm-kind\">YAML</span>"))
         #expect(
             closed.contains(
-                "<span class=\"fm-title\">A &lt;b&gt; note</span><span class=\"fm-count\">10 properties</span>"
+                "<details class=\"front-matter\"><summary><span class=\"fm-title\">A &lt;b&gt; note</span>"
+                    + "<span class=\"fm-kind\">YAML</span><span class=\"fm-count\">10 properties</span></summary>"
             )
         )
-        #expect(closed.contains("<span class=\"fm-tag\">swift</span><span class=\"fm-tag\">yaml</span>"))
+        // Words of a list as words, flags as written, nesting indented from the column's edge.
+        #expect(closed.contains("<span class=\"fm-tags\"><span>swift</span><span>yaml</span></span>"))
         #expect(closed.contains("<a href=\"https://example.com/a\">https://example.com/a</a>"))
-        #expect(
-            closed.contains("<span class=\"fm-flag on\">\u{2713}</span>")
-                && closed.contains("<span class=\"fm-flag\">\u{2014}</span>")
-        )
-        #expect(closed.contains("calc(1.1em + 2 * var(--indent))"))
+        #expect(closed.contains("<td>true</td>") && closed.contains("<td>false</td>"))
+        #expect(closed.contains("padding-inline-start: calc(2 * var(--indent))"))
         #expect(closed.contains("<h1>Body</h1>") && !closed.contains("<hr"))
         #expect(html(Self.post, open: true).contains("<details class=\"front-matter\" open>"))
         #expect(TagBalance.problem(in: closed) == nil)
@@ -120,6 +118,12 @@ struct FrontMatterTests {
         #expect(list.contains("<code class=\"language-yaml\">") && list.contains("- a\n- b"))
         let broken = html("---\nkey: [unclosed\n---\ntext\n")
         #expect(broken.contains("language-yaml") && !broken.contains("front-matter"))
+    }
+
+    @Test("a block scalar's last newline is not drawn as a line; its inner lines are kept")
+    func blockScalars() throws {
+        let panel = try #require(panel("---\nfolded: >\n  one\n  two\nliteral: |\n  a\n  b\n---\n"))
+        #expect(panel.rows.map(\.value) == [.text("one two"), .text("a\nb")])
     }
 
     @Test("dates as Jekyll and YAML 1.1 write them: a space before the offset, which may lack its colon or its minutes")

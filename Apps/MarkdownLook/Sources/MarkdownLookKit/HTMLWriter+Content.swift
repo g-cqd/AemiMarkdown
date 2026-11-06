@@ -123,24 +123,29 @@ extension HTMLWriter {
         out +=
             options.settings.opensFrontMatter
             ? "<details class=\"front-matter\" open>" : "<details class=\"front-matter\">"
-        out += "<summary><span class=\"fm-kind\">\(panel.format)</span>"
+        out += "<summary>"
         if let title = panel.title { out += "<span class=\"fm-title\">\(HTMLText.escaped(title))</span>" }
+        out += "<span class=\"fm-kind\">\(panel.format)</span>"
         out +=
             "<span class=\"fm-count\">\(panel.count) propert\(panel.count == 1 ? "y" : "ies")</span></summary>\n<table class=\"fm\">"
         for row in panel.rows {
             let indent =
-                row.depth == 0 ? "" : " style=\"padding-inline-start: calc(1.1em + \(row.depth) * var(--indent))\""
+                row.depth == 0 ? "" : " style=\"padding-inline-start: calc(\(row.depth) * var(--indent))\""
             out += "<tr><th\(indent)>\(HTMLText.escaped(row.key))</th><td>"
             switch row.value {
                 case .text(let text): out += HTMLText.escaped(text)
                 case .date(let text): out += "<span class=\"fm-date\">\(HTMLText.escaped(text))</span>"
                 case .link(let address):
                     out += "<a href=\"\(HTMLText.escaped(address))\">\(HTMLText.escaped(address))</a>"
-                case .flag(let flag):
-                    out +=
-                        flag ? "<span class=\"fm-flag on\">\u{2713}</span>" : "<span class=\"fm-flag\">\u{2014}</span>"
+                case .flag(let flag): out += flag ? "true" : "false"
                 case .tags(let tags):
-                    for tag in tags { out += "<span class=\"fm-tag\">\(HTMLText.escaped(tag))</span>" }
+                    out += "<span class=\"fm-tags\">"
+                    // An item is kept whole (no-break spaces): a line breaks between items only.
+                    for tag in tags {
+                        out +=
+                            "<span>\(HTMLText.escaped(tag).split(separator: " ", omittingEmptySubsequences: false).joined(separator: "&nbsp;"))</span>"
+                    }
+                    out += "</span>"
                 case .none: break
             }
             out += "</td></tr>\n"

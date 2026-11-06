@@ -91,7 +91,7 @@ extension NativeBuilder {
         guard let panel = FrontMatterPanel(document) else { return exitCode() }
         code = nil
         pendingSource = FrontMatterPanel.source(of: document)
-        emit(.frontMatter(panel), kind: .box)
+        emit(.frontMatter(panel), kind: .prose)
     }
 
     mutating func exitTable() {

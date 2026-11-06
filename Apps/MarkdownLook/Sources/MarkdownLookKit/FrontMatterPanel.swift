@@ -97,7 +97,8 @@ public struct FrontMatterPanel: Sendable, Equatable {
                 } else if isWebOrMail(text) {
                     .link(text)
                 } else {
-                    .text(text)
+                    // A block scalar ends with its newline (`>` and `|` keep one): the line it would add is not part of the value.
+                    .text(String(text.reversed().drop { $0 == "\n" }.reversed()))
                 }
             default: .text(scalarText(value))
         }

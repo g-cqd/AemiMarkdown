@@ -40,3 +40,23 @@ column's width (`fixedSize(horizontal: false, vertical: true)`). A date as Jekyl
 form) or as YAML 1.1 does (`2001-12-14 21:59:43.10 -5`) was shown as written; white space before an offset without its colon or
 minutes now reads as RFC 3339 (`DateText.spacedOffset`). `FrontMatterTests.spacedDates`; a mutant that skipped the rewrite failed
 three of its expectations.
+
+## Amendment (2026-11-07): on the text's grid, without a box
+
+The card read as a component on the page: a filled box with a stroke, a rule under its summary, an outlined capsule per tag, rows
+with their own padding and a smaller size. The head now has no box, no rule and no outline. It sits on the body text's own grid,
+so its spacing is the text's spacing.
+
+- Every line is one leading of the text (1.6 em, `--leading`; `lineHeight(.exact(points:))` in the native view), at the text's
+  size. Keys and values share a baseline. Above the head there is nothing; below it, the space between paragraphs (`.prose`), not
+  a box's.
+- Closed, the head is one line: the title, the format and the count, muted. The chevron hangs in the margin, as a list's marker
+  does, so the title stands at the column's edge.
+- Open, the head has a line per property. The key is muted at the column's edge, indented a level per nesting. The value starts
+  in one column.
+- A list of scalars is written as words: a muted middle dot between items, and no-break spaces inside an item ("Claude Opus 4.6"),
+  so a line breaks between items only. A flag is written as `true` or `false`.
+- A block scalar's last newline (`>` and `|` keep one) is not drawn as an empty line. Its other lines are kept.
+
+`FrontMatterTests` was updated for the markup, and `blockScalars` is new (a mutant without the trim fails it). The compare tool
+drew a Jekyll post, an Obsidian note and Copilot and Claude agent files, light and dark, and the two views agree.

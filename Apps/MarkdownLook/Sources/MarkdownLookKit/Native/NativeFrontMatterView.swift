@@ -1,7 +1,9 @@
 internal import SwiftUI
 
-/// A document's head as the style sheet draws it (`.front-matter`): a card closed to one line, its format, its title and how many
-/// properties, that opens to one row a key; tags as capsules, a flag as a check, a link in the link colour.
+/// A document's head as the style sheet draws it (`.front-matter`), on the text's own grid: no box and no rules, every line one
+/// leading of the text (1.6 em). Closed, one line: its title, its format and how many properties, the chevron hanging in the
+/// margin as a list's marker does. Open, a line a property: the key muted at the column's edge (indented a level a nesting), the
+/// value on one column, a list of words as words.
 struct NativeFrontMatterView: View {
     let panel: FrontMatterPanel
     let size: CGFloat
@@ -14,113 +16,77 @@ struct NativeFrontMatterView: View {
         _open = State(initialValue: startsOpen)
     }
 
+    private var leading: CGFloat { size * 1.6 }
+    private var body16: Font { fonts.font(.text, size: size) }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             summary
             if open {
-                Rectangle().fill(NativeTheme.rule).frame(height: 1.5)
-                Grid(alignment: .leadingFirstTextBaseline, horizontalSpacing: size * 1.2, verticalSpacing: size * 0.9) {
+                Grid(alignment: .leadingFirstTextBaseline, horizontalSpacing: size * 1.5, verticalSpacing: 0) {
                     ForEach(Array(panel.rows.enumerated()), id: \.offset) { _, row in
                         GridRow {
-                            Text(row.key).font(fonts.font(.text, size: size * 0.96))
-                                .foregroundColor(NativeTheme.secondary)
+                            line(Text(row.key), color: NativeTheme.secondary)
                                 .padding(.leading, CGFloat(row.depth) * size * 1.75).fixedSize()
                             value(row.value).frame(maxWidth: .infinity, alignment: .leading)
                         }
                     }
                 }
-                .padding(.horizontal, size * 1.1).padding(.vertical, size * 0.7)
             }
         }
-        .background(RoundedRectangle(cornerRadius: size * 0.6).fill(NativeTheme.tint))
-        .overlay(RoundedRectangle(cornerRadius: size * 0.6).stroke(NativeTheme.rule, lineWidth: 1.5))
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    /// Text at the body's size and leading, wrapping at its column's width (a grid row may otherwise get one line's height).
+    private func line(_ text: Text, color: Color, weight: Font.Weight = .regular) -> some View {
+        text.font(body16.weight(weight)).foregroundColor(color).lineHeight(.exact(points: leading))
+            .fixedSize(horizontal: false, vertical: true)
     }
 
     private var summary: some View {
-        HStack(alignment: .firstTextBaseline, spacing: size * 0.75) {
-            Image(systemName: "chevron.right").font(.system(size: size * 0.7, weight: .semibold))
-                .foregroundColor(NativeTheme.tertiary).rotationEffect(.degrees(open ? 90 : 0))
-            Text(panel.format).font(fonts.font(.text, size: size * 0.76).weight(.semibold)).tracking(size * 0.05)
-                .foregroundColor(NativeTheme.tertiary)
-            if let title = panel.title {
-                Text(title).font(fonts.font(.text, size: size).weight(.medium)).foregroundColor(NativeTheme.text)
-                    .lineLimit(1)
-            }
+        HStack(alignment: .firstTextBaseline, spacing: size * 0.6) {
+            if let title = panel.title { line(Text(title), color: NativeTheme.text, weight: .medium).lineLimit(1) }
+            line(Text(panel.format), color: NativeTheme.tertiary).fixedSize()
             Spacer(minLength: 0)
-            Text("\(panel.count) propert\(panel.count == 1 ? "y" : "ies")").font(fonts.font(.text, size: size * 0.86))
-                .foregroundColor(NativeTheme.tertiary)
+            line(Text("\(panel.count) propert\(panel.count == 1 ? "y" : "ies")"), color: NativeTheme.tertiary)
+                .fixedSize()
         }
-        .padding(.horizontal, size * 1.1).padding(.vertical, size * 0.6)
+        .overlay(alignment: .leading) {
+            Text("\u{203A}").font(body16).foregroundColor(NativeTheme.tertiary).lineHeight(.exact(points: leading))
+                .frame(width: size * 0.6).rotationEffect(.degrees(open ? 90 : 0)).offset(x: -size * 1.1)
+        }
         .contentShape(Rectangle())
         .onTapGesture { withAnimation(.easeOut(duration: 0.15)) { open.toggle() } }
     }
 
     @ViewBuilder private func value(_ value: FrontMatterPanel.Value) -> some View {
-        let body = fonts.font(.text, size: size * 0.96)
         switch value {
-            // Wrapped at the column's width: a grid row otherwise may get one line's height and truncate.
-            case .text(let text), .date(let text):
-                Text(text).font(body).foregroundColor(NativeTheme.text).fixedSize(horizontal: false, vertical: true)
+            case .text(let text), .date(let text): line(Text(text), color: NativeTheme.text)
             case .link(let address):
                 if let url = URL(string: address) {
-                    Link(address, destination: url).font(body).foregroundColor(NativeTheme.link)
+                    Link(destination: url) { line(Text(address), color: NativeTheme.link) }
                 } else {
-                    Text(address).font(body)
+                    line(Text(address), color: NativeTheme.text)
                 }
-            case .flag(let flag):
-                Text(flag ? "\u{2713}" : "\u{2014}").font(body.weight(flag ? .semibold : .regular))
-                    .foregroundColor(flag ? NativeTheme.text : NativeTheme.tertiary)
-            case .tags(let tags):
-                FlowLayout(spacing: size * 0.3) {
-                    ForEach(Array(tags.enumerated()), id: \.offset) { _, tag in
-                        Text(tag).font(fonts.font(.text, size: size * 0.9)).padding(.horizontal, size * 0.6)
-                            .padding(.vertical, size * 0.08)
-                            .background(Capsule().fill(NativeTheme.tint))
-                            .overlay(Capsule().stroke(NativeTheme.rule, lineWidth: 1.5))
-                    }
-                }
-            case .none: EmptyView()
+            case .flag(let flag): line(Text(flag ? "true" : "false"), color: NativeTheme.text)
+            case .tags(let tags): line(Text(Self.words(tags)), color: NativeTheme.text)
+            case .none: line(Text(""), color: NativeTheme.text)
         }
     }
-}
 
-/// Subviews in lines, each line as full as the width allows.
-private struct FlowLayout: Layout {
-    let spacing: CGFloat
-
-    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
-        let lines = arrange(subviews, width: proposal.width ?? .infinity)
-        return CGSize(
-            width: lines.map(\.width).max() ?? 0,
-            height: lines.map(\.height).reduce(0, +) + spacing * CGFloat(max(0, lines.count - 1))
-        )
-    }
-
-    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
-        var y = bounds.minY
-        for line in arrange(subviews, width: bounds.width) {
-            var x = bounds.minX
-            for index in line.indices {
-                let size = subviews[index].sizeThatFits(.unspecified)
-                subviews[index].place(at: CGPoint(x: x, y: y), proposal: ProposedViewSize(size))
-                x += size.width + spacing
+    /// The words of a list, a muted middle dot between them, bound to the word before it (a narrow no-break space) so a line
+    /// breaks after a dot, never before one.
+    static func words(_ tags: [String]) -> AttributedString {
+        var text = AttributedString()
+        for (index, tag) in tags.enumerated() {
+            if index > 0 {
+                var dot = AttributedString("\u{202F}\u{00B7}\u{2009}")
+                dot.foregroundColor = NativeTheme.tertiary
+                text += dot
             }
-            y += line.height + spacing
+            // An item is kept whole: a line breaks between items only.
+            text += AttributedString(tag.replacingOccurrences(of: " ", with: "\u{00A0}"))
         }
-    }
-
-    private func arrange(_ subviews: Subviews, width: CGFloat) -> [(indices: [Int], width: CGFloat, height: CGFloat)] {
-        var lines: [(indices: [Int], width: CGFloat, height: CGFloat)] = []
-        for index in subviews.indices {
-            let size = subviews[index].sizeThatFits(.unspecified)
-            if let last = lines.last, last.width + spacing + size.width <= width {
-                lines[lines.count - 1].indices.append(index)
-                lines[lines.count - 1].width += spacing + size.width
-                lines[lines.count - 1].height = max(last.height, size.height)
-            } else {
-                lines.append(([index], size.width, size.height))
-            }
-        }
-        return lines
+        return text
     }
 }
