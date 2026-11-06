@@ -15,7 +15,7 @@ let package = Package(
         .package(path: "../.."),
         .package(path: "../../../AemiTextUI"),
         // A document's head drawn as a table: AemiHMMML's front matter reader and JSON projection, at the revisions AemiMarkdown pins.
-        .package(url: "https://github.com/g-cqd/AemiHMMML.git", revision: "d2d699ae524259ea46485b81c4a5ed36fe7c41fa"),
+        .package(url: "https://github.com/g-cqd/AemiHMMML.git", revision: "326db8babb157297d1686b4808dc3b9d86a1d385"),
         .package(url: "https://github.com/g-cqd/AemiJSON.git", revision: "aec8895f1bc9bdaf2104b0d0ebe91e4a93b3c374"),
         .package(url: "https://github.com/g-cqd/AemiMermaid.git", revision: "1a272f8835a9026cde79e8214ad490070a847774"),
         .package(url: "https://github.com/Aemi-Studio/aemi.git", revision: "e30aad82377cbea62171cc722a88041e97021db2")
