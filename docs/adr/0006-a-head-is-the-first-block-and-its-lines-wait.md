@@ -59,3 +59,12 @@ native row gives the head as written. `FrontMatterTests` in MarkdownLookKit cove
 native table, and a document without a head reading as before. The table cases were seen to fail under a mutant that never builds
 a table.
 
+## Amendment, 2026-11-06: an edit inside the head re-reads only the head
+
+An edit whose range lies inside the head's content reads a region from the start of the document. `beginRegion(at: 0)` starts the
+head as a whole parse does. The region resynchronises at the first body block, moved by the edit, and the head block alone is
+spliced. The region's head must end where the old one did, moved by the edit, and in the same format; then the body's bytes are
+unchanged. Otherwise, and for any edit on a fence or that may open or close a head, the editor parses whole, as before. The
+one-byte-edit oracle over the 15 texts runs through this path, and `headOnlyEdits` checks it is taken: one block out, one in,
+`lastEditParsedWhole` false. Under a mutant that refuses every head edit, its three head-only cases failed.
+

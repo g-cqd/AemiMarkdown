@@ -82,6 +82,24 @@ extension MarkdownEditor {
         return end + 1
     }
 
+    /// The head is decided from the start of the document. An edit inside its content re-reads it alone, in a region from the start
+    /// (the head it stays inside); one out of its reach reads its region (`.some(nil)`); any other may open, close or change the
+    /// head, and parses whole (nil).
+    private func headHolding(_ edit: Range<Int>) -> FrontMatter?? {
+        guard parser.extensions.contains(.frontMatter), edit.lowerBound <= headReach else { return .some(nil) }
+        guard let head = parser.head?.state.found, edit.lowerBound >= head.content.lowerBound,
+            edit.upperBound <= head.content.upperBound
+        else { return nil }
+        return head
+    }
+
+    /// Whether a head re-read ends where the old one did, moved by the edit, so the body's bytes are the same; true without one.
+    private func regionKeepsHead(_ oldHead: FrontMatter?, delta: Int) -> Bool {
+        guard let oldHead else { return true }
+        guard let newHead = region.head?.state.found else { return false }
+        return newHead.format == oldHead.format && newHead.bodyStart == oldHead.bodyStart + delta
+    }
+
     mutating func resync(_ range: Range<Int>, with bytes: [UInt8]) -> MarkdownChange? {
         let oldCount = parser.source.count
         let delta = bytes.count - range.count
@@ -90,9 +108,7 @@ extension MarkdownEditor {
         guard parser.isFinished, parser.diagnostics.isEmpty, !parser.spliced,
             oldCount + delta <= limits.maxDocumentBytes
         else { return nil }
-        // The head is decided from the start of the document, which a region never reads again: an edit that may open, close or
-        // change it parses whole.
-        if parser.extensions.contains(.frontMatter), lo <= headReach { return nil }
+        guard let oldHead = headHolding(lo ..< hi) else { return nil }
 
         // Where to restart: the gap before the block that holds the edit's line, or before the block above it when the edit is on the block's first line.
         var editOffset = lo
@@ -102,9 +118,9 @@ extension MarkdownEditor {
         var first = after - 1  // the last block that starts at or before it
         // A line can change the block above it only from the block's first two lines: a setext underline or a table's delimiter row reads the line before.
         if first >= 0, editLine <= secondLineStart(of: first) { first -= 1 }
-        first = Swift.max(first, 0)
+        first = oldHead == nil ? Swift.max(first, 0) : 0
         let restart = first == 0 ? 0 : parser.lineEndOffset(after: end(of: first - 1))
-        if restart == 0, parser.head?.state.found != nil { return nil }
+        if restart == 0, oldHead == nil, parser.head?.state.found != nil { return nil }
 
         // The bytes go in place now; the old ones are kept for the check below.
         removedBytes.removeAll(keepingCapacity: true)
@@ -145,7 +161,9 @@ extension MarkdownEditor {
             region.source = []
             region.references = ReferenceTable()
         }
-        guard region.diagnostics.isEmpty, region.references.insertAttempts == attempts else { return nil }
+        guard region.diagnostics.isEmpty, region.references.insertAttempts == attempts,
+            regionKeepsHead(oldHead, delta: delta)
+        else { return nil }
         guard
             !hasDefinitionMarker(
                 parser.source[restart ..< lo],
@@ -160,6 +178,7 @@ extension MarkdownEditor {
         for block in region.document().topLevelBlocks { newWindow.append(block.contentHash) }
         let result = change(first: first, replaced: range, insertedBytes: bytes.count)
         splice(first ..< last, delta: delta, threshold: hi, shiftPrefixLinks: referencesMoved)
+        if oldHead != nil { (parser.head, parser.headBodyStart) = (region.head, region.headBodyStart) }
         parser.spliced = false
         parser.lineStart = parser.source.count
         parser.scanPosition = parser.source.count

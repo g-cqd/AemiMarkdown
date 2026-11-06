@@ -147,6 +147,42 @@ struct FrontMatterBlockTests {
             }
         }
     }
+    @Test(
+        "an edit inside a head's content re-reads only the head; one that moves the head's end or touches a fence parses whole"
+    )
+    func headOnlyEdits() throws {
+        let text = Array("---\ntitle: One\ntags: [a]\n---\n# Body\n\npara\n\n- item\n".utf8)
+        let one = try #require(text.firstIndex(of: UInt8(ascii: "O")))
+        let tagsEnd = try #require(text.firstIndex(of: UInt8(ascii: "]"))) + 1
+        let edits: [(Range<Int>, String, whole: Bool)] = [
+            (one ..< one + 3, "Two words", false),
+            (tagsEnd ..< tagsEnd, "\nmore: 1", false),
+            (one ..< one + 1, "", false),
+            (tagsEnd ..< tagsEnd, "\n---", true),
+            (0 ..< 1, "", true),
+            (tagsEnd + 1 ..< tagsEnd + 2, "", true)
+        ]
+        for (range, inserted, whole) in edits {
+            var editor = MarkdownEditor(text, extensions: Self.on)
+            let old = editor.document
+            let change = editor.replace(range, with: Array(inserted.utf8))
+            #expect(editor.lastEditParsedWhole == whole, "\(range) \(inserted.debugDescription)")
+            #expect(EditOracle.problems(old: old, editor: editor, change: change, extensions: Self.on).isEmpty)
+            if !whole {
+                #expect(
+                    change.firstBlock == 0 && change.removedBlocks == 1 && change.insertedBlocks == 1,
+                    "\(range) \(change)"
+                )
+            }
+        }
+        var editor = MarkdownEditor(text, extensions: Self.on)
+        _ = editor.replace(one ..< one + 3, with: Array("Two words".utf8))
+        #expect(editor.document.readFrontMatter()?.value?.yaml?.root["title"]?.string == "Two words")
+        #expect(
+            Array(editor.document.topLevelBlocks).count
+                == Array(MarkdownParser.parse(text, extensions: Self.on).topLevelBlocks).count
+        )
+    }
 }
 
 extension FrontMatterBlockTests {
