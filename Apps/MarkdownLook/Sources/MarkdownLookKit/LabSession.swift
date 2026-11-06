@@ -21,7 +21,7 @@ public struct LabSession: Sendable {
 
     public init(text: String = "") {
         bytes = Array(text.utf8)
-        editor = MarkdownEditor(bytes)
+        editor = MarkdownEditor(bytes, extensions: MarkdownLook.extensions)
     }
 
     public var text: String { String(decoding: bytes, as: UTF8.self) }

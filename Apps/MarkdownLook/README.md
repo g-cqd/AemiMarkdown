@@ -32,3 +32,10 @@ Scripts/compare-all.sh [--dark] [filter]    # the component fixtures, Fixtures/c
 ```
 
 Pictures are written to `/tmp/ql/compare` (web, native, and the difference).
+
+## A document's head is a table
+
+A head at the start of a document (`---` YAML, `+++` TOML, a leading JSON object) is drawn as GitHub draws it: its keys over its
+values, in one table (`FrontMatterTable`, AemiMarkdown ADR 0006's amendment). A head that is not a mapping, or does not read, is
+shown as code in its format. `Package.swift` therefore depends on AemiHMMML and AemiJSON, at the revisions AemiMarkdown pins.
+

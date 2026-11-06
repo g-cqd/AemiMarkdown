@@ -74,6 +74,35 @@ extension NativeBuilder {
         return .scene(scene)
     }
 
+    /// A block of kept lines starting: a code block, an HTML block, or the document's head (code in its format, if not a table).
+    func codeState(for kind: NodeKind) -> CodeState {
+        kind == .frontMatter
+            ? CodeState(isHTML: false, language: FrontMatterTable.language(of: document))
+            : CodeState(isHTML: kind == .htmlBlock)
+    }
+
+    /// A block of kept lines ending.
+    mutating func exitLines(_ kind: NodeKind) {
+        if kind == .frontMatter { exitFrontMatter() } else { exitCode() }
+    }
+
+    /// The document's head: a table, as GitHub draws one, or its lines as code. Copying it gives the head as written.
+    mutating func exitFrontMatter() {
+        guard let table = FrontMatterTable(document) else { return exitCode() }
+        code = nil
+        pendingSource = FrontMatterTable.source(of: document)
+        emit(
+            .table(
+                NativeTable(
+                    alignments: table.keys.map { _ in .leading },
+                    header: table.keys.map(AttributedString.init),
+                    rows: [table.values.map(AttributedString.init)]
+                )
+            ),
+            kind: .box
+        )
+    }
+
     mutating func exitTable() {
         guard let state = table else { return }
         table = nil

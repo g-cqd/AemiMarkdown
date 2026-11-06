@@ -48,3 +48,14 @@ equals the body parsed alone, and a text without a head reads exactly as with th
 1, 2, 3 and 7 bytes with a snapshot after each (valid tapes, and the same tapes as a whole parse); every one-byte edit of every text
 (delete, insert `x`, a line break, `---\n` or `-`) checked against a fresh parse by `EditOracle`, tape for tape; 400 random
 documents from the fences' alphabet, streamed and edited. The release suite passes, allocation ceilings included.
+
+## Amendment, 2026-11-06: MarkdownLook draws a head as GitHub does
+
+MarkdownLook reads with `[.github, .frontMatter]` (`MarkdownLook.extensions`) in its preview, its app and its lab. Both renderers
+draw a head from one model, `FrontMatterTable`: its keys as a header row and its values as one row. A scalar shows its text, a list
+of scalars its items joined by commas, and anything deeper its compact JSON (AemiHMMML's projection, at the revision pinned here).
+A head that is not a mapping, or does not read without a diagnostic, is shown as its lines, as code in its format. Copying the
+native row gives the head as written. `FrontMatterTests` in MarkdownLookKit cover YAML, TOML and JSON heads, the code fallback, the
+native table, and a document without a head reading as before. The table cases were seen to fail under a mutant that never builds
+a table.
+

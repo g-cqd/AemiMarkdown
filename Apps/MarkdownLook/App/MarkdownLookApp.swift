@@ -77,7 +77,7 @@ struct SourceDocument: FileDocument {
     func native(settings: ViewerSettings) -> NativeDocument {
         isDiagram
             ? NativeDocument(diagram: String(decoding: bytes, as: UTF8.self), settings: settings)
-            : NativeDocument(MarkdownParser.parse(bytes), settings: settings)
+            : NativeDocument(MarkdownParser.parse(bytes, extensions: MarkdownLook.extensions), settings: settings)
     }
 }
 

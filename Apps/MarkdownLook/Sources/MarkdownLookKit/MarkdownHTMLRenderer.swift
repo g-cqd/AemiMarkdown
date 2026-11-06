@@ -47,7 +47,7 @@ public struct MarkdownHTMLRenderer: Sendable {
 
     /// A whole page for the bytes of a Markdown file.
     public func page(markdown bytes: [UInt8], title: String) -> String {
-        page(MarkdownParser.parse(bytes), title: title)
+        page(MarkdownParser.parse(bytes, extensions: MarkdownLook.extensions), title: title)
     }
 
     /// A page for a Mermaid file: the diagram alone, or its source as code when the engine does not draw it.

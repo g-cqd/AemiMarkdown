@@ -14,6 +14,9 @@ let package = Package(
     dependencies: [
         .package(path: "../.."),
         .package(path: "../../../AemiTextUI"),
+        // A document's head drawn as a table: AemiHMMML's front matter reader and JSON projection, at the revisions AemiMarkdown pins.
+        .package(url: "https://github.com/g-cqd/AemiHMMML.git", revision: "d2d699ae524259ea46485b81c4a5ed36fe7c41fa"),
+        .package(url: "https://github.com/g-cqd/AemiJSON.git", revision: "aec8895f1bc9bdaf2104b0d0ebe91e4a93b3c374"),
         .package(url: "https://github.com/g-cqd/AemiMermaid.git", revision: "1a272f8835a9026cde79e8214ad490070a847774"),
         .package(url: "https://github.com/Aemi-Studio/aemi.git", revision: "e30aad82377cbea62171cc722a88041e97021db2")
     ],
@@ -22,6 +25,9 @@ let package = Package(
             name: "MarkdownLookKit",
             dependencies: [
                 .product(name: "AemiMarkdown", package: "AemiMarkdown"),
+                .product(name: "AemiFrontMatter", package: "AemiHMMML"),
+                .product(name: "AemiHMMML", package: "AemiHMMML"),
+                .product(name: "AemiJSONCore", package: "AemiJSON"),
                 .product(name: "AemiLexers", package: "aemi"),
                 .product(name: "AemiKernels", package: "aemi"),
                 .product(name: "AemiTextStyling", package: "AemiTextUI"),

@@ -139,7 +139,7 @@ struct NativeBuilder {
                 frames.append(frame)
             case .listItem: enterItem()
             case .footnoteDefinition: enterNote()
-            case .codeBlock, .htmlBlock: code = CodeState(isHTML: node.kind == .htmlBlock)
+            case .codeBlock, .htmlBlock, .frontMatter: code = codeState(for: node.kind)
             case .table: table = TableState(alignments: [])
             case .tableRow: table?.isHeader = node.payload == 1
             case .tableCell:
@@ -181,7 +181,7 @@ struct NativeBuilder {
                     table = state
                 }
             case .table: exitTable()
-            case .codeBlock, .htmlBlock: exitCode()
+            case .codeBlock, .htmlBlock, .frontMatter: exitLines(node.kind)
             case .blockQuote, .list: closeContainer()
             case .listItem:
                 closeContainer()

@@ -112,6 +112,20 @@ extension HTMLWriter {
         if labelled { out += "</div>\n" }
     }
 
+    /// The end of the document's head: a table, as GitHub draws one, or its lines as code when it is not a mapping or does not read.
+    mutating func finishFrontMatter() {
+        guard let table = FrontMatterTable(document) else { return finishCode(isHTML: false) }
+        inCode = false
+        stack.removeLast()
+        codeBytes = []
+        codeLineCount = 0
+        out += "<div class=\"table-wrap front-matter\"><table>\n<thead><tr>"
+        for key in table.keys { out += "<th>\(HTMLText.escaped(key))</th>" }
+        out += "</tr></thead><tbody><tr>"
+        for value in table.values { out += "<td>\(HTMLText.escaped(value))</td>" }
+        out += "</tr></tbody></table></div>\n"
+    }
+
     /// `code` as the scanners and the diagram engine read it: UTF-8 with any ill-formed sequence replaced, as a `String` would hold it.
     static func wellFormed(_ code: [UInt8]) -> [UInt8] {
         code.contains { $0 >= 0x80 } ? Array(String(decoding: code, as: UTF8.self).utf8) : code

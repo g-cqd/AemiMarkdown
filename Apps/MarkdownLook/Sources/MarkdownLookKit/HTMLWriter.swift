@@ -206,6 +206,14 @@ struct HTMLWriter {
                 language = ""
                 rawLanguage = ""
                 stack.append(Frame(kind: node.kind, closing: ""))
+            case .frontMatter:
+                // Its lines are kept, for a head that is shown as code.
+                inCode = true
+                codeBytes = []
+                codeLineCount = 0
+                rawLanguage = FrontMatterTable.language(of: document)
+                language = rawLanguage
+                stack.append(Frame(kind: .frontMatter, closing: ""))
             case .table:
                 tableBody = false
                 tableStart = out.count
@@ -252,6 +260,7 @@ struct HTMLWriter {
                 closeFrame()
                 out += "\n"
             case .codeBlock, .htmlBlock: finishCode(isHTML: node.kind == .htmlBlock)
+            case .frontMatter: finishFrontMatter()
             case .autolink: autolinkKind = nil
             case .table:
                 if tableBody { out += "</tbody>" }
