@@ -20,16 +20,16 @@ let kernelSettings: [SwiftSetting] = strictSettings + [.strictMemorySafety()]
 // dependency: a package that depends on AemiMarkdown does not fetch it.
 let aemiDependency: Package.Dependency = .package(
     url: "https://github.com/Aemi-Studio/aemi.git",
-    revision: "409c647a91736065ac53c1877abe2cf4840f7617"
+    revision: "0bae2edb1a89bd3d931fb3122c2184cc5c368834"
 )
 // AemiHMMML's front matter locator and readers (its ADR-0009 and ADR-0015), for `MarkdownExtensions.frontMatter`.
 let hmmmlDependency: Package.Dependency = .package(
     url: "https://github.com/g-cqd/AemiHMMML.git",
-    revision: "06db76a56e4bc007f7ea172a01bdae6451587668"
+    revision: "4d3e071072019540c43cbee10073f54664fd6ebe"
 )
 let regexDependency: Package.Dependency = .package(
     url: "https://github.com/g-cqd/AemiRegex.git",
-    revision: "2d4cf1203dac2c992db9d3ab4da3756968d73d9e"
+    revision: "3efa8699dbce4cafe5efc6dcf76223890cf06c1e"
 )
 
 // The DocC plugin is for contributors (`AEMIMARKDOWN_DEV=1 swift package generate-documentation --target AemiMarkdown`); packages that depend on
