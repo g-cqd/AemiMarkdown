@@ -122,6 +122,17 @@ struct FrontMatterTests {
         #expect(broken.contains("language-yaml") && !broken.contains("front-matter"))
     }
 
+    @Test("dates as Jekyll and YAML 1.1 write them: a space before the offset, which may lack its colon or its minutes")
+    func spacedDates() {
+        let dates = DateText(locale: Locale(identifier: "en_US_POSIX"), timeZone: TimeZone(identifier: "UTC")!)
+        func read(_ text: String) -> String? { dates.readable(text)?.replacingOccurrences(of: "\u{202F}", with: " ") }
+        #expect(read("2026-03-14 09:30:00 +0100") == "Mar 14, 2026 at 8:30 AM")
+        #expect(read("2026-03-14 09:30:00 +01:00") == "Mar 14, 2026 at 8:30 AM")
+        #expect(read("2001-12-14 21:59:43.10 -5") == "Dec 15, 2001 at 2:59 AM")
+        #expect(read("2026-03-14 09:30 +0100") == nil)
+        #expect(read("2026-03-14 +0100") == nil && read("2026-03-14 09:30:00 +01000") == nil)
+    }
+
     @Test("the native view gets the same panel, and copying it gives the head as written")
     func native() {
         let found = NativeDocument(document("---\ntitle: Note\ntags: [a, b]\n---\n# Body\n")).rows

@@ -58,7 +58,9 @@ struct NativeFrontMatterView: View {
     @ViewBuilder private func value(_ value: FrontMatterPanel.Value) -> some View {
         let body = fonts.font(.text, size: size * 0.96)
         switch value {
-            case .text(let text), .date(let text): Text(text).font(body).foregroundColor(NativeTheme.text)
+            // Wrapped at the column's width: a grid row otherwise may get one line's height and truncate.
+            case .text(let text), .date(let text):
+                Text(text).font(body).foregroundColor(NativeTheme.text).fixedSize(horizontal: false, vertical: true)
             case .link(let address):
                 if let url = URL(string: address) {
                     Link(address, destination: url).font(body).foregroundColor(NativeTheme.link)

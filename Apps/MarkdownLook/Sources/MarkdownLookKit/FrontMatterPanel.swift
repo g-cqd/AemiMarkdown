@@ -135,14 +135,19 @@ public struct FrontMatterPanel: Sendable, Equatable {
 }
 
 /// RFC 3339 dates and date-times (TOML's forms; a space for the `T`), as the reader's locale writes them: an instant in their time
-/// zone, a local date or date-time as written. Anything else is not a date here.
+/// zone, a local date or date-time as written. Jekyll's form (`2026-03-14 09:30:00 +0100`, Ruby's) and YAML 1.1's
+/// (`2001-12-14 21:59:43.10 -5`), with white space before an offset that may lack its colon or its minutes, read as the instants
+/// they are. Anything else is not a date here.
 struct DateText {
     let locale: Locale
     let timeZone: TimeZone
 
     func readable(_ text: String) -> String? {
         guard text.count >= 10,
-            let moment = RFC3339DateTime(parsing: Array(text.utf8)[...], syntax: [.toml11, .spaceSeparator])
+            let moment = RFC3339DateTime(
+                parsing: Self.spacedOffset(Array(text.utf8))[...],
+                syntax: [.toml11, .spaceSeparator]
+            )
         else { return nil }
         let formatter = DateFormatter()
         formatter.locale = locale
@@ -169,6 +174,45 @@ struct DateText {
                 return formatter.string(from: date)
             case .localTime: return nil
         }
+    }
+}
+
+extension DateText {
+    /// `YYYY-MM-DD hh:mm:ss[.f] ±h[h][[:]mm]` as RFC 3339 (`YYYY-MM-DDThh:mm:ss[.f]±hh:mm`); any other text unchanged.
+    static func spacedOffset(_ text: [UInt8]) -> [UInt8] {
+        func digit(_ index: Int) -> Bool { index < text.count && (0x30 ... 0x39).contains(text[index]) }
+        // The date, a space or T, and a time with its seconds.
+        guard text.count > 19, (0 ..< 4).allSatisfy(digit), text[4] == 0x2D, digit(5), digit(6), text[7] == 0x2D,
+            digit(8),
+            digit(9), text[10] == 0x20 || text[10] == 0x54, digit(11), digit(12), text[13] == 0x3A, digit(14),
+            digit(15),
+            text[16] == 0x3A, digit(17), digit(18)
+        else { return text }
+        var end = 19
+        if end < text.count, text[end] == 0x2E {
+            end += 1
+            guard digit(end) else { return text }
+            while digit(end) { end += 1 }
+        }
+        // White space, then the offset.
+        var sign = end
+        while sign < text.count, text[sign] == 0x20 || text[sign] == 0x09 { sign += 1 }
+        guard sign > end, sign < text.count, text[sign] == 0x2B || text[sign] == 0x2D else { return text }
+        var position = sign + 1
+        var hours: [UInt8] = []
+        while digit(position), hours.count < 2 {
+            hours.append(text[position])
+            position += 1
+        }
+        var minutes: [UInt8] = [0x30, 0x30]
+        if position < text.count, text[position] == 0x3A { position += 1 }
+        if digit(position), digit(position + 1) {
+            minutes = [text[position], text[position + 1]]
+            position += 2
+        }
+        guard !hours.isEmpty, position == text.count else { return text }
+        if hours.count == 1 { hours.insert(0x30, at: 0) }
+        return Array(text[0 ..< 10]) + [0x54] + Array(text[11 ..< end]) + [text[sign]] + hours + [0x3A] + minutes
     }
 }
 

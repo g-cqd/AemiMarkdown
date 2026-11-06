@@ -31,3 +31,12 @@ writer and the native builder:
 and the opened HTML, escaped and balanced; TOML and JSON heads; the code fallback; the native panel and what copying it gives; a
 document without a head reading as before. 100 tests. Under a mutant that left nested keys unindented, two failed. The compare tool
 drew both views of a Jekyll and a Hugo head, closed and open, light and dark, and they agree. The app builds with the new setting.
+
+## Amendment (2026-11-06): long values and Jekyll's dates
+
+Drawn on a Jekyll post, a Hugo post, an Agent Skills file and an Obsidian note, open and closed, light and dark, two things were
+wrong. The native view cut a long value to one line: a grid row may be given one line's height, so values now wrap at their
+column's width (`fixedSize(horizontal: false, vertical: true)`). A date as Jekyll writes it (`2026-03-14 09:30:00 +0100`, Ruby's
+form) or as YAML 1.1 does (`2001-12-14 21:59:43.10 -5`) was shown as written; white space before an offset without its colon or
+minutes now reads as RFC 3339 (`DateText.spacedOffset`). `FrontMatterTests.spacedDates`; a mutant that skipped the rewrite failed
+three of its expectations.
