@@ -1,3 +1,6 @@
+public import AemiFrontMatter
+public import AemiHMMMLCore
+
 /// A parsed document: the source bytes and the two tapes that name them (ADR-0001).
 ///
 /// A value of this type is a snapshot. It shares storage with the parser that made it, copy-on-write, so holding one while the parser
@@ -12,6 +15,9 @@ public struct MarkdownDocument: Sendable {
     public let diagnostics: MarkdownDiagnostics
     /// Where the top-level blocks that may still change begin on the block tape.
     let finalBefore: Int
+    /// The document's head (``MarkdownExtensions/frontMatter``): its format, and where it and its content are in ``source``. It is
+    /// also the first top-level block, a ``NodeKind/frontMatter``.
+    public let frontMatter: FrontMatter?
 
     init(
         source: ContiguousArray<UInt8>,
@@ -20,7 +26,8 @@ public struct MarkdownDocument: Sendable {
         index: SlotTape,
         stamps: SlotTape,
         diagnostics: MarkdownDiagnostics,
-        finalBefore: Int
+        finalBefore: Int,
+        frontMatter: FrontMatter? = nil
     ) {
         self.source = source
         self.blocks = blocks
@@ -29,6 +36,15 @@ public struct MarkdownDocument: Sendable {
         self.stamps = stamps
         self.diagnostics = diagnostics
         self.finalBefore = finalBefore
+        self.frontMatter = frontMatter
+    }
+
+    /// The head read in its language (YAML, TOML or JSON), recovering: a Markdown document never fails to read, so what is broken in
+    /// its head is in the reading's diagnostics, with offsets in ``source``. Nil without a head.
+    public func readFrontMatter(limits: MarkupLimits = .default) -> FrontMatter.Reading? {
+        guard let frontMatter else { return nil }
+        // Recovering never throws.
+        return try? frontMatter.read(from: source, policy: .recovering, limits: limits)
     }
 
     /// The document in order, as enter, exit and leaf events.

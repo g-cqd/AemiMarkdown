@@ -29,6 +29,9 @@ public enum NodeKind: UInt8, Sendable, CaseIterable {
     case tableRow
     /// A leaf block with inlines. Payload: alignment (0 none, 1 left, 2 center, 3 right).
     case tableCell
+    /// A container whose children are ``codeLine`` leaves: the document's head (``MarkdownExtensions/frontMatter``), its lines as
+    /// written, fences excluded. Payload: 1 YAML, 2 TOML, 3 JSON. Only ever the first top-level block.
+    case frontMatter
 
     // MARK: Block leaves that name source bytes
     /// One line of a code or HTML block, without its line ending. The range may be empty.

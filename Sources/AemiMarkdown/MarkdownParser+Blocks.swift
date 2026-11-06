@@ -72,7 +72,7 @@ extension MarkdownParser {
                     if block.htmlCondition >= 6 && state.blank { matched = false }
                 case .paragraph, .table:
                     if state.blank { matched = false }
-                case .heading, .thematicBreak:
+                case .heading, .thematicBreak, .frontMatter:
                     matched = false
                 case .list, .document:
                     break

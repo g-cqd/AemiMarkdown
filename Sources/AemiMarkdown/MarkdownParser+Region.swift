@@ -12,6 +12,9 @@ extension MarkdownParser {
         reset()
         self.source = source
         self.references = references
+        // A region never holds the head: the editor parses whole when an edit is within reach of it.
+        head = nil
+        headBodyStart = 0
         lineStart = start
         scanPosition = start
         scannedUpTo = start

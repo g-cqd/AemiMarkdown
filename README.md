@@ -4,7 +4,8 @@ A Markdown parser for terminals and streams. It reads UTF-8 bytes and writes two
 text, allocates nothing per node, parses a growing answer in time proportional to what was added, takes any bytes without failing, and bounds everything an
 attacker could make large. CommonMark 0.31.2 plus the GitHub extensions: tables, strikethrough, autolinks, task lists and footnotes (the whole GFM extension
 spec, 30 examples), and alerts (`> [!NOTE]`) and math (`$x$`, `$$x$$`), which GitHub renders but no spec describes. `MarkdownExtensions.github` turns all on,
-`.gfm` only the specified ones.
+`.gfm` only the specified ones. `.frontMatter` (off by default) reads a document's head (`---` YAML, `+++` TOML, a leading JSON
+object) as its first block, by AemiHMMML's rules, and `readFrontMatter()` reads its value (ADR 0006).
 
 **Status:** the parser is complete against both specifications: every CommonMark 0.31.2 example (652) and every GFM extension example (30) passes, and the
 ratchet of known failures is empty. Compared with cmark 0.31.2 and cmark-gfm 0.29 on random inputs, the differences left are classified in

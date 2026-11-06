@@ -1,3 +1,5 @@
+internal import AemiFrontMatter
+
 /// Parses Markdown from UTF-8 bytes into a ``MarkdownDocument``, all at once or as it streams in (ADR-0001).
 public struct MarkdownParser: Sendable {
     public let limits: MarkdownLimits
@@ -27,10 +29,16 @@ public struct MarkdownParser: Sendable {
     /// When a single open paragraph runs without line breaks for many bytes, an incremental parser keeps its inline tree across appends and snapshots.
     var openParagraphParser: InlineParser?
     var openParagraphParsedUpTo = 0
+    /// The document's head (``MarkdownExtensions/frontMatter``), boxed: the parser is copied often and most documents have none.
+    var head: HeadBox?
+    /// Where the lines after the head start: lines before are the head's, not Markdown. `Int.max` while the head is undecided, so
+    /// that every complete line waits for it, at the cost of one comparison per line.
+    var headBodyStart = 0
 
     public init(extensions: MarkdownExtensions = .github, limits: MarkdownLimits = .default) {
         self.extensions = extensions
         self.limits = limits
+        startHead()
     }
 
     /// Parses `bytes` as a whole document. Reference definitions anywhere apply to every link.
@@ -65,6 +73,7 @@ public struct MarkdownParser: Sendable {
         inlineSteps = 0
         openParagraphParser = nil
         openParagraphParsedUpTo = 0
+        startHead()
     }
 
     /// The document as the tapes stand. `finalBefore` is where the blocks that may still change begin; a finished document has none.
@@ -76,7 +85,8 @@ public struct MarkdownParser: Sendable {
             index: topIndex,
             stamps: stamps,
             diagnostics: diagnostics,
-            finalBefore: finalBefore ?? blocks.count
+            finalBefore: finalBefore ?? blocks.count,
+            frontMatter: head?.state.found
         )
     }
 

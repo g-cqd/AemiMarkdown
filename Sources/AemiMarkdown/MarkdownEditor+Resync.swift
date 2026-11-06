@@ -1,3 +1,5 @@
+internal import AemiFrontMatter
+
 /// The edit that reads only its own region (ADR-0003, phase B). Every early `return nil` leaves the document as it was, except that the bytes may be in
 /// `source` (`spliced`): the whole parse that follows takes them from there.
 extension MarkdownEditor {
@@ -70,6 +72,16 @@ extension MarkdownEditor {
     }
 
     /// Does the edit by reading only its region, or returns nil.
+    /// How far into the source an edit may change the head (``MarkdownExtensions/frontMatter``): to the body's start when there is
+    /// one; past its content's start by the bound when an opening fence was seen; the first line otherwise, where one may be written.
+    private var headReach: Int {
+        if let head = parser.head?.state.found { return head.bodyStart }
+        if let contentStart = parser.head?.state.contentStart { return contentStart + limits.maxFrontMatterBytes + 1 }
+        var end = 0
+        while end < parser.source.count, parser.source[end] != 0x0A, parser.source[end] != 0x0D { end += 1 }
+        return end + 1
+    }
+
     mutating func resync(_ range: Range<Int>, with bytes: [UInt8]) -> MarkdownChange? {
         let oldCount = parser.source.count
         let delta = bytes.count - range.count
@@ -78,6 +90,9 @@ extension MarkdownEditor {
         guard parser.isFinished, parser.diagnostics.isEmpty, !parser.spliced,
             oldCount + delta <= limits.maxDocumentBytes
         else { return nil }
+        // The head is decided from the start of the document, which a region never reads again: an edit that may open, close or
+        // change it parses whole.
+        if parser.extensions.contains(.frontMatter), lo <= headReach { return nil }
 
         // Where to restart: the gap before the block that holds the edit's line, or before the block above it when the edit is on the block's first line.
         var editOffset = lo
@@ -89,6 +104,7 @@ extension MarkdownEditor {
         if first >= 0, editLine <= secondLineStart(of: first) { first -= 1 }
         first = Swift.max(first, 0)
         let restart = first == 0 ? 0 : parser.lineEndOffset(after: end(of: first - 1))
+        if restart == 0, parser.head?.state.found != nil { return nil }
 
         // The bytes go in place now; the old ones are kept for the check below.
         removedBytes.removeAll(keepingCapacity: true)

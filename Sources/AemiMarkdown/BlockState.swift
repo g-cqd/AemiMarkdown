@@ -4,7 +4,8 @@ struct BlockState: Sendable {
     enum Kind: UInt8, Sendable {
         case document, blockQuote, list, item, footnote, paragraph, heading, thematicBreak, indentedCode, fencedCode,
             htmlBlock,
-            table
+            table,
+            frontMatter
     }
 
     struct Open: Sendable {

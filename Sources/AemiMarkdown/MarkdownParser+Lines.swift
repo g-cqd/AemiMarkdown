@@ -67,6 +67,8 @@ extension MarkdownParser {
         }
         if lineStart < source.count { processLines(start: lineStart, end: source.count) }
         lineStart = source.count
+        // A head still undecided is decided now that nothing more comes.
+        if headPending { decideHead(before: source.count) }
         scan(upTo: source.count)
         closeAbove(0)
         parsePendingInlines()
@@ -129,6 +131,12 @@ extension MarkdownParser {
 
     /// Parses one line, cut into pieces of at most `maxLineBytes` so that no line is longer than the limit says.
     mutating func processLines(start: Int, end: Int) {
+        if start < headBodyStart, !admitLine(at: start) { return }
+        cutLines(start: start, end: end)
+    }
+
+    /// ``processLines(start:end:)`` for a line that is Markdown.
+    mutating func cutLines(start: Int, end: Int) {
         var from = start
         while end - from > limits.maxLineBytes {
             diagnostics.insert(.lineLengthLimit)

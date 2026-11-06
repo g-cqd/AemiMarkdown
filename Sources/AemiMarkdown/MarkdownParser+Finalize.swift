@@ -20,7 +20,7 @@ extension MarkdownParser {
                     state.verbatimEnd = state.consumedEnd
                 }
                 blocks[block.slot] = Slot.withLow(blocks[block.slot], blocks.count)
-            case .blockQuote, .item, .footnote, .table:
+            case .blockQuote, .item, .footnote, .table, .frontMatter:
                 blocks[block.slot] = Slot.withLow(blocks[block.slot], blocks.count)
             case .list:
                 var slot = Slot.withLow(blocks[block.slot], blocks.count)

@@ -22,6 +22,11 @@ let aemiDependency: Package.Dependency = .package(
     url: "https://github.com/Aemi-Studio/aemi.git",
     revision: "e30aad82377cbea62171cc722a88041e97021db2"
 )
+// AemiHMMML's front matter locator and readers (its ADR-0009 and ADR-0015), for `MarkdownExtensions.frontMatter`.
+let hmmmlDependency: Package.Dependency = .package(
+    url: "https://github.com/g-cqd/AemiHMMML.git",
+    revision: "3c27b56758d95a24e95a4b106cf59507d570f11d"
+)
 let regexDependency: Package.Dependency = .package(
     url: "https://github.com/g-cqd/AemiRegex.git",
     revision: "e07516ddd7ea3bcedd055dfe66f67ffb06fb5a82"
@@ -37,11 +42,12 @@ let package = Package(
     name: "AemiMarkdown",
     platforms: [.macOS(.v15), .iOS(.v18), .tvOS(.v18), .watchOS(.v11), .visionOS(.v2)],
     products: [.library(name: "AemiMarkdown", targets: ["AemiMarkdown"])],
-    dependencies: [aemiDependency, regexDependency] + documentationDependencies,
+    dependencies: [aemiDependency, hmmmlDependency, regexDependency] + documentationDependencies,
     targets: [
         .target(
             name: "AemiMarkdown",
             dependencies: [
+                .product(name: "AemiFrontMatter", package: "AemiHMMML"),
                 .product(name: "AemiKernel", package: "aemi"),
                 .product(name: "AemiKernels", package: "aemi")
             ],
@@ -51,6 +57,10 @@ let package = Package(
             name: "AemiMarkdownTests",
             dependencies: [
                 "AemiMarkdown",
+                .product(name: "AemiFrontMatter", package: "AemiHMMML"),
+                .product(name: "AemiHMMMLCore", package: "AemiHMMML"),
+                .product(name: "AemiTOML", package: "AemiHMMML"),
+                .product(name: "AemiYAML", package: "AemiHMMML"),
                 .product(name: "AemiKernel", package: "aemi"),
                 .product(name: "AemiTestKit", package: "aemi")
             ],

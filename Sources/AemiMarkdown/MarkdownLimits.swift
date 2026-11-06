@@ -20,6 +20,9 @@ public struct MarkdownLimits: Sendable, Equatable {
     public var maxLeafBytes: Int
     /// The most bytes in a link's destination or title. A longer one is not a link: a title can run over many lines, and a slot can name only 4 MiB.
     public var maxLinkBytes: Int
+    /// The most bytes a front matter head may hold (``MarkdownExtensions/frontMatter``). Its lines wait until the head closes, so
+    /// a longer head, or an opening `---` that nothing closes within it, is Markdown.
+    public var maxFrontMatterBytes: Int
 
     /// The settings, brought inside what the tape format and the memory budget can hold: each is clamped to its floor and ceiling, so no setting traps.
     public init(
@@ -30,7 +33,8 @@ public struct MarkdownLimits: Sendable, Equatable {
         maxTableColumns: Int = 64,
         maxInlineWorkPerByte: Int = 64,
         maxLeafBytes: Int = 1 << 20,
-        maxLinkBytes: Int = 64 << 10
+        maxLinkBytes: Int = 64 << 10,
+        maxFrontMatterBytes: Int = 64 << 10
     ) {
         // @dl:disable near-clone -- one clamp per setting, in one shape
         self.maxContainerDepth = Self.clamp(maxContainerDepth, 1, 256)
@@ -42,6 +46,7 @@ public struct MarkdownLimits: Sendable, Equatable {
         self.maxInlineWorkPerByte = Self.clamp(maxInlineWorkPerByte, 1, 1024)
         self.maxLeafBytes = Self.clamp(maxLeafBytes, 1, Slot.maxRange)
         self.maxLinkBytes = Self.clamp(maxLinkBytes, 1, Slot.maxRange)
+        self.maxFrontMatterBytes = Self.clamp(maxFrontMatterBytes, 0, Slot.maxRange)
         // @dl:enable near-clone
     }
 
@@ -72,8 +77,8 @@ public struct MarkdownDiagnostics: OptionSet, Sendable, Equatable {
 
 /// The syntax beyond CommonMark that the parser reads. Every one is on by default (``github``); with none, the parser is CommonMark 0.31.2 and nothing else.
 public struct MarkdownExtensions: OptionSet, Sendable {
-    public let rawValue: UInt8
-    public init(rawValue: UInt8) { self.rawValue = rawValue }
+    public let rawValue: UInt16
+    public init(rawValue: UInt16) { self.rawValue = rawValue }
 
     /// GitHub tables: `| a | b |` with a delimiter row `| --- | --- |`.
     public static let tables = MarkdownExtensions(rawValue: 1 << 0)
@@ -94,6 +99,11 @@ public struct MarkdownExtensions: OptionSet, Sendable {
     /// `$x^2$` and `$$ … $$`, as GitHub reads them: the opening `$` is followed by something other than a space, the closing one is preceded by something other than a space and
     /// not followed by a digit. A shell line such as `"$A" "$B"` outside a code span can look like one, as it does on GitHub.
     public static let math = MarkdownExtensions(rawValue: 1 << 6)
+    /// A head at the start of the document: `---` YAML, `+++` TOML or a leading JSON object, by AemiHMMML's front matter rules (its
+    /// ADR-0015), as one ``NodeKind/frontMatter`` block whose lines are kept as written. ``MarkdownDocument/frontMatter`` says where it
+    /// is and ``MarkdownDocument/readFrontMatter(limits:)`` reads it; a head never makes the parse fail. Off, CommonMark and GFM read
+    /// the same as before. Not in ``github``: GitHub draws a head as a table, which is a renderer's choice.
+    public static let frontMatter = MarkdownExtensions(rawValue: 1 << 7)
 
     /// What cmark-gfm implements and the GitHub Flavored Markdown specification describes.
     public static let gfm: MarkdownExtensions = [.tables, .strikethrough, .autolinks, .taskLists, .footnotes]
