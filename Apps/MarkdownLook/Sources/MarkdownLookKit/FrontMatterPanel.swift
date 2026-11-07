@@ -20,11 +20,15 @@ public enum MarkdownLook {}
 /// diagnostic: such a head is shown as its lines, as code in its format.
 public struct FrontMatterPanel: Sendable, Equatable {
     public enum Value: Sendable, Equatable {
+        /// Prose: words, or a property that is always prose (``proseKeys``).
         case text(String)
+        /// A word a program reads (an identifier, a path, a model's name, a number): no white space in it, set in the code face.
+        case code(String)
         case link(String)
         case date(String)
         case flag(Bool)
-        case tags([String])
+        /// A list of scalars as words; in the code face when every item is a ``code(_:)`` word.
+        case tags([String], code: Bool)
         /// A null, an empty mapping or list, or a group (its properties are the row's children).
         case none
     }
@@ -79,7 +83,7 @@ public struct FrontMatterPanel: Sendable, Equatable {
                         children: rows(object.map { ($0.key, $0.value) }, depth: depth + 1, dates: dates)
                     )
                 case .array(let items) where items.allSatisfy(\.isScalar):
-                    Row(key: key, value: items.isEmpty ? .none : .tags(items.map(scalarText)))
+                    Row(key: key, value: items.isEmpty ? .none : words(items.map(scalarText), key: key))
                 case .array(let items) where depth < deepest:
                     Row(
                         key: key,
@@ -90,12 +94,24 @@ public struct FrontMatterPanel: Sendable, Equatable {
                             dates: dates
                         )
                     )
-                default: Row(key: key, value: scalar(value, dates: dates))
+                default: Row(key: key, value: scalar(value, key: key, dates: dates))
             }
         }
     }
 
-    private static func scalar(_ value: JSONValue, dates: DateText) -> Value {
+    /// Properties that are prose whatever their text: a one-word title is still a title.
+    static let proseKeys: Set<String> = ["title", "subtitle", "description", "summary", "excerpt", "caption", "alt"]
+
+    /// A word a program reads rather than a person: no white space, and short enough to be a name.
+    static func isCodeWord(_ text: String) -> Bool {
+        !text.isEmpty && text.count <= 64 && !text.contains(where: \.isWhitespace)
+    }
+
+    private static func words(_ items: [String], key: String) -> Value {
+        .tags(items, code: !proseKeys.contains(key.lowercased()) && items.allSatisfy(isCodeWord))
+    }
+
+    private static func scalar(_ value: JSONValue, key: String, dates: DateText) -> Value {
         switch value {
             case .null: .none
             case .bool(let flag): .flag(flag)
@@ -105,11 +121,16 @@ public struct FrontMatterPanel: Sendable, Equatable {
                 } else if isWebOrMail(text) {
                     .link(text)
                 } else {
-                    // A block scalar ends with its newline (`>` and `|` keep one): the line it would add is not part of the value.
-                    .text(String(text.reversed().drop { $0 == "\n" }.reversed()))
+                    prose(String(text.reversed().drop { $0 == "\n" }.reversed()), key: key)
                 }
-            default: .text(scalarText(value))
+            // A number, or a group too deep to draw (as its JSON).
+            default: .code(scalarText(value))
         }
+    }
+
+    /// A block scalar ends with its newline (`>` and `|` keep one): the line it would add is not part of the value (trimmed above).
+    private static func prose(_ text: String, key: String) -> Value {
+        !proseKeys.contains(key.lowercased()) && isCodeWord(text) ? .code(text) : .text(text)
     }
 
     private static func scalarText(_ value: JSONValue) -> String {

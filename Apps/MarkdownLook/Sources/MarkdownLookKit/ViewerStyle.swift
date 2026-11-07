@@ -79,6 +79,7 @@ public enum ViewerStyle {
         .fm-value { overflow-wrap: anywhere; white-space: pre-line; } .fm-none { color: var(--tertiary); }
         .fm-group > .fm { position: relative; margin-block-start: var(--gap-s); padding-left: var(--indent); }
         .fm-group > .fm::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: var(--bar); border-radius: 1px; background: var(--rule); }
+        .fm-value code { font-size: 0.9em; line-height: 1; background: none; padding: 0; border-radius: 0; }
         .fm-tags > span + span::before { content: '\\202F\\00B7\\2009'; color: var(--tertiary); }
         th, td { position: relative; padding: var(--cell); text-align: left; vertical-align: top; }
         th::after, td::after { content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: var(--hair); background: var(--rule); }

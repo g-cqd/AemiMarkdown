@@ -44,12 +44,14 @@ struct NativeFrontMatterView: View {
 
     /// The words of a list, a muted middle dot between them, bound to the word before it (a narrow no-break space) so a line
     /// breaks after a dot, never before one.
-    static func words(_ tags: [String]) -> AttributedString {
+    /// `dots`, when the items are in the code face: the text's face for the dots, as the page draws them.
+    static func words(_ tags: [String], dots: Font? = nil) -> AttributedString {
         var text = AttributedString()
         for (index, tag) in tags.enumerated() {
             if index > 0 {
                 var dot = AttributedString("\u{202F}\u{00B7}\u{2009}")
                 dot.foregroundColor = NativeTheme.tertiary
+                if let dots { dot.font = dots }
                 text += dot
             }
             // An item is kept whole: a line breaks between items only.
@@ -75,6 +77,18 @@ struct PropertyStyle {
                 .lineHeight(.exact(points: leading)).fixedSize(horizontal: false, vertical: true)
         }
         .offset(y: NativeMetrics.halfLeading(font: font, lineHeight: leading))
+    }
+
+    /// A value in the code face, at 0.9 of the body's size (the page's `code`), its baseline where the page puts it: on the text's
+    /// strut, as an inline `code` in a line of text is.
+    func code(_ text: Text, color: Color) -> some View {
+        let own = fonts.nsFont(.code, size: size * 0.9)
+        let block = fonts.nsFont(.text, size: size)
+        return BalancedLayout(lineHeight: leading) {
+            text.font(fonts.font(.code, size: size * 0.9)).foregroundColor(color)
+                .lineHeight(.exact(points: leading)).fixedSize(horizontal: false, vertical: true)
+        }
+        .offset(y: NativeMetrics.shift(own: own, block: block, lineHeight: leading))
     }
 }
 
@@ -125,14 +139,20 @@ private struct NativeProperties: View {
     @ViewBuilder private func value(_ value: FrontMatterPanel.Value) -> some View {
         switch value {
             case .text(let text), .date(let text): style.line(Text(text), color: NativeTheme.text)
+            case .code(let text): style.code(Text(text), color: NativeTheme.text)
             case .link(let address):
                 if let url = URL(string: address) {
                     Link(destination: url) { style.line(Text(address), color: NativeTheme.link) }
                 } else {
                     style.line(Text(address), color: NativeTheme.text)
                 }
-            case .flag(let flag): style.line(Text(flag ? "true" : "false"), color: NativeTheme.text)
-            case .tags(let tags): style.line(Text(NativeFrontMatterView.words(tags)), color: NativeTheme.text)
+            case .flag(let flag): style.code(Text(flag ? "true" : "false"), color: NativeTheme.text)
+            case .tags(let tags, false): style.line(Text(NativeFrontMatterView.words(tags)), color: NativeTheme.text)
+            case .tags(let tags, true):
+                style.code(
+                    Text(NativeFrontMatterView.words(tags, dots: style.fonts.font(.text, size: style.size))),
+                    color: NativeTheme.text
+                )
             case .none: style.line(Text("none"), color: NativeTheme.tertiary)
         }
     }

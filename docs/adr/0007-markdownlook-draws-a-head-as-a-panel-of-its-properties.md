@@ -79,3 +79,17 @@ Without a box the head did not read as one thing, and the two-column grid read a
   group's chevron is at its key's size, so the baselines of a line agree. The compare tool drew a nested opencode-style agent,
   Copilot's orchestrator, a Jekyll post, a Hugo page and an Obsidian note, light and dark, open and closed: the box is the same
   height in both views (within 2 pt for five nested groups).
+
+## Amendment (2026-11-07, code words): values a program reads are set in the code face
+
+A head mixes prose (a title, a description) with words a program reads: a model's identifier, a mode, a tool's name, a path, a
+number, a flag. The second kind is now set in the code face (the page's `code`, 0.9 em, without its tint), so the two read apart.
+
+- A string is code when it has no white space, is at most 64 characters, and its key is not a prose property (`title`, `subtitle`,
+  `description`, `summary`, `excerpt`, `caption`, `alt`): a one-word title is still a title. Numbers, flags and a group too deep to
+  draw (its JSON) are code. Dates and links are not.
+- A list of scalars is code when every item is; one item with a space ("Claude Opus 4.6") keeps the whole list prose. The dots
+  between items stay in the text's face.
+- On the page the code keeps the line's leading (`line-height: 1` inside the line, so the line box stays 1.6 em); in the native
+  view it sits on the text's strut (`NativeMetrics.shift`), as an inline `code` does. `codeWords` tests the rule (a mutant without
+  the prose keys fails it); the compare tool's boxes are the same height in both views.

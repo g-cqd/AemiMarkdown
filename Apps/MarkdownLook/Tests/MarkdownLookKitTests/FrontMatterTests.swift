@@ -66,19 +66,38 @@ struct FrontMatterTests {
                     key: "author",
                     value: .none,
                     children: [
-                        Row(key: "name", value: .text("G")), Row(key: "url", value: .link("https://example.com/a"))
+                        Row(key: "name", value: .code("G")), Row(key: "url", value: .link("https://example.com/a"))
                     ]
                 ),
-                Row(key: "tags", value: .tags(["swift", "yaml"])),
+                Row(key: "tags", value: .tags(["swift", "yaml"], code: true)),
                 Row(key: "draft", value: .flag(false)),
                 Row(key: "published", value: .flag(true)),
-                Row(key: "home", value: .text("/relative")),
+                Row(key: "home", value: .code("/relative")),
                 Row(key: "empty", value: .none),
                 Row(
                     key: "related",
                     value: .none,
                     children: [Row(key: "1", value: .none, children: [Row(key: "title", value: .text("One"))])]
                 )
+            ]
+        )
+    }
+
+    @Test(
+        "words a program reads are code (no white space, not a prose property); prose, and lists with prose in them, are not"
+    )
+    func codeWords() throws {
+        let panel = try #require(
+            panel(
+                "---\ntitle: Notes\nmodel: anthropic/claude-opus\neffort: high\nsummary: short\n"
+                    + "note: two words\nmodels: [Claude Opus 4.6, gpt-5]\ntools: [read, apple-docs/*]\nn: 3\n---\n"
+            )
+        )
+        #expect(
+            panel.rows.map(\.value) == [
+                .text("Notes"), .code("anthropic/claude-opus"), .code("high"), .text("short"), .text("two words"),
+                .tags(["Claude Opus 4.6", "gpt-5"], code: false), .tags(["read", "apple-docs/*"], code: true),
+                .code("3")
             ]
         )
     }
@@ -94,7 +113,7 @@ struct FrontMatterTests {
             level += 1
         }
         #expect(level == FrontMatterPanel.deepest)
-        guard case .text(let text) = row.rows.first?.value else {
+        guard case .code(let text) = row.rows.first?.value else {
             Issue.record("expected JSON text")
             return
         }
@@ -116,10 +135,14 @@ struct FrontMatterTests {
         // A key over its value; words of a list as words; flags as written; a group as a disclosure of its own column.
         #expect(
             closed.contains(
-                "<div class=\"fm-row\"><span class=\"fm-key\">draft</span><span class=\"fm-value\">false</span></div>"
+                "<div class=\"fm-row\"><span class=\"fm-key\">draft</span><span class=\"fm-value\"><code>false</code></span></div>"
             )
         )
-        #expect(closed.contains("<span class=\"fm-tags\"><span>swift</span><span>yaml</span></span>"))
+        #expect(
+            closed.contains(
+                "<span class=\"fm-tags\"><span><code>swift</code></span><span><code>yaml</code></span></span>"
+            )
+        )
         #expect(closed.contains("<a href=\"https://example.com/a\">https://example.com/a</a>"))
         #expect(
             closed.contains(
@@ -137,8 +160,8 @@ struct FrontMatterTests {
         #expect(
             html("+++\nb = 1\na = \"x\"\n+++\ntext\n")
                 .contains(
-                    "<span class=\"fm-key\">b</span><span class=\"fm-value\">1</span></div>\n"
-                        + "<div class=\"fm-row\"><span class=\"fm-key\">a</span><span class=\"fm-value\">x</span>"
+                    "<span class=\"fm-key\">b</span><span class=\"fm-value\"><code>1</code></span></div>\n"
+                        + "<div class=\"fm-row\"><span class=\"fm-key\">a</span><span class=\"fm-value\"><code>x</code></span>"
                 )
         )
         #expect(

@@ -144,17 +144,18 @@ extension HTMLWriter {
             out += "<div class=\"fm-row\">\(key)<span class=\"fm-value\">"
             switch row.value {
                 case .text(let text): out += HTMLText.escaped(text)
+                case .code(let text): out += "<code>\(HTMLText.escaped(text))</code>"
                 case .date(let text): out += HTMLText.escaped(text)
                 case .link(let address):
                     out += "<a href=\"\(HTMLText.escaped(address))\">\(HTMLText.escaped(address))</a>"
-                case .flag(let flag): out += flag ? "true" : "false"
-                case .tags(let tags):
+                case .flag(let flag): out += flag ? "<code>true</code>" : "<code>false</code>"
+                case .tags(let tags, let code):
                     out += "<span class=\"fm-tags\">"
                     // An item is kept whole (no-break spaces): a line breaks between items only.
                     for tag in tags {
                         let whole = HTMLText.escaped(tag).split(separator: " ", omittingEmptySubsequences: false)
                             .joined(separator: "&nbsp;")
-                        out += "<span>\(whole)</span>"
+                        out += code ? "<span><code>\(whole)</code></span>" : "<span>\(whole)</span>"
                     }
                     out += "</span>"
                 case .none: out += "<span class=\"fm-none\">none</span>"
