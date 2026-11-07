@@ -7,20 +7,22 @@ internal import SwiftUI
 struct NativeFrontMatterView: View {
     let panel: FrontMatterPanel
     let size: CGFloat
+    let settings: ViewerSettings
     @State private var open: Bool
     @Environment(\.pageFonts) private var fonts
 
-    init(panel: FrontMatterPanel, size: CGFloat, startsOpen: Bool) {
+    init(panel: FrontMatterPanel, size: CGFloat, settings: ViewerSettings) {
         self.panel = panel
         self.size = size
-        _open = State(initialValue: startsOpen)
+        self.settings = settings
+        _open = State(initialValue: settings.opensFrontMatter)
     }
 
     /// The stroke of the box, of a quote's bar and of a rule.
     static let stroke: CGFloat = 1.5
 
     var body: some View {
-        let style = PropertyStyle(size: size, fonts: fonts)
+        let style = PropertyStyle(size: size, fonts: fonts, settings: settings)
         VStack(alignment: .leading, spacing: 0) {
             Disclosure(open: $open, style: style) {
                 if let title = panel.title {
@@ -65,6 +67,8 @@ struct NativeFrontMatterView: View {
 struct PropertyStyle {
     let size: CGFloat
     let fonts: NativeFonts
+    /// For prose values, drawn as the document's own rows.
+    let settings: ViewerSettings
 
     var leading: CGFloat { size * 1.6 }
 
@@ -138,7 +142,8 @@ private struct NativeProperties: View {
 
     @ViewBuilder private func value(_ value: FrontMatterPanel.Value) -> some View {
         switch value {
-            case .text(let text), .date(let text): style.line(Text(text), color: NativeTheme.text)
+            case .text(let text): NativeProse(text: text, style: style)
+            case .date(let text): style.line(Text(text), color: NativeTheme.text)
             case .code(let text): style.code(Text(text), color: NativeTheme.text)
             case .link(let address):
                 if let url = URL(string: address) {
@@ -178,5 +183,20 @@ private struct NativePropertyGroup: View {
                     }
             }
         }
+    }
+}
+
+/// A prose value as the Markdown it is written in: its rows drawn as the document's are (paragraphs, lists, code), a paragraph
+/// apart, outside the document's selection.
+private struct NativeProse: View {
+    let text: String
+    let style: PropertyStyle
+
+    var body: some View {
+        let rows = NativeDocument(FrontMatterPanel.prose(text), settings: style.settings).rows
+        VStack(alignment: .leading, spacing: 0) {
+            ForEach(rows) { row in NativeRowView(row: row, size: style.size, settings: style.settings) }
+        }
+        .environment(\.documentSelection, nil)
     }
 }

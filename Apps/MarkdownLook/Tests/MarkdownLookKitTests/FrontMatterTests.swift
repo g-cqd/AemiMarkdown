@@ -102,6 +102,28 @@ struct FrontMatterTests {
         )
     }
 
+    @Test("a prose value is the Markdown it is written in, in both views; raw HTML in it is text")
+    func proseMarkdown() {
+        let source = "---\ndescription: |\n  Use **PROACTIVELY**, see `ask`.\n\n  - one\n  - <b>two</b>\n---\n"
+        let page = html(source)
+        #expect(
+            page.contains(
+                "<div class=\"fm-value fm-prose\"><p>Use <strong>PROACTIVELY</strong>, see <code data-n>ask</code>.</p>"
+            )
+        )
+        #expect(
+            page.contains("<li><p>one</p></li>") && page.contains("&lt;b&gt;two&lt;/b&gt;") && !page.contains("<b>two")
+        )
+        #expect(TagBalance.problem(in: page) == nil)
+        let rows = NativeDocument(FrontMatterPanel.prose("Use **this**.\n\n- one\n- two\n")).rows
+        #expect(rows.count == 3)
+        guard case .text(let first) = rows.first?.content else {
+            Issue.record("expected a paragraph")
+            return
+        }
+        #expect(String(first.string.characters) == "Use this.")
+    }
+
     @Test("a head nested past the deepest group is written as its JSON")
     func deep() throws {
         let depth = FrontMatterPanel.deepest + 2
@@ -135,7 +157,7 @@ struct FrontMatterTests {
         // A key over its value; words of a list as words; flags as written; a group as a disclosure of its own column.
         #expect(
             closed.contains(
-                "<div class=\"fm-row\"><span class=\"fm-key\">draft</span><span class=\"fm-value\"><code>false</code></span></div>"
+                "<div class=\"fm-row\"><span class=\"fm-key\">draft</span><div class=\"fm-value\"><code>false</code></div></div>"
             )
         )
         #expect(
@@ -160,8 +182,8 @@ struct FrontMatterTests {
         #expect(
             html("+++\nb = 1\na = \"x\"\n+++\ntext\n")
                 .contains(
-                    "<span class=\"fm-key\">b</span><span class=\"fm-value\"><code>1</code></span></div>\n"
-                        + "<div class=\"fm-row\"><span class=\"fm-key\">a</span><span class=\"fm-value\"><code>x</code></span>"
+                    "<span class=\"fm-key\">b</span><div class=\"fm-value\"><code>1</code></div></div>\n"
+                        + "<div class=\"fm-row\"><span class=\"fm-key\">a</span><div class=\"fm-value\"><code>x</code></div>"
                 )
         )
         #expect(

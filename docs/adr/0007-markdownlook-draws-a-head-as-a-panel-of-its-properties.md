@@ -93,3 +93,14 @@ number, a flag. The second kind is now set in the code face (the page's `code`, 
 - On the page the code keeps the line's leading (`line-height: 1` inside the line, so the line box stays 1.6 em); in the native
   view it sits on the text's strut (`NativeMetrics.shift`), as an inline `code` does. `codeWords` tests the rule (a mutant without
   the prose keys fails it); the compare tool's boxes are the same height in both views.
+
+## Amendment (2026-11-07, prose as Markdown): a prose value is drawn as the Markdown it is written in
+
+Agents' and posts' descriptions are written in Markdown (`**`, `` ` ``, links, lists in a `|` block). A prose value (``Value.text``)
+is now parsed as GitHub Markdown, without a head of its own (`FrontMatterPanel.prose`), and drawn as the document's own blocks are:
+the page writes it with the same renderer into a `.fm-prose` block (its blocks a paragraph apart, as in `main`); the native view
+draws its rows with the document's row view, outside the document's selection. Raw HTML in it is text, as it is in the document. The
+title in the closed line stays plain text. Code words, dates, links and lists of words are not Markdown.
+
+`proseMarkdown` tests both views. One difference is the native view's, not the panel's: it breaks a line inside an inline code span
+(`git diff`), where the page keeps the span whole; the document's body does the same.

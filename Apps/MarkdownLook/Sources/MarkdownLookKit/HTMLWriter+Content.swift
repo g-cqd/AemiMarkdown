@@ -141,9 +141,15 @@ extension HTMLWriter {
                 out += "</details>\n"
                 continue
             }
-            out += "<div class=\"fm-row\">\(key)<span class=\"fm-value\">"
+            if case .text(let text) = row.value {
+                out += "<div class=\"fm-row\">\(key)<div class=\"fm-value fm-prose\">"
+                out += options.body(FrontMatterPanel.prose(text), embedsDiagramStyle: embedsDiagramStyle)
+                out += "</div></div>\n"
+                continue
+            }
+            out += "<div class=\"fm-row\">\(key)<div class=\"fm-value\">"
             switch row.value {
-                case .text(let text): out += HTMLText.escaped(text)
+                case .text: break
                 case .code(let text): out += "<code>\(HTMLText.escaped(text))</code>"
                 case .date(let text): out += HTMLText.escaped(text)
                 case .link(let address):
@@ -160,7 +166,7 @@ extension HTMLWriter {
                     out += "</span>"
                 case .none: out += "<span class=\"fm-none\">none</span>"
             }
-            out += "</span></div>\n"
+            out += "</div></div>\n"
         }
         out += "</div>"
     }

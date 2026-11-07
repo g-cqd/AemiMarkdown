@@ -170,7 +170,7 @@ struct NativeRowView: View {
                 NativeTableView(table: table, size: size, settings: settings, bleeds: row.bleeds(settings))
             case .diagram(let diagram): NativeDiagramView(diagram: diagram, size: size)
             case .frontMatter(let panel):
-                NativeFrontMatterView(panel: panel, size: size, startsOpen: settings.opensFrontMatter)
+                NativeFrontMatterView(panel: panel, size: size, settings: settings)
             case .rule: Capsule().fill(Color.primary.opacity(0.1)).frame(height: 1.5)
             case .footnoteRule:
                 Capsule().fill(Color.primary.opacity(0.28)).frame(width: size * 5, height: 1.5)

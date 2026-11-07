@@ -148,6 +148,12 @@ public struct FrontMatterPanel: Sendable, Equatable {
             && !text.contains(where: \.isWhitespace) && HTMLText.isSafeDestination(text)
     }
 
+    /// A prose value as the Markdown it is written in (GitHub's, without a head of its own): emphasis, code, links, paragraphs and
+    /// lists, drawn as the document's own are. Raw HTML in it is text, as in the document.
+    public static func prose(_ text: String) -> MarkdownDocument {
+        MarkdownParser.parse(Array(text.utf8), extensions: .github)
+    }
+
     /// The language a head is shown in when it is shown as code.
     static func language(of document: MarkdownDocument) -> String {
         switch document.frontMatter?.format {

@@ -19,7 +19,7 @@ public enum ViewerStyle {
         h1, h2, h3, h4, h5, h6 { font-weight: 600; line-height: 1.25; text-wrap: balance; letter-spacing: -0.012em; }
         h1 { font-size: 1.9em; letter-spacing: -0.02em; } h2 { font-size: 1.45em; } h3 { font-size: 1.15em; } h4 { font-size: 1em; }
         h5, h6 { font-size: 1em; color: var(--secondary); }
-        :where(main, blockquote, .alert, li) > :where(* + *) { margin-block-start: var(--gap); }
+        :where(main, blockquote, .alert, li, .fm-prose) > :where(* + *) { margin-block-start: var(--gap); }
         * + :is(pre, .code, figure, .table-wrap, blockquote, .alert, .front-matter), :is(pre, .code, figure, .table-wrap, blockquote, .alert, .front-matter) + * { margin-block-start: var(--gap-box); }
         * + :is(hr, .footnotes), hr + *, .footnotes + * { margin-block-start: var(--gap-sect); }
         :is(h1, h2, h3, h4, h5, h6) + * { margin-block-start: var(--gap-head); }
@@ -76,10 +76,10 @@ public enum ViewerStyle {
         .fm > * + * { margin-block-start: var(--gap-s); }
         .fm-row > * { display: block; }
         .fm-key { color: var(--secondary); font-size: 0.92em; } .fm-group > summary > .fm-key { flex: 1; min-width: 0; }
-        .fm-value { overflow-wrap: anywhere; white-space: pre-line; } .fm-none { color: var(--tertiary); }
+        .fm-value { overflow-wrap: anywhere; white-space: pre-line; } .fm-prose { white-space: normal; } .fm-none { color: var(--tertiary); }
         .fm-group > .fm { position: relative; margin-block-start: var(--gap-s); padding-left: var(--indent); }
         .fm-group > .fm::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: var(--bar); border-radius: 1px; background: var(--rule); }
-        .fm-value code { font-size: 0.9em; line-height: 1; background: none; padding: 0; border-radius: 0; }
+        .fm-value:not(.fm-prose) code { font-size: 0.9em; line-height: 1; background: none; padding: 0; border-radius: 0; }
         .fm-tags > span + span::before { content: '\\202F\\00B7\\2009'; color: var(--tertiary); }
         th, td { position: relative; padding: var(--cell); text-align: left; vertical-align: top; }
         th::after, td::after { content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: var(--hair); background: var(--rule); }
