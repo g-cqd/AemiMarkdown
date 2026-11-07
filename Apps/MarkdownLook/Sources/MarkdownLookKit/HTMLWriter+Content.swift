@@ -125,16 +125,26 @@ extension HTMLWriter {
             ? "<details class=\"front-matter\" open>" : "<details class=\"front-matter\">"
         out += "<summary>"
         if let title = panel.title { out += "<span class=\"fm-title\">\(HTMLText.escaped(title))</span>" }
-        out += "<span class=\"fm-kind\">\(panel.format)</span>"
-        out +=
-            "<span class=\"fm-count\">\(panel.count) propert\(panel.count == 1 ? "y" : "ies")</span></summary>\n<table class=\"fm\">"
-        for row in panel.rows {
-            let indent =
-                row.depth == 0 ? "" : " style=\"padding-inline-start: calc(\(row.depth) * var(--indent))\""
-            out += "<tr><th\(indent)>\(HTMLText.escaped(row.key))</th><td>"
+        out += "<span class=\"fm-count\">\(panel.count) propert\(panel.count == 1 ? "y" : "ies")</span></summary>\n"
+        writeProperties(panel.rows)
+        out += "</details>\n"
+    }
+
+    /// A column of properties, a dimmed key over its value; a group as a disclosure of its own column, open.
+    private mutating func writeProperties(_ rows: [FrontMatterPanel.Row]) {
+        out += "<div class=\"fm\">"
+        for row in rows {
+            let key = "<span class=\"fm-key\">\(HTMLText.escaped(row.key))</span>"
+            if row.isGroup {
+                out += "<details class=\"fm-group\" open><summary>\(key)</summary>"
+                writeProperties(row.children)
+                out += "</details>\n"
+                continue
+            }
+            out += "<div class=\"fm-row\">\(key)<span class=\"fm-value\">"
             switch row.value {
                 case .text(let text): out += HTMLText.escaped(text)
-                case .date(let text): out += "<span class=\"fm-date\">\(HTMLText.escaped(text))</span>"
+                case .date(let text): out += HTMLText.escaped(text)
                 case .link(let address):
                     out += "<a href=\"\(HTMLText.escaped(address))\">\(HTMLText.escaped(address))</a>"
                 case .flag(let flag): out += flag ? "true" : "false"
@@ -142,15 +152,16 @@ extension HTMLWriter {
                     out += "<span class=\"fm-tags\">"
                     // An item is kept whole (no-break spaces): a line breaks between items only.
                     for tag in tags {
-                        out +=
-                            "<span>\(HTMLText.escaped(tag).split(separator: " ", omittingEmptySubsequences: false).joined(separator: "&nbsp;"))</span>"
+                        let whole = HTMLText.escaped(tag).split(separator: " ", omittingEmptySubsequences: false)
+                            .joined(separator: "&nbsp;")
+                        out += "<span>\(whole)</span>"
                     }
                     out += "</span>"
-                case .none: break
+                case .none: out += "<span class=\"fm-none\">none</span>"
             }
-            out += "</td></tr>\n"
+            out += "</span></div>\n"
         }
-        out += "</table></details>\n"
+        out += "</div>"
     }
 
     /// `code` as the scanners and the diagram engine read it: UTF-8 with any ill-formed sequence replaced, as a `String` would hold it.

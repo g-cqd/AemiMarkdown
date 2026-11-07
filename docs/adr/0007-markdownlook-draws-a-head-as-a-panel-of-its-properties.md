@@ -60,3 +60,22 @@ so its spacing is the text's spacing.
 
 `FrontMatterTests` was updated for the markup, and `blockScalars` is new (a mutant without the trim fails it). The compare tool
 drew a Jekyll post, an Obsidian note and Copilot and Claude agent files, light and dark, and the two views agree.
+
+## Amendment (2026-11-07, later): an outlined box, a column of properties, groups
+
+Without a box the head did not read as one thing, and the two-column grid read as a table. It is now:
+
+- An outlined box: a border of the page's stroke (`--stroke`, 1.5 px: a rule's, a quote's bar, a table's outline), in the rule's
+  colour, with a code block's radius and padding (`--pad`, 1.1 em by 1.3 em) inside it, and the space of a box around it (`.box`).
+- Closed, one line: the title (or nothing) and how many properties, the chevron at the line's end. The format (YAML, TOML, JSON) is
+  not shown: the reader does not need it to read the properties.
+- Open, one column: each property a dimmed key (secondary, 0.92 em) over its value, both on the text's leading (1.6 em), properties
+  `--gap-s` apart. A null or an empty collection reads `none`, muted.
+- A nested mapping, or a list with a mapping or list in it, is a group: its key opens and closes it (open to start), with the same
+  chevron at its end, and its column is indented by `--indent` behind a bar of the stroke, as a quote's is. A list's items are
+  keyed 1, 2, …. The panel's model is a tree (`Row.children`); groups deeper than `FrontMatterPanel.deepest` (24) are written as
+  their JSON on one line, so neither view recurses without bound.
+- In the native view each line is set as the page sets it (`BalancedLayout`, and the half-leading offset of `NativeMetrics`), and a
+  group's chevron is at its key's size, so the baselines of a line agree. The compare tool drew a nested opencode-style agent,
+  Copilot's orchestrator, a Jekyll post, a Hugo page and an Obsidian note, light and dark, open and closed: the box is the same
+  height in both views (within 2 pt for five nested groups).

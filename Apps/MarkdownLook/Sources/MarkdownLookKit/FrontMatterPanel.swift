@@ -13,10 +13,11 @@ extension MarkdownLook {
 /// MarkdownLook's own names.
 public enum MarkdownLook {}
 
-/// A document's head as a panel of its properties, one row a key: a nested mapping's keys indented under it, a list of scalars as
-/// tags, a flag as a check, a date as a reader would write it, an absolute web or mail address as a link. Both views draw it, closed
-/// to one line (its format, its title, how many properties) until opened. Nil when the document has no head, or its head is not a
-/// mapping, or does not read without a diagnostic: such a head is shown as its lines, as code in its format.
+/// A document's head as a panel of its properties: a property a dimmed key over its value, a nested mapping (or a list of them) as a
+/// group of its own properties that opens and closes, a list of scalars as words, a flag as written, a date as a reader would write
+/// it, an absolute web or mail address as a link. Both views draw it in an outlined box, closed to one line (its title, how many
+/// properties) until opened. Nil when the document has no head, or its head is not a mapping, or does not read without a
+/// diagnostic: such a head is shown as its lines, as code in its format.
 public struct FrontMatterPanel: Sendable, Equatable {
     public enum Value: Sendable, Equatable {
         case text(String)
@@ -24,24 +25,27 @@ public struct FrontMatterPanel: Sendable, Equatable {
         case date(String)
         case flag(Bool)
         case tags([String])
-        /// A null, or a key whose rows follow it, indented.
+        /// A null, an empty mapping or list, or a group (its properties are the row's children).
         case none
     }
 
     public struct Row: Sendable, Equatable {
         public var key: String
         public var value: Value
-        /// 0 for the head's own keys, one more for each mapping or list a row is inside.
-        public var depth: Int
+        /// A nested mapping's properties, or a list's items keyed 1, 2, …: the row is then a group.
+        public var children: [Row] = []
+
+        public var isGroup: Bool { !children.isEmpty }
     }
 
-    /// `YAML`, `TOML` or `JSON`.
-    public var format: String
     /// The `title` (or `name`) property's text, for the closed panel.
     public var title: String?
     /// The head's own keys.
     public var count: Int
     public var rows: [Row]
+
+    /// Groups this deep or deeper are written as their JSON, on one line: no head needs more, and the views recurse.
+    static let deepest = 24
 
     init?(_ document: MarkdownDocument, locale: Locale = .current, timeZone: TimeZone = .current) {
         guard let reading = document.readFrontMatter(), reading.diagnostics.recorded.isEmpty, let value = reading.value
@@ -58,33 +62,37 @@ public struct FrontMatterPanel: Sendable, Equatable {
         guard case .object(let object) = json else { return nil }
         let members = object.map { ($0.key, $0.value) }
         guard !members.isEmpty else { return nil }
-        format = Self.language(of: document).uppercased()
         count = members.count
         title = members.first { $0.0 == "title" || $0.0 == "name" }
             .flatMap { if case .string(let text) = $0.1 { text } else { nil } }
-        rows = Self.rows(members, dates: DateText(locale: locale, timeZone: timeZone))
+        rows = Self.rows(members, depth: 0, dates: DateText(locale: locale, timeZone: timeZone))
     }
 
-    /// The rows of `members` and of everything inside them, in order, with an explicit stack.
-    private static func rows(_ members: [(String, JSONValue)], dates: DateText) -> [Row] {
-        var rows: [Row] = []
-        var pending = members.reversed().map { (key: $0.0, value: $0.1, depth: 0) }
-        while let (key, value, depth) = pending.popLast() {
+    /// The rows of `members`, each with the rows inside it.
+    private static func rows(_ members: [(String, JSONValue)], depth: Int, dates: DateText) -> [Row] {
+        members.map { key, value in
             switch value {
-                case .object(let object):
-                    rows.append(Row(key: key, value: .none, depth: depth))
-                    pending += object.map { ($0.key, $0.value) }.reversed()
-                        .map { (key: $0.0, value: $0.1, depth: depth + 1) }
+                case .object(let object) where depth < deepest:
+                    Row(
+                        key: key,
+                        value: .none,
+                        children: rows(object.map { ($0.key, $0.value) }, depth: depth + 1, dates: dates)
+                    )
                 case .array(let items) where items.allSatisfy(\.isScalar):
-                    rows.append(Row(key: key, value: .tags(items.map(scalarText)), depth: depth))
-                case .array(let items):
-                    rows.append(Row(key: key, value: .none, depth: depth))
-                    pending += items.enumerated().reversed()
-                        .map { (key: String($0.offset + 1), value: $0.element, depth: depth + 1) }
-                default: rows.append(Row(key: key, value: scalar(value, dates: dates), depth: depth))
+                    Row(key: key, value: items.isEmpty ? .none : .tags(items.map(scalarText)))
+                case .array(let items) where depth < deepest:
+                    Row(
+                        key: key,
+                        value: .none,
+                        children: rows(
+                            items.enumerated().map { (String($0.offset + 1), $0.element) },
+                            depth: depth + 1,
+                            dates: dates
+                        )
+                    )
+                default: Row(key: key, value: scalar(value, dates: dates))
             }
         }
-        return rows
     }
 
     private static func scalar(_ value: JSONValue, dates: DateText) -> Value {

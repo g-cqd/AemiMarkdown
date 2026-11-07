@@ -20,7 +20,7 @@ public enum ViewerStyle {
         h1 { font-size: 1.9em; letter-spacing: -0.02em; } h2 { font-size: 1.45em; } h3 { font-size: 1.15em; } h4 { font-size: 1em; }
         h5, h6 { font-size: 1em; color: var(--secondary); }
         :where(main, blockquote, .alert, li) > :where(* + *) { margin-block-start: var(--gap); }
-        * + :is(pre, .code, figure, .table-wrap, blockquote, .alert), :is(pre, .code, figure, .table-wrap, blockquote, .alert) + * { margin-block-start: var(--gap-box); }
+        * + :is(pre, .code, figure, .table-wrap, blockquote, .alert, .front-matter), :is(pre, .code, figure, .table-wrap, blockquote, .alert, .front-matter) + * { margin-block-start: var(--gap-box); }
         * + :is(hr, .footnotes), hr + *, .footnotes + * { margin-block-start: var(--gap-sect); }
         :is(h1, h2, h3, h4, h5, h6) + * { margin-block-start: var(--gap-head); }
         :where(main, blockquote, .alert, li) > * + :is(h1, h2, h3, h4, h5, h6) { margin-block-start: var(--gap-sect); }
@@ -63,22 +63,23 @@ public enum ViewerStyle {
         .table-wrap.wide { margin-inline: calc((100% - min(68em, 100vw - 5em)) / 2); }
         .table-wrap.wide table { margin-inline: auto; }
         table { border-collapse: collapse; font-variant-numeric: tabular-nums; line-height: 1.45; font-size: 0.96em; }
-        /* A document's head, on the text's own grid: no box, no rules. One line closed (its title, its format, how many), the chevron
-           hanging in the margin as a list's marker does; open, a line a property, keys and values at the text's size and leading, the
-           keys at the column's edge (indented a level a nesting), the values on one column, a list of words as words. */
-        .front-matter > summary { list-style: none; position: relative; display: flex; align-items: baseline; gap: 0.6em; line-height: var(--leading);
-          color: var(--tertiary); cursor: default; }
-        .front-matter > summary::-webkit-details-marker { display: none; }
-        .front-matter > summary::before { content: '\\203A'; position: absolute; left: -1.1em; width: 0.6em; text-align: center; transition: transform 0.15s; }
-        .front-matter[open] > summary::before { transform: rotate(90deg); }
-        .fm-title { min-width: 0; color: var(--text); font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        .fm-kind, .fm-count { white-space: nowrap; } .fm-count { margin-inline-start: auto; }
-        table.fm { width: 100%; font-size: 1em; line-height: var(--leading); }
-        table.fm th, table.fm td { padding: 0; vertical-align: baseline; text-align: left; }
-        table.fm th { width: 1%; white-space: nowrap; font-weight: 400; color: var(--secondary); padding-inline-end: 1.5em; }
-        table.fm td { overflow-wrap: anywhere; white-space: pre-line; }
+        /* A document's head, in an outlined box (the stroke of every line on the page, the padding of a code block). Closed, one line: its title and how many properties, the chevron at the end.
+           Open, a column of properties on the text's leading, a dimmed key over its value; a nested mapping or list a group that opens and closes, its column indented behind a bar as a quote's is. */
+        .front-matter { border: var(--stroke) solid var(--rule); border-radius: var(--radius); padding: var(--pad); line-height: var(--leading); }
+        .front-matter summary { list-style: none; display: flex; align-items: baseline; gap: 0.6em; cursor: default; }
+        .front-matter summary::-webkit-details-marker { display: none; }
+        .front-matter summary::after { content: '\\203A'; flex: none; width: 1em; text-align: center; color: var(--tertiary); transition: transform 0.15s; }
+        .front-matter details[open] > summary::after, .front-matter[open] > summary::after { transform: rotate(90deg); }
+        .fm-title { flex: 1; min-width: 0; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .fm-count { color: var(--tertiary); white-space: nowrap; } .fm-count:first-child { flex: 1; }
+        .front-matter > .fm { margin-block-start: var(--gap-head); }
+        .fm > * + * { margin-block-start: var(--gap-s); }
+        .fm-row > * { display: block; }
+        .fm-key { color: var(--secondary); font-size: 0.92em; } .fm-group > summary > .fm-key { flex: 1; min-width: 0; }
+        .fm-value { overflow-wrap: anywhere; white-space: pre-line; } .fm-none { color: var(--tertiary); }
+        .fm-group > .fm { position: relative; margin-block-start: var(--gap-s); padding-left: var(--indent); }
+        .fm-group > .fm::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: var(--bar); border-radius: 1px; background: var(--rule); }
         .fm-tags > span + span::before { content: '\\202F\\00B7\\2009'; color: var(--tertiary); }
-        table.fm :is(th, td)::after { content: none; } table.fm th { font-size: 1em; }
         th, td { position: relative; padding: var(--cell); text-align: left; vertical-align: top; }
         th::after, td::after { content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: var(--hair); background: var(--rule); }
         th:first-child::after, td:first-child::after { border-radius: 1px 0 0 1px; } th:last-child::after, td:last-child::after { border-radius: 0 1px 1px 0; }

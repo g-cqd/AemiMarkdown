@@ -46,55 +46,87 @@ struct FrontMatterTests {
         """
 
     @Test(
-        "a head is rows of its properties: nested ones indented, lists of scalars as tags, flags, dates, links, nulls"
+        "a head is its properties: nested mappings and lists of them as groups, lists of scalars as words, flags, dates, links"
     )
     func rows() throws {
         let panel = try #require(panel(Self.post))
-        #expect(panel.format == "YAML" && panel.title == "A <b> note" && panel.count == 10)
+        #expect(panel.title == "A <b> note" && panel.count == 10)
         typealias Row = FrontMatterPanel.Row
         // ICU's time formats differ only in the space before AM (a narrow no-break space in recent versions).
         let rows = panel.rows.map { row in
             guard case .date(let text) = row.value else { return row }
-            return Row(
-                key: row.key,
-                value: .date(text.replacingOccurrences(of: "\u{202F}", with: " ")),
-                depth: row.depth
-            )
+            return Row(key: row.key, value: .date(text.replacingOccurrences(of: "\u{202F}", with: " ")))
         }
         #expect(
             rows == [
-                Row(key: "title", value: .text("A <b> note"), depth: 0),
-                Row(key: "date", value: .date("Nov 6, 2026 at 10:30 AM"), depth: 0),
-                Row(key: "day", value: .date("Nov 7, 2026"), depth: 0),
-                Row(key: "author", value: .none, depth: 0),
-                Row(key: "name", value: .text("G"), depth: 1),
-                Row(key: "url", value: .link("https://example.com/a"), depth: 1),
-                Row(key: "tags", value: .tags(["swift", "yaml"]), depth: 0),
-                Row(key: "draft", value: .flag(false), depth: 0),
-                Row(key: "published", value: .flag(true), depth: 0),
-                Row(key: "home", value: .text("/relative"), depth: 0),
-                Row(key: "empty", value: .none, depth: 0),
-                Row(key: "related", value: .none, depth: 0),
-                Row(key: "1", value: .none, depth: 1),
-                Row(key: "title", value: .text("One"), depth: 2)
+                Row(key: "title", value: .text("A <b> note")),
+                Row(key: "date", value: .date("Nov 6, 2026 at 10:30 AM")),
+                Row(key: "day", value: .date("Nov 7, 2026")),
+                Row(
+                    key: "author",
+                    value: .none,
+                    children: [
+                        Row(key: "name", value: .text("G")), Row(key: "url", value: .link("https://example.com/a"))
+                    ]
+                ),
+                Row(key: "tags", value: .tags(["swift", "yaml"])),
+                Row(key: "draft", value: .flag(false)),
+                Row(key: "published", value: .flag(true)),
+                Row(key: "home", value: .text("/relative")),
+                Row(key: "empty", value: .none),
+                Row(
+                    key: "related",
+                    value: .none,
+                    children: [Row(key: "1", value: .none, children: [Row(key: "title", value: .text("One"))])]
+                )
             ]
         )
     }
 
-    @Test("as HTML the panel is closed, with its title, format and count; the settings open it; its text is escaped")
+    @Test("a head nested past the deepest group is written as its JSON")
+    func deep() throws {
+        let depth = FrontMatterPanel.deepest + 2
+        let nested = String(repeating: "{a: ", count: depth) + "1" + String(repeating: "}", count: depth)
+        var row = try #require(panel("---\nk: \(nested)\n---\n"))
+        var level = 0
+        while let first = row.rows.first, first.isGroup {
+            row.rows = first.children
+            level += 1
+        }
+        #expect(level == FrontMatterPanel.deepest)
+        guard case .text(let text) = row.rows.first?.value else {
+            Issue.record("expected JSON text")
+            return
+        }
+        #expect(text.hasPrefix("{\"a\":"))
+    }
+
+    @Test(
+        "as HTML the panel is closed, with its title and count and no format; the settings open it; its text is escaped"
+    )
     func page() {
         let closed = html(Self.post)
         #expect(
             closed.contains(
                 "<details class=\"front-matter\"><summary><span class=\"fm-title\">A &lt;b&gt; note</span>"
-                    + "<span class=\"fm-kind\">YAML</span><span class=\"fm-count\">10 properties</span></summary>"
+                    + "<span class=\"fm-count\">10 properties</span></summary>"
             )
         )
-        // Words of a list as words, flags as written, nesting indented from the column's edge.
+        #expect(!closed.contains("YAML") && !closed.contains("<table"))
+        // A key over its value; words of a list as words; flags as written; a group as a disclosure of its own column.
+        #expect(
+            closed.contains(
+                "<div class=\"fm-row\"><span class=\"fm-key\">draft</span><span class=\"fm-value\">false</span></div>"
+            )
+        )
         #expect(closed.contains("<span class=\"fm-tags\"><span>swift</span><span>yaml</span></span>"))
         #expect(closed.contains("<a href=\"https://example.com/a\">https://example.com/a</a>"))
-        #expect(closed.contains("<td>true</td>") && closed.contains("<td>false</td>"))
-        #expect(closed.contains("padding-inline-start: calc(2 * var(--indent))"))
+        #expect(
+            closed.contains(
+                "<details class=\"fm-group\" open><summary><span class=\"fm-key\">related</span></summary><div class=\"fm\">"
+                    + "<details class=\"fm-group\" open><summary><span class=\"fm-key\">1</span></summary>"
+            )
+        )
         #expect(closed.contains("<h1>Body</h1>") && !closed.contains("<hr"))
         #expect(html(Self.post, open: true).contains("<details class=\"front-matter\" open>"))
         #expect(TagBalance.problem(in: closed) == nil)
@@ -104,11 +136,14 @@ struct FrontMatterTests {
     func tomlAndJSON() {
         #expect(
             html("+++\nb = 1\na = \"x\"\n+++\ntext\n")
-                .contains("<tr><th>b</th><td>1</td></tr>\n<tr><th>a</th><td>x</td></tr>")
+                .contains(
+                    "<span class=\"fm-key\">b</span><span class=\"fm-value\">1</span></div>\n"
+                        + "<div class=\"fm-row\"><span class=\"fm-key\">a</span><span class=\"fm-value\">x</span>"
+                )
         )
         #expect(
             html("{\n  \"z\": true\n}\n\ntext\n")
-                .contains("<span class=\"fm-kind\">JSON</span><span class=\"fm-count\">1 property</span>")
+                .contains("<summary><span class=\"fm-count\">1 property</span></summary>")
         )
     }
 
