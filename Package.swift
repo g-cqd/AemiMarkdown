@@ -25,7 +25,7 @@ let aemiDependency: Package.Dependency = .package(
 // AemiHMMML's front matter locator and readers (its ADR-0009 and ADR-0015), for `MarkdownExtensions.frontMatter`.
 let hmmmlDependency: Package.Dependency = .package(
     url: "https://github.com/g-cqd/AemiHMMML.git",
-    revision: "4d3e071072019540c43cbee10073f54664fd6ebe"
+    revision: "ed8469a6b6893265ad8ceede6f7fee00d3169e88"
 )
 let regexDependency: Package.Dependency = .package(
     url: "https://github.com/g-cqd/AemiRegex.git",
