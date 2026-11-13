@@ -29,9 +29,10 @@ was no saving and there were no formatting commands.
    through its delegate. It holds no text. Two editors of one source show the same text and share one history. It colours only the
    window of the storage it shows, so editors of one text do not undo each other's colours. `MarkdownEditorProxy` is the handle for
    what acts on an editor from outside (its selection, commands, the keyboard).
-4. **`AtomicFile.write`**: a temporary file beside the destination, forced to the disk (`F_FULLFSYNC`, else `fsync`), renamed over
-   it, then the folder synced. The old file's permissions are kept; a symbolic link is written through. A failure leaves the old
-   file and no temporary file, and says which step failed with the system's error number.
+4. **`DocumentFile.write`**: Aemi's `AtomicFile.replace` (`AemiIO`: a temporary file beside the destination, forced to the
+   disk, renamed over it, the folder synced) with what a document needs besides: the old file's permissions are kept, and a
+   symbolic link is written through. A failure leaves the old file and no temporary file, and is Aemi's `IOError`. *Amended the
+   same day:* the first version wrote its own `AtomicFile`, which repeated what `AemiIO` has and would have clashed with its name.
 5. **`MarkdownCommand`**: formatting as functions of the text and the selection that give a `MarkdownEdit` (UTF-16 offsets, as a
    text view counts). Each toggles. `MarkdownSource.perform` applies one as a single step of undo. Keys are the host's (Sunset asks
    for them at its step M-g).
@@ -45,7 +46,7 @@ was no saving and there were no formatting commands.
 
 ## Verification
 
-`AtomicFileTests` (4), `MarkdownCommandTests` (8), `MarkdownSourceTests` (6) in `Apps/MarkdownLook/Tests`; the kit's 105 earlier tests
+`DocumentFileTests` (4), `MarkdownCommandTests` (8), `MarkdownSourceTests` (6) in `Apps/MarkdownLook/Tests`; the kit's 105 earlier tests
 pass unchanged (123 in all). The root package builds; the app builds from `project.yml` with XcodeGen. Not seen: the editor on
 screen (the lab uses it), typing coalesced into undo steps by AppKit, the cost of an edit on a long document (Sunset's step M-c
 measures it).

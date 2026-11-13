@@ -34,7 +34,7 @@ let package = Package(
             dependencies: [
                 .product(name: "MarkdownLookKit", package: "AemiMarkdown"),
                 .product(name: "AemiMarkdown", package: "AemiMarkdown"),
-                .product(name: "AemiTestKit", package: "aemi")
+                .product(name: "AemiTestKit", package: "aemi"), .product(name: "AemiIO", package: "aemi")
             ],
             swiftSettings: [
                 .swiftLanguageMode(.v6), .enableUpcomingFeature("InternalImportsByDefault"),
