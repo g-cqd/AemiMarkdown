@@ -1,6 +1,7 @@
 internal import Foundation
 
 /// What a backdrop the page and the window sit on: opaque, the system's blurred material, or nothing at all (ADR 0004).
+@available(macOS 26.0, *)
 public enum Backdrop: String, Sendable, CaseIterable {
     /// The page has the window's own opaque background: the most contrast, for text over anything.
     case solid
@@ -13,17 +14,20 @@ public enum Backdrop: String, Sendable, CaseIterable {
 }
 
 /// The thickness of the system material behind a page whose backdrop is `blurred`, from the thinnest (the most of what is behind shows) to the thickest.
+@available(macOS 26.0, *)
 public enum BackdropMaterial: String, Sendable, CaseIterable {
     case ultraThin, thin, regular, thick, ultraThick
 }
 
 /// The variant of Liquid Glass behind a page whose backdrop is `glass`: the regular one frosts what is behind it, the clear one lets it show.
+@available(macOS 26.0, *)
 public enum GlassVariant: String, Sendable, CaseIterable {
     case regular, clear
 }
 
 /// What a reader may choose (ADR 0004): every behaviour the viewer assumes is one of these, with the default it ships with. The app writes them into a preferences domain of its own and the
 /// preview extension reads that domain, so one choice shows in the app and in Quick Look.
+@available(macOS 26.0, *)
 public struct ViewerSettings: Sendable, Equatable {
     /// A preferences domain outside the sandbox containers: the app (read and write) and the preview extension (read only) each hold a sandbox exception for it, which is how a choice made in the
     /// app reaches Quick Look without an app group (that needs a provisioning profile).

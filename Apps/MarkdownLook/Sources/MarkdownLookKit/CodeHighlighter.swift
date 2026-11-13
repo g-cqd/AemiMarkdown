@@ -2,6 +2,7 @@ internal import AemiLexers
 
 /// Syntax colour for fenced code (ADR 0004): the scanners of AemiLexers (hand-written, one pass over the bytes, 20 languages) give tokens as byte ranges, and each becomes a `span` whose
 /// class is one of nine kinds, coloured by the style sheet in light and dark. Anything else about the code (a language the scanners do not know, a block too large) stays plain.
+@available(macOS 26.0, *)
 enum CodeHighlighter {
     /// The largest block coloured, in bytes: a scan is linear, but a page of a few megabytes of spans is not what a preview is for.
     static let byteLimit = 256 << 10

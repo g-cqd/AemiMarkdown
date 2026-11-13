@@ -8,6 +8,7 @@ internal import AemiMermaidSVG
 /// let document = MarkdownParser.parse(Array("# Title\n\n```mermaid\nflowchart TD\n  A --> B\n```\n".utf8))
 /// let page = MarkdownHTMLRenderer().page(document, title: "Title")
 /// ```
+@available(macOS 26.0, *)
 public struct MarkdownHTMLRenderer: Sendable {
     /// Curly quotes and ellipses in prose (not in code).
     public var smartPunctuation: Bool {

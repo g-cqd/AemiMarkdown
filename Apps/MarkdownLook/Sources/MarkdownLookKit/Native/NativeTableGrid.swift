@@ -3,6 +3,7 @@ public import SwiftUI
 
 /// How the page sizes a table's columns, read from the cells: the same measure the HTML writer takes (`TableLayout`, ADR 0004), so a column that stays on a line there stays on a line here, and a
 /// table that takes the room beside the text column there takes it here.
+@available(macOS 26.0, *)
 struct NativeTableShape {
     let layout: TableLayout
     let columns: Int
@@ -98,10 +99,12 @@ struct NativeTableShape {
 /// Columns sized as a browser sizes an automatic table: each as wide as its text if the table fits; else down towards its narrowest (the longest word, or the whole text where the line is kept), the
 /// room shared in proportion to what each can give up; and rows as tall as their tallest cell at that width. The cells are in row order, `columns` to a row, the first row the header.
 /// What a cell's text cannot be narrowed below, with its padding.
+@available(macOS 26.0, *)
 struct UnbreakableWidth: LayoutValueKey {
     static let defaultValue: CGFloat = 0
 }
 
+@available(macOS 26.0, *)
 struct NativeTableGrid: Layout {
     let columns: Int
     /// A column that keeps its text on one line.

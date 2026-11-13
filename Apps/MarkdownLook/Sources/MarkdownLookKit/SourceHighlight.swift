@@ -6,6 +6,7 @@ public import AppKit
 /// `MarkdownSourceHighlighter` (the colouring ask's prompt has, made neutral); how they look is decided here, with the system's semantic colours so light, dark and the accent follow the system.
 ///
 /// The font does not change size anywhere: a heading is bold and tinted, not larger, so lines keep one height and the editor's scroll position and the lab's measurements stay put.
+@available(macOS 26.0, *)
 @MainActor
 public enum MarkdownSourceHighlight {
     /// Styles the Markdown in `storage`: all of it, or the UTF-8 byte `window` of it (a long text is parsed only around the window).

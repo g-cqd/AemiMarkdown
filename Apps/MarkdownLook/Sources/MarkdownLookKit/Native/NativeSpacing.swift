@@ -1,4 +1,5 @@
 /// What a block follows among its siblings, for the space above it.
+@available(macOS 26.0, *)
 enum Sibling: Equatable {
     case prose
     case heading(Int)
@@ -19,6 +20,7 @@ enum Sibling: Equatable {
 /// The space above a block, as the style sheet of the page (`ViewerStyle`) decides it, in the order of the cascade: the step between blocks (1 em), under a heading (0.6) and above one (2.2), in a
 /// list that comes under its item (the item step), around a box (1.5) and a section (2.2), and in a tight item or under an alert's title (0.4). A later step wins over an earlier one, as a
 /// selector of more weight does. The result is in em of the body text: the space is in em of the block's own font, so above a heading it is of the heading's size.
+@available(macOS 26.0, *)
 enum Spacing {
     /// The scale of the style sheet.
     static let gap = 1.0, small = 0.4, box = 1.5, section = 2.2, head = 0.6

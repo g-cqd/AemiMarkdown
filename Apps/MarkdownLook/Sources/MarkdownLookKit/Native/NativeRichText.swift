@@ -3,16 +3,20 @@ internal import Foundation
 internal import SwiftUI
 
 /// Marks the text of a code span, so that the renderer below draws a tint behind it.
+@available(macOS 26.0, *)
 struct CodePill: TextAttribute {}
 
 /// Marks the number of a footnote reference, drawn raised: a raised run in the text itself would push its line's glyphs down, where a page's `line-height: 0` leaves the line alone.
+@available(macOS 26.0, *)
 struct NoteRaise: TextAttribute {}
 
 /// Marks the text of a link, so that the renderer below draws its underline.
+@available(macOS 26.0, *)
 struct LinkUnderline: TextAttribute {}
 
 /// Draws a text as SwiftUI would, with what a page adds to it: the rounded tint behind inline code (the rectangle of the run, a font's ascent and descent as an inline box has them, rounded by
 /// 0.3 em), and under a link a line one point thick, 0.22 em below the baseline, in the link's colour at 35 %.
+@available(macOS 26.0, *)
 struct PageTextRenderer: TextRenderer {
     let tint: Color
     let link: Color
@@ -63,6 +67,7 @@ struct PageTextRenderer: TextRenderer {
 
 /// A text of styled runs as the style sheet sets it: strong at 600, code in 0.9 em of the monospaced font with 0.3 em of room on each side for its tint, a footnote's number at 0.75 em raised,
 /// a link in its colour, struck text and a missing image in the secondary one.
+@available(macOS 26.0, *)
 enum NativeRichText {
     /// The text, and whether it needs the page's renderer.
     static func text(
@@ -164,6 +169,7 @@ enum NativeRichText {
 
 /// A run of text as the style sheet sets it: the font at its size and weight, a line of an exact height (the half leading above the glyphs, as a page has it), a whole number of lines, a heading's
 /// balance and letter spacing, and the code, links and notes of `NativeRichText`.
+@available(macOS 26.0, *)
 struct PageText: View {
     let string: AttributedString
     let size: CGFloat

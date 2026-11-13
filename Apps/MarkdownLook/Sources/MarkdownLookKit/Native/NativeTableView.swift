@@ -4,6 +4,7 @@ internal import SwiftUI
 /// A table as the style sheet sets it: a grid in a box that scrolls sideways. The table is 0.96 em and a header cell 0.92 of that, in weight 500 and the secondary colour, lines of 1.45; a cell has
 /// 0.6 em above and below and 1.4 em at the sides (none at the outer sides of the first and last column), each in its own em; the rule under every row is inside the row, the header's in the mark colour.
 /// Short columns stay on a line, long cells wrap down to a measure.
+@available(macOS 26.0, *)
 struct NativeTableView: View {
     let table: NativeTable
     let size: CGFloat

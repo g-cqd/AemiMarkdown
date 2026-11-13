@@ -1,59 +1,39 @@
 // swift-tools-version: 6.4
 import PackageDescription
 
-// The viewer kit of MarkdownLook (ask roadmaps 0199, 0201): a Markdown document as HTML, with its Mermaid diagrams as SVG. A sub-package of its own, like Benchmarks/MarkdownBench: the apps
-// (Xcode projects made by XcodeGen from project.yml) link this and nothing else of ours. Paths while the packages are developed side by side; revisions at landing.
+// MarkdownLook's tools and the tests of its kit (ask roadmaps 0199, 0201). The kit itself, MarkdownLookKit, is a product of the package
+// two folders up since ADR-0008 (Sunset pins it by revision); its sources stay here, in Sources/MarkdownLookKit. The apps (Xcode projects made
+// by XcodeGen from project.yml) link the kit from that package.
 let package = Package(
     name: "MarkdownLook",
     platforms: [.macOS(.v26)],
     products: [
-        .library(name: "MarkdownLookKit", targets: ["MarkdownLookKit"]),
         .executable(name: "markdown-look-html", targets: ["markdown-look-html"]),
         .executable(name: "markdown-look-compare", targets: ["markdown-look-compare"])
     ],
     dependencies: [
         .package(path: "../.."),
-        .package(path: "../../../AemiTextUI"),
-        // A document's head drawn as a table: AemiHMMML's front matter reader and JSON projection, at the revisions AemiMarkdown pins.
-        .package(url: "https://github.com/g-cqd/AemiHMMML.git", revision: "ed8469a6b6893265ad8ceede6f7fee00d3169e88"),
-        .package(url: "https://github.com/g-cqd/AemiJSON.git", revision: "806b481d8cc7e21f07d45537b625c5ac9abfc87e"),
-        .package(url: "https://github.com/g-cqd/AemiMermaid.git", revision: "9941c3862e0a898a91eafddbf131543a733c37d7"),
         .package(url: "https://github.com/Aemi-Studio/aemi.git", revision: "0bae2edb1a89bd3d931fb3122c2184cc5c368834")
     ],
     targets: [
-        .target(
-            name: "MarkdownLookKit",
-            dependencies: [
-                .product(name: "AemiMarkdown", package: "AemiMarkdown"),
-                .product(name: "AemiFrontMatter", package: "AemiHMMML"),
-                .product(name: "AemiHMMML", package: "AemiHMMML"),
-                .product(name: "AemiJSONCore", package: "AemiJSON"),
-                .product(name: "AemiKernel", package: "aemi"),
-                .product(name: "AemiLexers", package: "aemi"),
-                .product(name: "AemiKernels", package: "aemi"),
-                .product(name: "AemiTextStyling", package: "AemiTextUI"),
-                .product(name: "AemiMermaidSyntax", package: "AemiMermaid"),
-                .product(name: "AemiMermaidScene", package: "AemiMermaid"),
-                .product(name: "AemiMermaidLayout", package: "AemiMermaid"),
-                .product(name: "AemiMermaidSVG", package: "AemiMermaid")
-            ],
-            swiftSettings: [
-                .swiftLanguageMode(.v6), .treatAllWarnings(as: .error), .enableUpcomingFeature("ExistentialAny"),
-                .enableUpcomingFeature("InternalImportsByDefault"), .enableUpcomingFeature("MemberImportVisibility"),
-                .strictMemorySafety()
-            ]
+        .executableTarget(
+            name: "markdown-look-html",
+            dependencies: [.product(name: "MarkdownLookKit", package: "AemiMarkdown")]
         ),
-        .executableTarget(name: "markdown-look-html", dependencies: ["MarkdownLookKit"]),
         // A tool for the work on the native view: the same page in WebKit and in SwiftUI, side by side, with how alike they are.
         .executableTarget(
             name: "markdown-look-compare",
-            dependencies: ["MarkdownLookKit", .product(name: "AemiMarkdown", package: "AemiMarkdown")],
+            dependencies: [
+                .product(name: "MarkdownLookKit", package: "AemiMarkdown"),
+                .product(name: "AemiMarkdown", package: "AemiMarkdown")
+            ],
             swiftSettings: [.swiftLanguageMode(.v6)]
         ),
         .testTarget(
             name: "MarkdownLookKitTests",
             dependencies: [
-                "MarkdownLookKit", .product(name: "AemiMarkdown", package: "AemiMarkdown"),
+                .product(name: "MarkdownLookKit", package: "AemiMarkdown"),
+                .product(name: "AemiMarkdown", package: "AemiMarkdown"),
                 .product(name: "AemiTestKit", package: "aemi")
             ],
             swiftSettings: [

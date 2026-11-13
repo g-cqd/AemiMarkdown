@@ -18,15 +18,16 @@ settings:
     GENERATE_INFOPLIST_FILE: YES
     SWIFT_STRICT_CONCURRENCY: complete
 packages:
-  MarkdownLook:
-    path: .
+  # MarkdownLookKit is a product of the package two folders up (ADR-0008).
+  AemiMarkdown:
+    path: ../..
 targets:
   MarkdownLook:
     type: application
     platform: macOS
     sources: [App]
     dependencies:
-      - package: MarkdownLook
+      - package: AemiMarkdown
         product: MarkdownLookKit
       - target: MarkdownLookPreview
         embed: true
@@ -68,7 +69,7 @@ targets:
     platform: macOS
     sources: [Preview]
     dependencies:
-      - package: MarkdownLook
+      - package: AemiMarkdown
         product: MarkdownLookKit
     entitlements:
       path: Preview/Preview.entitlements
@@ -97,7 +98,7 @@ targets:
     platform: macOS
     sources: [Thumbnail]
     dependencies:
-      - package: MarkdownLook
+      - package: AemiMarkdown
         product: MarkdownLookKit
     entitlements:
       path: Thumbnail/Thumbnail.entitlements

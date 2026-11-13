@@ -4,6 +4,7 @@ internal import SwiftUI
 
 /// The inline content of one leaf block as styled text: emphasis, strong, strikethrough, code, links (only where `HTMLText.isSafeDestination` allows), footnote references that link to their
 /// notes, images named and not loaded.
+@available(macOS 26.0, *)
 struct NativeInline {
     private(set) var string = AttributedString()
     /// The labels of the footnotes referenced, in order.

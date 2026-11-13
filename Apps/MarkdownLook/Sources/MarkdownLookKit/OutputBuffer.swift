@@ -4,6 +4,7 @@
 /// inline, so an append is one comparison and a copy; growth doubles, as an array's does. A copy of the value shares the block, so the owner of one writer must not append to two copies (nothing does: the writer owns its buffer and hands out `array` at the end).
 ///
 /// Every index is checked, and appends only write inside the block the buffer allocated, so the unsafe part is the pointer arithmetic after the check.
+@available(macOS 26.0, *)
 @safe
 struct OutputBuffer {
     /// Owns the block and frees it.

@@ -1,6 +1,7 @@
 /// How a table's columns are sized (ADR 0004): browsers lay columns out by their longest text and break short cells such as `UTF-8` or `30, p90` to make room for long ones. The writer
 /// measures each cell as it writes it; at the end of the table a short column keeps its text on one line, a long column may wrap but never below its longest word, and the table sits in a
 /// box that scrolls sideways when even that does not fit, instead of the page.
+@available(macOS 26.0, *)
 struct TableLayout {
     /// What one column holds: the longest cell and the longest word, in characters.
     struct Column {

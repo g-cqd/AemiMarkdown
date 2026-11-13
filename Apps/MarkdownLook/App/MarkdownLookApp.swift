@@ -222,13 +222,13 @@ struct SettingsView: View {
 struct PageView: View {
     let document: SourceDocument
     let settings: ViewerSettings
-    @State private var model: LabModel?
+    @State private var source: MarkdownSource?
     @State private var editing = false
 
     var body: some View {
         Group {
-            if editing, let model {
-                LabPane(model: model, settings: settings)
+            if editing, let source {
+                LabPane(source: source, settings: settings)
             } else {
                 NativeDocumentView(document: document.native(settings: settings), settings: settings)
             }
@@ -236,9 +236,9 @@ struct PageView: View {
         .scrollEdgeEffectStyle(.soft, for: .top)
         .containerBackground(for: .window) { WindowBackdrop(settings: settings) }
         .toolbar {
-            if editing, let model {
+            if editing, let source {
                 ToolbarItem(placement: .status) {
-                    Text(model.readout).font(.callout.monospacedDigit()).foregroundStyle(.secondary)
+                    Text(Lab.readout(of: source)).font(.callout.monospacedDigit()).foregroundStyle(.secondary)
                 }
             }
             ToolbarItem(placement: .automatic) {
@@ -248,17 +248,15 @@ struct PageView: View {
             }
         }
         .onChange(of: editing) { _, on in
-            if on, model == nil {
-                let lab = LabModel(text: String(decoding: document.bytes, as: UTF8.self), isDiagram: document.isDiagram)
-                lab.settings = settings
-                lab.refresh()
-                model = lab
+            if on, source == nil {
+                source = MarkdownSource(
+                    text: String(decoding: document.bytes, as: UTF8.self),
+                    isDiagram: document.isDiagram,
+                    settings: settings
+                )
             }
         }
-        .onChange(of: settings) { _, latest in
-            model?.settings = latest
-            model?.refresh()
-        }
+        .onChange(of: settings) { _, latest in source?.settings = latest }
     }
 }
 

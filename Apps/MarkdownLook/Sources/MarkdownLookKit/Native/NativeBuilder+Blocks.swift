@@ -6,6 +6,7 @@ internal import AemiMermaidSyntax
 internal import Foundation
 internal import SwiftUI
 
+@available(macOS 26.0, *)
 extension NativeBuilder {
     mutating func exitCode() {
         guard let state = code else { return }
@@ -101,6 +102,7 @@ extension NativeBuilder {
     }
 }
 
+@available(macOS 26.0, *)
 extension NativeBuilder {
     /// Takes in the bytes a leaf of the block names.
     mutating func widen(_ range: Range<Int>) {

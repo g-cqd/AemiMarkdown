@@ -7,6 +7,7 @@ internal import Foundation
 
 /// A Mermaid diagram drawn straight into a CoreGraphics context for a thumbnail (ADR 0004): the same scene the SVG is made from, with no web view, which a thumbnail's small budget cannot afford.
 /// Vector all the way: the context decides the pixels.
+@available(macOS 26.0, *)
 public struct DiagramThumbnail {
     private let scene: DiagramScene
     private let context: CGContext

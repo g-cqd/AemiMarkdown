@@ -2,6 +2,7 @@ internal import AemiMarkdown
 
 /// Walks a document's events once and writes HTML: the open blocks on an explicit stack, an element's start tag held open while the leaves that give it attributes arrive (a list's
 /// start number, a link's destination and title). No recursion.
+@available(macOS 26.0, *)
 struct HTMLWriter {
     /// A block or inline element that is open.
     struct Frame {

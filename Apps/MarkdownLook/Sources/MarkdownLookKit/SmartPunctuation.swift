@@ -1,5 +1,6 @@
 /// Curly quotes, apostrophes and ellipses in the prose of a viewer (not in code, not in the terminal): the quote opens after white space, an opening bracket, a dash or the start of
 /// a paragraph, and closes anywhere else. It needs the character that came before, which a paragraph's runs hand on.
+@available(macOS 26.0, *)
 struct SmartPunctuation {
     /// The last character written in this paragraph, or nil at its start.
     var previous: Unicode.Scalar?

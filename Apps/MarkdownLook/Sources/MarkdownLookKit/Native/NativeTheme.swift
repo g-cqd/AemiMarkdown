@@ -2,6 +2,7 @@ internal import AppKit
 internal import SwiftUI
 
 /// Colours that follow the appearance, for what the system's own do not cover: the tones of syntax colour.
+@available(macOS 26.0, *)
 enum NativeTheme {
     /// The page's own colours (`:root` in the style sheet), light and dark, as hex with an alpha.
     private static func page(light: UInt32, dark: UInt32, lightAlpha: CGFloat = 1, darkAlpha: CGFloat = 1) -> Color {

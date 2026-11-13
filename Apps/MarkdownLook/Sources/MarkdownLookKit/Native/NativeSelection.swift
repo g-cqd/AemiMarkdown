@@ -4,6 +4,7 @@ internal import Observation
 internal import SwiftUI
 
 /// A place in the document: a row, and in a text row the UTF-16 offset in the text as written; in any other row 0 (before it) or 1 (after it).
+@available(macOS 26.0, *)
 struct SelectionPoint: Comparable, Equatable {
     var row: Int
     var offset: Int
@@ -12,6 +13,7 @@ struct SelectionPoint: Comparable, Equatable {
 }
 
 /// Where a text row's glyphs are, in the text's own coordinates, as its last drawing laid them out: for each slice of the layout its place in the text as written and its box.
+@available(macOS 26.0, *)
 struct TextGeometry: Sendable {
     struct Slice: Sendable {
         var start: Int
@@ -60,6 +62,7 @@ struct TextGeometry: Sendable {
 }
 
 /// What the renderers write and the selection reads: the geometry of each text row. Drawing may happen off the main thread, hence the lock.
+@available(macOS 26.0, *)
 final class GeometryStore: @unchecked Sendable {
     private let lock = NSLock()
     private var rows: [Int: TextGeometry] = [:]
@@ -78,6 +81,7 @@ final class GeometryStore: @unchecked Sendable {
 }
 
 /// How a text row's layout is read into a `TextGeometry`: with the map from the unit of the text as laid out to the text as written (`NativeRichText.text`).
+@available(macOS 26.0, *)
 struct SelectionRecorder: Sendable {
     let store: GeometryStore
     let row: Int
@@ -115,6 +119,7 @@ struct SelectionRecorder: Sendable {
 
 /// The selection of a document: from one place to another, across rows. A text row is selected by the character; any other row (code, table, diagram, rule) whole. What is copied is the Markdown the
 /// rows were read from where they are selected whole, and the text as shown where a row is selected in part.
+@available(macOS 26.0, *)
 @MainActor @Observable final class DocumentSelection {
     var anchor: SelectionPoint?
     var focus: SelectionPoint?
@@ -260,11 +265,13 @@ struct SelectionRecorder: Sendable {
     }
 }
 
+@available(macOS 26.0, *)
 extension EnvironmentValues {
     @Entry var documentSelection: DocumentSelection?
 }
 
 /// The selected part of a text row, drawn behind its text from the geometry of the last drawing.
+@available(macOS 26.0, *)
 struct SelectionLayer: View {
     let row: Int
     let selection: DocumentSelection

@@ -5,6 +5,7 @@ public import SwiftUI
 
 /// A Markdown document as the rows a SwiftUI view lists (ADR 0004, ask roadmap 0199): every container (a quote, an alert, a list item, a footnote) becomes a column of guides at the left of
 /// the rows inside it, the way TerminalKit makes prefixes, so nesting is a count of columns of one width and not a tree of views, and a row is a leaf block with the space above it decided.
+@available(macOS 26.0, *)
 public struct NativeRow: Identifiable, Sendable {
     public let id: Int
     public var guides: [NativeGuide]
@@ -16,6 +17,7 @@ public struct NativeRow: Identifiable, Sendable {
 }
 
 /// A column to the left of a row, one indent wide.
+@available(macOS 26.0, *)
 public enum NativeGuide: Sendable, Equatable {
     /// A quote's bar or an alert's. `continues`: an earlier row is in the same container, so the bar runs on through the space above this one.
     case bar(NativeAlert?, continues: Bool)
@@ -25,6 +27,7 @@ public enum NativeGuide: Sendable, Equatable {
     case indent
 }
 
+@available(macOS 26.0, *)
 public enum NativeMarker: Sendable, Equatable {
     /// A bullet, by the depth of bulleted lists around it.
     case bullet(depth: Int)
@@ -36,6 +39,7 @@ public enum NativeMarker: Sendable, Equatable {
     var isBullet: Bool { if case .bullet = self { true } else { false } }
 }
 
+@available(macOS 26.0, *)
 public enum NativeAlert: Int, Sendable, Equatable {
     case note = 1
     case tip, important, warning, caution
@@ -43,6 +47,7 @@ public enum NativeAlert: Int, Sendable, Equatable {
     public var title: String { ["Note", "Tip", "Important", "Warning", "Caution"][rawValue - 1] }
 }
 
+@available(macOS 26.0, *)
 public enum NativeContent: Sendable {
     case text(NativeText)
     case code(NativeCode)
@@ -55,6 +60,7 @@ public enum NativeContent: Sendable {
     case footnoteRule
 }
 
+@available(macOS 26.0, *)
 public struct NativeText: Sendable {
     public enum Style: Sendable, Equatable {
         case body
@@ -69,6 +75,7 @@ public struct NativeText: Sendable {
     public var back: String?
 }
 
+@available(macOS 26.0, *)
 public struct NativeCode: Sendable {
     /// The language the fence names (empty for none), and the code as it was written, for copying.
     public var language: String
@@ -78,6 +85,7 @@ public struct NativeCode: Sendable {
     public var isHTML: Bool
 }
 
+@available(macOS 26.0, *)
 public struct NativeTable: Sendable {
     public enum Alignment: Sendable, Equatable { case leading, center, trailing }
 
@@ -86,12 +94,14 @@ public struct NativeTable: Sendable {
     public var rows: [[AttributedString]]
 }
 
+@available(macOS 26.0, *)
 public enum NativeDiagram: Sendable {
     case scene(DiagramScene)
     case pie(PieDiagram)
 }
 
 /// A document read once into rows.
+@available(macOS 26.0, *)
 public struct NativeDocument: Sendable {
     public var rows: [NativeRow] = []
     /// The row of each footnote's definition, and of its first reference, by label.
@@ -107,6 +117,7 @@ public struct NativeDocument: Sendable {
 }
 
 /// The scheme of the links inside a document that move to a footnote and back (a footnote's label is percent-encoded after the colon).
+@available(macOS 26.0, *)
 public enum NativeLink {
     public static let note = "markdownlook-note"
     public static let reference = "markdownlook-ref"

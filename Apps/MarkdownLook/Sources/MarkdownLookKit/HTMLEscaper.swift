@@ -3,6 +3,7 @@ internal import AemiKernels
 /// `HTMLText.escaped` on bytes, in one pass: the text of the source goes to the output buffer without becoming a `String` or being read a scalar at a time. A run of plain ASCII is copied whole; the five reserved characters are
 /// written as references; the scalars a page should not carry are dropped (the same ones `HTMLText.escaped` drops); a byte sequence that is not UTF-8 becomes U+FFFD, one for each maximal ill-formed subpart, as
 /// `String(decoding:as:)` would have made it. With smart punctuation on, the same pass makes the curly quotes and the ellipsis (`SmartPunctuation`'s rules, with its state carried across calls).
+@available(macOS 26.0, *)
 enum HTMLEscaper {
     /// For each byte: 0 if it is copied as it is, 1 if the pass has to look at it. Bytes above 0x7F, controls, the five reserved characters; with smart punctuation also the full stop.
     private static let plainClasses: [UInt8] = classes(smart: false)
@@ -180,6 +181,7 @@ enum HTMLEscaper {
     }
 }
 
+@available(macOS 26.0, *)
 extension Array where Element == UInt8 {
     /// Appends the UTF-8 of `rhs`: the writer's `out += "<p>"`.
     @_disfavoredOverload

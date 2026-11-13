@@ -4,6 +4,7 @@ public import SwiftUI
 
 /// A document as a SwiftUI list of rows (ADR 0004): the system font at the chosen size, one scale of space, one indent for every nesting, native text selection, native links and copy buttons.
 /// Quick Look's preview is HTML because its reply is; the app and the lab draw this.
+@available(macOS 26.0, *)
 public struct NativeDocumentView: View {
     private let document: NativeDocument
     private let settings: ViewerSettings
@@ -73,6 +74,7 @@ public struct NativeDocumentView: View {
     }
 }
 
+@available(macOS 26.0, *)
 extension NativeRow {
     /// The width of the row's column in ems: the text's, and for a table wider than that the room beside it.
     fileprivate var measure: CGFloat {
@@ -89,6 +91,7 @@ extension NativeRow {
 }
 
 /// One row: its guides, then its content, with the space above it.
+@available(macOS 26.0, *)
 struct NativeRowView: View {
     let row: NativeRow
     let size: CGFloat
@@ -245,6 +248,7 @@ struct NativeRowView: View {
 }
 
 /// The rows of a document in a column with the page's padding, with no scroll view around it: what the scroll view holds, and what a snapshot draws.
+@available(macOS 26.0, *)
 public struct NativeDocumentColumn: View {
     /// The name of the coordinate space the rows report their frames in.
     static let space = "page"

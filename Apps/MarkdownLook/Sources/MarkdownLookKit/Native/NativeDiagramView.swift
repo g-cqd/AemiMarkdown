@@ -5,6 +5,7 @@ import SwiftUI
 
 /// A diagram drawn by SwiftUI's `Canvas` from the scene the layout makes (the same one the SVG and the terminal are drawn from): shapes, orthogonal lines with their markers, the system font,
 /// colours of the system so light and dark and the accent follow the window.
+@available(macOS 26.0, *)
 struct NativeDiagramView: View {
     let diagram: NativeDiagram
     let size: CGFloat
@@ -307,6 +308,7 @@ struct NativeDiagramView: View {
 
 /// A pie chart drawn on the page's own geometry (`PieSVG`): a circle of radius 90 with the legend 40 to the right of it, the title centred over the whole at the top, 13 point text, the figure at its
 /// natural size and no wider than its column.
+@available(macOS 26.0, *)
 struct NativePieView: View {
     let pie: PieDiagram
     let size: CGFloat

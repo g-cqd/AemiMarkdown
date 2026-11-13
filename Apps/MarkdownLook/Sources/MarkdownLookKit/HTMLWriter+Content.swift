@@ -1,5 +1,6 @@
 internal import AemiMarkdown
 
+@available(macOS 26.0, *)
 extension HTMLWriter {
     /// The attribute-giving leaves: a list's start number, a link's destination and title.
     mutating func attribute(_ node: MarkdownNode) {

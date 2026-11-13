@@ -5,12 +5,14 @@ internal import AemiKernel
 public import AemiMarkdown
 internal import Foundation
 
+@available(macOS 26.0, *)
 extension MarkdownLook {
     /// What MarkdownLook reads: GitHub's Markdown, and a document's head (`---` YAML, `+++` TOML, a leading JSON object).
     public static let extensions: MarkdownExtensions = [.github, .frontMatter]
 }
 
 /// MarkdownLook's own names.
+@available(macOS 26.0, *)
 public enum MarkdownLook {}
 
 /// A document's head as a panel of its properties: a property a dimmed key over its value, a nested mapping (or a list of them) as a
@@ -18,6 +20,7 @@ public enum MarkdownLook {}
 /// it, an absolute web or mail address as a link. Both views draw it in an outlined box, closed to one line (its title, how many
 /// properties) until opened. Nil when the document has no head, or its head is not a mapping, or does not read without a
 /// diagnostic: such a head is shown as its lines, as code in its format.
+@available(macOS 26.0, *)
 public struct FrontMatterPanel: Sendable, Equatable {
     public enum Value: Sendable, Equatable {
         /// Prose: words, or a property that is always prose (``proseKeys``).
@@ -174,6 +177,7 @@ public struct FrontMatterPanel: Sendable, Equatable {
 /// zone, a local date or date-time as written. Jekyll's form (`2026-03-14 09:30:00 +0100`, Ruby's) and YAML 1.1's
 /// (`2001-12-14 21:59:43.10 -5`), with white space before an offset that may lack its colon or its minutes, read as the instants
 /// they are. Anything else is not a date here.
+@available(macOS 26.0, *)
 struct DateText {
     let locale: Locale
     let timeZone: TimeZone
@@ -213,6 +217,7 @@ struct DateText {
     }
 }
 
+@available(macOS 26.0, *)
 extension DateText {
     /// `YYYY-MM-DD hh:mm:ss[.f] ±h[h][[:]mm]` as RFC 3339 (`YYYY-MM-DDThh:mm:ss[.f]±hh:mm`); any other text unchanged.
     static func spacedOffset(_ text: [UInt8]) -> [UInt8] {
@@ -252,6 +257,7 @@ extension DateText {
     }
 }
 
+@available(macOS 26.0, *)
 extension JSONValue {
     fileprivate var isScalar: Bool {
         switch self {

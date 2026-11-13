@@ -5,6 +5,7 @@ internal import AemiMermaidSyntax
 
 /// A mermaid fence as SVG (ADR 0007): read within the default limits, laid out in cells, drawn as vector. Nil when the source is not a diagram this engine draws, and the viewer shows it as
 /// the code it is.
+@available(macOS 26.0, *)
 enum MermaidFence {
     static func svg(_ source: [UInt8], embedsStyle: Bool) -> String? {
         let parse = MermaidParse.parse(source, limits: .default)

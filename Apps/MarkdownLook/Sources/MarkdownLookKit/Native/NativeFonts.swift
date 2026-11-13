@@ -3,12 +3,14 @@ internal import CoreText
 internal import SwiftUI
 
 /// The four styles of the page that have a font of their own.
+@available(macOS 26.0, *)
 enum FontRole: Sendable {
     case text, heading, code, diagram
 }
 
 /// The fonts the native view sets its styles in, from the viewer's settings: the same choices the style sheet makes, resolved to SwiftUI fonts for drawing and to AppKit fonts for measuring (line
 /// metrics, balance, column widths). With nothing but the system's faces and no features the SwiftUI font is the system's own, so what was measured against the page stays as it was.
+@available(macOS 26.0, *)
 struct NativeFonts: Sendable, Equatable {
     var settings = ViewerFonts()
 
@@ -85,6 +87,7 @@ struct NativeFonts: Sendable, Equatable {
     }
 }
 
+@available(macOS 26.0, *)
 extension EnvironmentValues {
     @Entry var pageFonts = NativeFonts()
 }

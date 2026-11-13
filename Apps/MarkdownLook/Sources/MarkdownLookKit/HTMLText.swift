@@ -1,4 +1,5 @@
 /// Text and URLs made safe for HTML (ADR 0007): what a document says is never markup.
+@available(macOS 26.0, *)
 enum HTMLText {
     /// `text` for an element's content or a quoted attribute: the five characters HTML reserves are escaped and the scalars a page should not carry (controls other than white space,
     /// bidirectional controls, noncharacters) are dropped.

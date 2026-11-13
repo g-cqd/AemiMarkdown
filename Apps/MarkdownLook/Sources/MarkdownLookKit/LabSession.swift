@@ -2,6 +2,7 @@ public import AemiMarkdown
 internal import Foundation
 
 /// What one edit of the lab did, for the readout beside the editor.
+@available(macOS 26.0, *)
 public struct LabEdit: Sendable, Equatable {
     /// Top-level blocks the edit removed and the ones that took their place; a typed letter in a paragraph is one for one.
     public var removedBlocks: Int
@@ -15,6 +16,7 @@ public struct LabEdit: Sendable, Equatable {
 
 /// A document being edited in the lab (ADR 0004, ask roadmap 0204): the editor of AemiMarkdown holds it, an edit anywhere is a replacement of bytes, and the page is made from what the editor
 /// holds, so the preview is the document as the editor has parsed it after each edit, never a second parse of the text.
+@available(macOS 26.0, *)
 public struct LabSession: Sendable {
     private var editor: MarkdownEditor
     private var bytes: [UInt8]
@@ -63,15 +65,19 @@ public struct LabSession: Sendable {
         MarkdownHTMLRenderer(settings: settings).page(editor.document, title: title)
     }
 
-    /// The UTF-8 offset of a UTF-16 offset of the text (what a text view reports), in one pass over the text up to it.
+    /// The UTF-8 offset of a UTF-16 offset of the text (what a text view reports): one pass over the bytes up to it, nothing
+    /// allocated. An offset past the end is the end.
+    /// - Complexity: O(the bytes before the offset).
     public func utf8Offset(ofUTF16 offset: Int) -> Int {
         var units = 0
-        var offsetBytes = 0
-        for scalar in text.unicodeScalars {
-            if units >= offset { break }
-            units += scalar.value > 0xFFFF ? 2 : 1
-            offsetBytes += scalar.value < 0x80 ? 1 : (scalar.value < 0x800 ? 2 : (scalar.value < 0x10000 ? 3 : 4))
+        var index = 0
+        while index < bytes.count, units < offset {
+            let lead = bytes[index]
+            let width = lead < 0x80 ? 1 : (lead < 0xE0 ? 2 : (lead < 0xF0 ? 3 : 4))
+            // A scalar of four bytes is two UTF-16 units; every other one is one.
+            units += width == 4 ? 2 : 1
+            index += width
         }
-        return offsetBytes
+        return Swift.min(index, bytes.count)
     }
 }

@@ -1,5 +1,6 @@
 /// The style sheet of the viewer (ADR 0004, the typography tokens of ask roadmap 0199): the system font at 13 points, a line of 1.6 and a measure of 40 em, generous space between blocks,
 /// neutral colour (the only colour is a link's underline and a diagram's), hairlines, light and dark through `prefers-color-scheme`.
+@available(macOS 26.0, *)
 public enum ViewerStyle {
     public static let sheet = """
         :root { color-scheme: light dark; --text: #1d1d1f; --secondary: #6e6e73; --tertiary: #a1a1a6; --rule: rgba(0,0,0,0.10); --tint: rgba(0,0,0,0.045); --mark: rgba(0,0,0,0.28);

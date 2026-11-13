@@ -2,6 +2,7 @@ internal import SwiftUI
 
 /// A task's box as the style sheet draws it: 0.95 em square, a border of 1.5 points in the tertiary colour with corners of 0.28 em, and, when done, the border in the secondary colour and a check at 72 %
 /// of the room inside. Drawn, not a symbol, which would not take the same size at every text size.
+@available(macOS 26.0, *)
 struct TaskBox: View {
     let done: Bool
 

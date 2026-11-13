@@ -6,6 +6,7 @@ internal import AemiMermaidSyntax
 internal import Foundation
 internal import SwiftUI
 
+@available(macOS 26.0, *)
 extension NativeDocument {
     /// Reads `document` into rows in one pass, with an explicit stack of the open containers.
     public init(_ document: MarkdownDocument, settings: ViewerSettings = ViewerSettings()) {
@@ -16,6 +17,7 @@ extension NativeDocument {
 }
 
 /// One open container.
+@available(macOS 26.0, *)
 private struct Frame {
     enum Kind {
         case quote(NativeAlert?)
@@ -41,6 +43,7 @@ private struct Frame {
     var firstRowPending = false
 }
 
+@available(macOS 26.0, *)
 struct NativeBuilder {
     let document: MarkdownDocument
     let settings: ViewerSettings

@@ -2,6 +2,7 @@ internal import Foundation
 
 /// A typeface a style of the page may use (ask roadmap 0199, ADR 0004): one of the system's four, or a family installed on the machine, named. A page that names a family that is not installed
 /// falls back to the system's.
+@available(macOS 26.0, *)
 public enum FontFace: Sendable, Equatable {
     case system, serif, rounded, mono
     case family(String)
@@ -47,6 +48,7 @@ public enum FontFace: Sendable, Equatable {
 }
 
 /// The fonts of the four styles the page has: its text, its headings, its code and monospace, and its diagrams; and the OpenType features turned on in all of them.
+@available(macOS 26.0, *)
 public struct ViewerFonts: Sendable, Equatable {
     /// A style may follow the text (`nil`): the headings and the diagrams do by default.
     public var text = FontFace.system
@@ -119,6 +121,7 @@ public struct ViewerFonts: Sendable, Equatable {
     }
 }
 
+@available(macOS 26.0, *)
 extension UInt8 {
     fileprivate var isASCIIAlphanumeric: Bool {
         (0x30 ... 0x39).contains(self) || (0x41 ... 0x5A).contains(self) || (0x61 ... 0x7A).contains(self)

@@ -4,6 +4,7 @@ public import SwiftUI
 
 /// A block of text laid out as the page lays it out: a whole number of lines of the exact height, and for a heading `text-wrap: balance`: the lines of a wrapped heading as even as they can be without taking another line. The narrowest width at which the text still wraps into as many lines as it does
 /// at the full width, found by halving (about ten greedy passes of the typesetter, each linear in the text), and the text is laid out at that width.
+@available(macOS 26.0, *)
 struct BalancedLayout: Layout {
     /// The height of a line as the page sets it: a page's lines are exactly this far apart, where SwiftUI rounds each line up to the pixel grid, so a block is this many lines high and no more.
     let lineHeight: CGFloat

@@ -4,6 +4,7 @@ internal import SwiftUI
 /// the padding of a code block (1.1 em by 1.3 em) inside it. Closed, one line: its title and how many properties, the chevron at the
 /// end. Open, a column of properties on the text's leading (1.6 em), a dimmed key over its value; a nested mapping or list a group
 /// that opens and closes, its column indented behind a bar as a quote's is.
+@available(macOS 26.0, *)
 struct NativeFrontMatterView: View {
     let panel: FrontMatterPanel
     let size: CGFloat
@@ -64,6 +65,7 @@ struct NativeFrontMatterView: View {
 }
 
 /// The text of the panel: the body's size, every line one leading.
+@available(macOS 26.0, *)
 struct PropertyStyle {
     let size: CGFloat
     let fonts: NativeFonts
@@ -97,6 +99,7 @@ struct PropertyStyle {
 }
 
 /// A line that opens and closes what follows it, the chevron at its end.
+@available(macOS 26.0, *)
 private struct Disclosure<Label: View>: View {
     @Binding var open: Bool
     let style: PropertyStyle
@@ -116,6 +119,7 @@ private struct Disclosure<Label: View>: View {
 }
 
 /// A column of properties, `--gap-s` apart: a dimmed key over its value, or a group.
+@available(macOS 26.0, *)
 private struct NativeProperties: View {
     let rows: [FrontMatterPanel.Row]
     let style: PropertyStyle
@@ -164,6 +168,7 @@ private struct NativeProperties: View {
 }
 
 /// A nested mapping or list: its key opens and closes its column, which is indented behind a bar.
+@available(macOS 26.0, *)
 private struct NativePropertyGroup: View {
     let row: FrontMatterPanel.Row
     let style: PropertyStyle
@@ -188,6 +193,7 @@ private struct NativePropertyGroup: View {
 
 /// A prose value as the Markdown it is written in: its rows drawn as the document's are (paragraphs, lists, code), a paragraph
 /// apart, outside the document's selection.
+@available(macOS 26.0, *)
 private struct NativeProse: View {
     let text: String
     let style: PropertyStyle

@@ -2,6 +2,7 @@ internal import AppKit
 internal import SwiftUI
 
 /// A code block: the code in a rounded tint that scrolls sideways, its language and a copy button in the corner.
+@available(macOS 26.0, *)
 struct NativeCodeView: View {
     let code: NativeCode
     let size: CGFloat
