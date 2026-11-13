@@ -280,15 +280,16 @@ public struct NativeDocumentColumn: View {
 
     @ViewBuilder private func rows(_ size: CGFloat) -> some View {
         ForEach(document.rows) { row in
-            if row.bleeds(settings) {
+            // One shape of view for every row, whatever it holds. With a branch here (a row as wide as the window, or not), a row
+            // that kept its number and changed kind as the text was edited (a diagram that became a table) kept showing what it
+            // was: the lazy stack held the view of the other branch under the same id (seen in the lab, 2026-11-14).
+            let bleeds = row.bleeds(settings)
+            NativeRowView(row: row, size: size, settings: settings)
+                .frame(maxWidth: bleeds || settings.fullWidth ? .infinity : size * row.measure, alignment: .leading)
+                .frame(maxWidth: .infinity, alignment: bleeds || settings.alignsLeft ? .leading : .center)
                 // As wide as the window: the column's own padding is taken back, and the table puts it in again where it wants it.
-                NativeRowView(row: row, size: size, settings: settings).padding(.horizontal, -size * 2.5).id(row.id)
-            } else {
-                NativeRowView(row: row, size: size, settings: settings)
-                    .frame(maxWidth: settings.fullWidth ? .infinity : size * row.measure, alignment: .leading)
-                    .frame(maxWidth: .infinity, alignment: settings.alignsLeft ? .leading : .center)
-                    .id(row.id)
-            }
+                .padding(.horizontal, bleeds ? -size * 2.5 : 0)
+                .id(row.id)
         }
     }
 }
