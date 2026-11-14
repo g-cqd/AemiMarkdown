@@ -1,5 +1,7 @@
 import AppKit
+import Observation
 import Testing
+import os
 
 @testable import MarkdownLookKit
 
@@ -62,5 +64,50 @@ struct MarkdownSourceTests {
     @Test func `a Mermaid file is one diagram, not Markdown`() {
         let source = MarkdownSource(text: "flowchart LR\n  A --> B\n", isDiagram: true)
         #expect(source.isDiagram && source.document.rows.count == 1)
+    }
+
+    @Test func `the page is made when it is asked for, not at each edit`() {
+        let source = MarkdownSource(text: "# One\n\ntext\n")
+        #expect(source.pagesMade == 0, "a source nobody shows rendered makes no page")
+        for index in 0 ..< 10 { source.storage.replaceCharacters(in: NSRange(location: index, length: 0), with: "x") }
+        #expect(source.pagesMade == 0 && source.revision == 10)
+        #expect(source.document.rows.count == 2 && source.document.rows.count == 2 && source.pagesMade == 1)
+        source.storage.replaceCharacters(in: NSRange(location: source.storage.length, length: 0), with: "\n## Two\n")
+        #expect(source.pagesMade == 1 && source.document.rows.count == 3 && source.pagesMade == 2)
+        source.settings.showsLanguage.toggle()
+        #expect(source.pagesMade == 2)
+        _ = source.document
+        #expect(source.pagesMade == 3, "other settings make another page")
+    }
+
+    @Test func `what shows the page is told when the text or the settings change`() {
+        let source = MarkdownSource(text: "one\n")
+        let told = OSAllocatedUnfairLock(initialState: 0)
+        func watch() {
+            withObservationTracking {
+                _ = source.document
+            } onChange: {
+                told.withLock { $0 += 1 }
+            }
+        }
+        watch()
+        source.storage.replaceCharacters(in: NSRange(location: 0, length: 0), with: "x")
+        #expect(told.withLock { $0 } == 1)
+        watch()
+        source.settings.showsLanguage.toggle()
+        #expect(told.withLock { $0 } == 2)
+    }
+
+    @Test func `plain text is held and edited without being read as Markdown`() {
+        let source = MarkdownSource(text: "# not a heading\n* not a list\n", content: .plain)
+        #expect(source.content == .plain && !source.isDiagram && source.document.rows.isEmpty && source.pagesMade == 0)
+        source.storage.replaceCharacters(in: NSRange(location: 0, length: 1), with: "//")
+        #expect(source.text == "// not a heading\n* not a list\n" && source.isEdited && source.revision == 1)
+        #expect(source.lastEdit == nil && source.session.utf8Count == 0, "the parser is not run on it")
+        source.undoManager.undo()
+        source.markSaved()
+        #expect(!source.isEdited)
+        #expect(MarkdownSource(text: "flowchart LR\n", isDiagram: true).content == .diagram)
+        #expect(MarkdownSource(text: "a").content == .markdown)
     }
 }
