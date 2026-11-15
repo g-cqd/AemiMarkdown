@@ -3,7 +3,7 @@ internal import Foundation
 internal import SwiftUI
 
 /// The inline content of one leaf block as styled text: emphasis, strong, strikethrough, code, links (only where `HTMLText.isSafeDestination` allows), footnote references that link to their
-/// notes, images named and not loaded.
+/// notes, images named and not loaded (a paragraph that is one image becomes a row of its own: `soleImage`).
 @available(macOS 26.0, *)
 struct NativeInline {
     private(set) var string = AttributedString()
@@ -14,6 +14,11 @@ struct NativeInline {
     private var strike = 0
     private var code = 0
     private var image = 0
+    /// The images met, with what each is inside of.
+    private var images: [NativeImage] = []
+    /// Something shows besides images: words, a note's reference.
+    private var hasWords = false
+    private var imageInLink = false
     private var link: URL?
     private var inLink = false
     private var autolinkKind: Int?
@@ -22,6 +27,13 @@ struct NativeInline {
     init(smartPunctuation: Bool) { smart = smartPunctuation ? SmartPunctuation() : nil }
 
     var isEmpty: Bool { string.characters.isEmpty }
+
+    /// The image this block is, when it is one image and nothing else (it may be inside a link).
+    var soleImage: NativeImage? {
+        guard images.count == 1, !hasWords, var only = images.first else { return nil }
+        only.fallback = string
+        return only
+    }
 
     mutating func enter(_ node: MarkdownNode) {
         switch node.kind {
@@ -35,6 +47,10 @@ struct NativeInline {
             case .image:
                 image += 1
                 append("\u{25A3}\u{00A0}")
+                if image == 1 {
+                    images.append(NativeImage(source: "", alt: "", fallback: AttributedString()))
+                    imageInLink = imageInLink || inLink
+                }
             case .autolink: autolinkKind = node.payload
             default: break
         }
@@ -47,6 +63,9 @@ struct NativeInline {
             case .strikethrough: strike -= 1
             case .codeSpan, .math: code -= 1
             case .link:
+                // An image inside this link leads where the link does (the destination is known by now, whichever came first).
+                if imageInLink, let last = images.indices.last { images[last].link = link }
+                imageInLink = false
                 inLink = false
                 link = nil
             case .image: image -= 1
@@ -60,7 +79,12 @@ struct NativeInline {
         switch node.kind {
             case .linkDestination:
                 let destination = String(decoding: document.decode(node.range), as: UTF8.self)
-                link = inLink && HTMLText.isSafeDestination(destination) ? URL(string: destination) : nil
+                if image > 0 {
+                    // The image's own destination: its file, not where its text leads.
+                    if image == 1, let last = images.indices.last { images[last].source = destination }
+                } else {
+                    link = inLink && HTMLText.isSafeDestination(destination) ? URL(string: destination) : nil
+                }
             case .text:
                 if let kind = autolinkKind {
                     appendAutolink(text(node.range), kind: kind)
@@ -74,6 +98,7 @@ struct NativeInline {
             case .footnoteReference:
                 let label = text(node.range)
                 notes.append(label)
+                hasWords = true
                 var run = AttributedString(label)
                 run.link = NativeLink.url(NativeLink.note, label: label)
                 string.append(run)
@@ -85,6 +110,7 @@ struct NativeInline {
         var run = AttributedString(text)
         if let target { run.link = target }
         if secondary { run.foregroundColor = NativeTheme.secondary }
+        if !text.allSatisfy(\.isWhitespace) { hasWords = true }
         string.append(run)
     }
 
@@ -101,6 +127,11 @@ struct NativeInline {
 
     private mutating func append(_ text: String, smartly: Bool = false) {
         guard !text.isEmpty else { return }
+        if image == 0 {
+            if !text.allSatisfy(\.isWhitespace) { hasWords = true }
+        } else if image == 1, let last = images.indices.last, text != "\u{25A3}\u{00A0}" {
+            images[last].alt += text
+        }
         let shown = smartly && code == 0 && image == 0 ? (smart?.apply(text) ?? text) : text
         var run = AttributedString(shown)
         var intent: InlinePresentationIntent = []

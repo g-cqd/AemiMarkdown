@@ -8,18 +8,45 @@ public import SwiftUI
 public struct NativeDocumentView: View {
     private let document: NativeDocument
     private let settings: ViewerSettings
+    private let base: URL?
+    private let onLink: ((URL) -> Void)?
     @State private var selection: DocumentSelection
     @State private var pressed = false
     @FocusState private var focused: Bool
 
-    public init(document: NativeDocument, settings: ViewerSettings) {
-        self.init(document: document, settings: settings, selection: DocumentSelection(document: document))
+    /// - Parameters:
+    ///   - document: the rows.
+    ///   - settings: how they look.
+    ///   - base: the folder of the document: what its relative pictures and links are under. With none, only pictures with an absolute path show.
+    ///   - onLink: takes the links that leave the page (ADR-0010): a web address, or a file of this Mac. With none, a web address
+    ///     opens in the browser and a link to a file does nothing, as before.
+    public init(
+        document: NativeDocument,
+        settings: ViewerSettings,
+        base: URL? = nil,
+        onLink: ((URL) -> Void)? = nil
+    ) {
+        self.init(
+            document: document,
+            settings: settings,
+            selection: DocumentSelection(document: document),
+            base: base,
+            onLink: onLink
+        )
     }
 
     /// With the selection it keeps: a test holds it to see what a gesture did.
-    init(document: NativeDocument, settings: ViewerSettings, selection: DocumentSelection) {
+    init(
+        document: NativeDocument,
+        settings: ViewerSettings,
+        selection: DocumentSelection,
+        base: URL? = nil,
+        onLink: ((URL) -> Void)? = nil
+    ) {
         self.document = document
         self.settings = settings
+        self.base = base
+        self.onLink = onLink
         _selection = State(initialValue: selection)
     }
 
@@ -32,6 +59,7 @@ public struct NativeDocumentView: View {
                 NativeDocumentColumn(document: document, settings: settings, lazy: true)
                     .coordinateSpace(.named(NativeDocumentColumn.space))
                     .environment(\.documentSelection, selection)
+                    .environment(\.documentBase, base)
                     .simultaneousGesture(selecting)
                     .focusable()
                     .focusEffectDisabled()
@@ -62,15 +90,22 @@ public struct NativeDocumentView: View {
             .onEnded { _ in pressed = false }
     }
 
-    /// A footnote link scrolls to its note and a back link to the first reference; a web link opens in the browser; anything else does nothing.
+    /// A footnote link scrolls to its note and a back link to the first reference; what leaves the page is the host's when it takes links, else a
+    /// web link opens in the browser; anything else does nothing.
     private func open(_ url: URL, proxy: ScrollViewProxy) -> OpenURLAction.Result {
-        if let link = NativeLink.parse(url) {
-            let target =
-                link.scheme == NativeLink.note ? document.noteRow[link.label] : document.referenceRow[link.label]
-            if let target { withAnimation(.smooth) { proxy.scrollTo(target, anchor: .center) } }
+        func scroll(to row: Int?) -> OpenURLAction.Result {
+            if let row { withAnimation(.smooth) { proxy.scrollTo(row, anchor: .center) } }
             return .handled
         }
-        return ["http", "https", "mailto"].contains(url.scheme?.lowercased() ?? "") ? .systemAction : .discarded
+        switch NativeLinkRoute(url, base: base, hostTakesLinks: onLink != nil) {
+            case .note(let label): return scroll(to: document.noteRow[label])
+            case .reference(let label): return scroll(to: document.referenceRow[label])
+            case .host(let target):
+                onLink?(target)
+                return .handled
+            case .system: return .systemAction
+            case .nothing: return .discarded
+        }
     }
 }
 
@@ -172,6 +207,10 @@ struct NativeRowView: View {
             case .table(let table):
                 NativeTableView(table: table, size: size, settings: settings, bleeds: row.bleeds(settings))
             case .diagram(let diagram): NativeDiagramView(diagram: diagram, size: size)
+            case .image(let image):
+                NativeImageView(image: image, size: size) {
+                    textView(NativeText(string: image.fallback, style: .body))
+                }
             case .frontMatter(let panel):
                 NativeFrontMatterView(panel: panel, size: size, settings: settings)
             case .rule: Capsule().fill(Color.primary.opacity(0.1)).frame(height: 1.5)

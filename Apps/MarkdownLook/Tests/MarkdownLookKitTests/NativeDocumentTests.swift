@@ -202,8 +202,18 @@ struct NativeDocumentTests {
             "[x](javascript:alert(1))", "[x](data:text/html,<b>)", "[x](file:///etc/passwd)",
             "[x][r]\n\n[r]: vbscript:y", "<javascript:alert(1)>"
         ] { #expect(links(bad).isEmpty, "\(bad)") }
-        let image = rows("![the alt](https://tracker.example/p.png)")
-        #expect(text(image[0]).contains("the alt") && links("![the alt](https://tracker.example/p.png)").isEmpty)
+        // Among words an image is named. Alone it is a row of its own (ADR-0010), which shows the same name unless a local file
+        // is read: an address on a network is never one.
+        let image = rows("see ![the alt](https://tracker.example/p.png)")
+        #expect(text(image[0]).contains("the alt") && links("see ![the alt](https://tracker.example/p.png)").isEmpty)
+        guard case .image(let alone) = rows("![the alt](https://tracker.example/p.png)")[0].content else {
+            Issue.record("a lone image is an image row")
+            return
+        }
+        #expect(
+            String(alone.fallback.characters).contains("the alt") && alone.fallback.runs.allSatisfy { $0.link == nil }
+        )
+        #expect(alone.file(base: URL(fileURLWithPath: "/tmp")) == nil)
     }
 
     @Test func `autolinks link their target`() {

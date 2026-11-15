@@ -7,6 +7,8 @@ public import Observation
 public final class MarkdownEditorProxy {
     /// The selection of the editor, in UTF-16 units of the text; nil while no editor is attached.
     public internal(set) var selection: Range<Int>?
+    /// The editor has the keyboard: it was clicked, or given it.
+    public internal(set) var isFocused = false
     @ObservationIgnored weak var coordinator: MarkdownSourceEditorCoordinator?
 
     public init() {}

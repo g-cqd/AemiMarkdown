@@ -54,7 +54,7 @@ public struct MarkdownSourceEditor: NSViewRepresentable {
         let container = NSTextContainer(size: NSSize(width: 0, height: CGFloat.greatestFiniteMagnitude))
         container.widthTracksTextView = true
         layout.addTextContainer(container)
-        let view = NSTextView(frame: .zero, textContainer: container)
+        let view = MarkdownTextView(frame: .zero, textContainer: container)
         view.isRichText = false
         view.allowsUndo = true
         view.drawsBackground = false

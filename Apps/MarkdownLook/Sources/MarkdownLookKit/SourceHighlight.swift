@@ -36,6 +36,18 @@ public enum MarkdownSourceHighlight {
         apply(to: storage, font: font, window: low ..< high)
     }
 
+    /// Colours the part of `source` that is shown, as what it is: Markdown as Markdown; a diagram or plain text in one colour,
+    /// since `#` and `*` mean nothing there.
+    public static func apply(to source: MarkdownSource, font: NSFont, visible: NSRange) {
+        guard source.content != .markdown else { return apply(to: source.storage, font: font, visible: visible) }
+        let storage = source.storage
+        let window = NSIntersectionRange(visible, NSRange(location: 0, length: storage.length))
+        guard window.length > 0 else { return }
+        storage.beginEditing()
+        storage.setAttributes(baseAttributes(font: font), range: window)
+        storage.endEditing()
+    }
+
     static func baseAttributes(font: NSFont) -> [NSAttributedString.Key: Any] {
         [.font: font, .foregroundColor: NSColor.labelColor]
     }

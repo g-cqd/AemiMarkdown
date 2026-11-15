@@ -31,12 +31,14 @@ public final class MarkdownSourceEditorCoordinator: NSObject, NSTextViewDelegate
             queue: .main
         ) { [weak self] _ in MainActor.assumeIsolated { self?.scrolled() } }
         update(configuration, proxy: proxy)
+        (view as? MarkdownTextView)?.onFocusChange = { [weak self] focused in self?.proxy?.isFocused = focused }
         highlight()
     }
 
     func update(_ next: MarkdownEditorConfiguration, proxy: MarkdownEditorProxy?) {
         if self.proxy !== proxy {
             self.proxy?.coordinator = nil
+            self.proxy?.isFocused = false
             self.proxy = proxy
             proxy?.coordinator = self
             proxy?.selection = view.map { Range($0.selectedRange()) } ?? nil
@@ -51,6 +53,8 @@ public final class MarkdownSourceEditorCoordinator: NSObject, NSTextViewDelegate
     func detach() {
         proxy?.coordinator = nil
         proxy?.selection = nil
+        proxy?.isFocused = false
+        (view as? MarkdownTextView)?.onFocusChange = nil
         if let view { MarkdownSourceEditor.detach(view, from: source) }
     }
 
@@ -109,7 +113,7 @@ public final class MarkdownSourceEditorCoordinator: NSObject, NSTextViewDelegate
             let bottom = Swift.min(view.characterIndexForInsertion(at: below), storage.length)
             if bottom > top { window = NSRange(location: top, length: bottom - top) }
         }
-        MarkdownSourceHighlight.apply(to: storage, font: font, visible: window)
+        MarkdownSourceHighlight.apply(to: source, font: font, visible: window)
         coloured = window
     }
 }

@@ -62,21 +62,6 @@ struct NativeBuilder {
     var span: Range<Int>?
     var pendingSource: String?
 
-    struct CodeState {
-        var isHTML: Bool
-        var language = ""
-        var lines: [String] = []
-        var pendingSpaces = 0
-    }
-
-    struct TableState {
-        var alignments: [NativeTable.Alignment] = []
-        var header: [AttributedString] = []
-        var rows: [[AttributedString]] = []
-        var current: [AttributedString] = []
-        var isHeader = false
-    }
-
     init(document: MarkdownDocument, settings: ViewerSettings) {
         self.document = document
         self.settings = settings
@@ -163,6 +148,10 @@ struct NativeBuilder {
             case .paragraph, .heading:
                 guard let finished = inline else { return }
                 inline = nil
+                if node.kind == .paragraph, let image = finished.soleImage {
+                    emit(.image(image), kind: .prose)
+                    return
+                }
                 emitText(
                     finished,
                     style: node.kind == .heading ? .heading(Swift.min(6, Swift.max(1, node.payload))) : .body

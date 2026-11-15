@@ -53,6 +53,8 @@ public enum NativeContent: Sendable {
     case code(NativeCode)
     case table(NativeTable)
     case diagram(NativeDiagram)
+    /// A paragraph that is one image.
+    case image(NativeImage)
     /// A document's head, as a panel of its properties.
     case frontMatter(FrontMatterPanel)
     case rule

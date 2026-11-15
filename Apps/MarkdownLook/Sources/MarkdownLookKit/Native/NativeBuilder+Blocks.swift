@@ -127,3 +127,22 @@ extension NativeBuilder {
         return String(decoding: document.source[start ..< end], as: UTF8.self)
     }
 }
+
+/// What is kept of a block of lines and of a table while their events come.
+@available(macOS 26.0, *)
+extension NativeBuilder {
+    struct CodeState {
+        var isHTML: Bool
+        var language = ""
+        var lines: [String] = []
+        var pendingSpaces = 0
+    }
+
+    struct TableState {
+        var alignments: [NativeTable.Alignment] = []
+        var header: [AttributedString] = []
+        var rows: [[AttributedString]] = []
+        var current: [AttributedString] = []
+        var isHeader = false
+    }
+}
