@@ -140,10 +140,15 @@ struct SelectionRecorder: Sendable {
             if case .text(let text) = row.content { String(text.string.characters) } else { nil }
         }
         source = document.rows.map(\.source)
-        frames = [:]
-        origins = [:]
+        // Only what belongs to rows that are gone: a row that did not move does not say its frame again.
+        frames = frames.filter { plain.indices.contains($0.key) }
+        origins = origins.filter { plain.indices.contains($0.key) }
         clear()
     }
+
+    /// Whether a row is one of the document as read. A document that changes is drawn before it is read again here (the
+    /// view reads it once its rows changed), so a row view may ask about a row past the end: it is not selected.
+    private func isRead(_ row: Int) -> Bool { plain.indices.contains(row) }
 
     var isEmpty: Bool { start == nil || start == end }
     var start: SelectionPoint? { [anchor, focus].compactMap { $0 }.min() }
@@ -162,7 +167,8 @@ struct SelectionRecorder: Sendable {
 
     /// The part of a text row that is selected, in UTF-16 units of its text.
     func range(row: Int) -> Range<Int>? {
-        guard let start, let end, start != end, row >= start.row, row <= end.row, let text = plain[row] else {
+        guard let start, let end, start != end, row >= start.row, row <= end.row, isRead(row), let text = plain[row]
+        else {
             return nil
         }
         let low = row == start.row ? start.offset : 0
@@ -172,7 +178,7 @@ struct SelectionRecorder: Sendable {
 
     /// Whether a row that is not text is selected whole.
     func covers(row: Int) -> Bool {
-        guard let start, let end, start != end, plain[row] == nil, row >= start.row, row <= end.row else {
+        guard let start, let end, start != end, isRead(row), plain[row] == nil, row >= start.row, row <= end.row else {
             return false
         }
         return !(row == start.row && start.offset == 1) && !(row == end.row && end.offset == 0)
@@ -183,7 +189,7 @@ struct SelectionRecorder: Sendable {
     /// The place a point of the page is at: in the row it is on, or the nearest one.
     func point(at location: CGPoint) -> SelectionPoint? {
         var best: (row: Int, distance: CGFloat)?
-        for (row, frame) in frames {
+        for (row, frame) in frames where isRead(row) {
             let distance =
                 location.y < frame.minY
                 ? frame.minY - location.y : (location.y > frame.maxY ? location.y - frame.maxY : 0)
@@ -240,7 +246,9 @@ struct SelectionRecorder: Sendable {
     var text: String? {
         guard let start, let end, start != end else { return nil }
         var parts: [String] = []
-        for row in start.row ... Swift.min(end.row, plain.count - 1) {
+        let last = Swift.min(end.row, plain.count - 1)
+        guard start.row <= last else { return nil }
+        for row in start.row ... last {
             if let text = plain[row] {
                 let length = text.utf16.count
                 let low = row == start.row ? start.offset : 0
