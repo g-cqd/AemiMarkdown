@@ -5,13 +5,24 @@ public import AppKit
 /// Colour for Markdown *source* in an editor (the lab's left pane): attributes only, so every character stays as typed and editing, the cursor, selection and undo are untouched. What the bytes are comes from
 /// `MarkdownSourceHighlighter` (the colouring ask's prompt has, made neutral); how they look is decided here, with the system's semantic colours so light, dark and the accent follow the system.
 ///
-/// The font does not change size anywhere: a heading is bold and tinted, not larger, so lines keep one height and the editor's scroll position and the lab's measurements stay put.
+/// By default the font does not change size anywhere: a heading is bold and tinted, not larger, so lines keep one height. With
+/// `scalesHeadings` a heading's text takes the page's scale for its level (Sunset's roadmap 0034).
 @available(macOS 26.0, *)
 @MainActor
 public enum MarkdownSourceHighlight {
     /// Styles the Markdown in `storage`: all of it, or the UTF-8 byte `window` of it (a long text is parsed only around the window).
     /// - Complexity: O(the text copied) plus the parse of the window, or of the first megabyte when there is none.
-    public static func apply(to storage: NSTextStorage, font: NSFont, window: Range<Int>? = nil) {
+    /// - Parameters:
+    ///   - storage: The text to style.
+    ///   - font: The editor's font.
+    ///   - window: The bytes to style, or nil for all of them.
+    ///   - scalesHeadings: A heading's text at the page's scale for its level (its `#` stay at the body's size).
+    public static func apply(
+        to storage: NSTextStorage,
+        font: NSFont,
+        window: Range<Int>? = nil,
+        scalesHeadings: Bool = false
+    ) {
         let bytes = Array(storage.string.utf8)
         let spans = MarkdownSourceHighlighter.spans(of: bytes, visible: window)
         var cache: [SourceRun: [NSAttributedString.Key: Any]] = [:]
@@ -24,7 +35,8 @@ public enum MarkdownSourceHighlight {
             if let known = cache[style] { return known }
             let made: [NSAttributedString.Key: Any]
             switch style {
-                case .markdown(let markdown): made = attributes(for: markdown, font: font)
+                case .markdown(let markdown):
+                    made = attributes(for: markdown, font: font, scalesHeadings: scalesHeadings)
                 case .token(let kind): made = [.font: font, .foregroundColor: NativeTheme.tokenColor(kind)]
             }
             cache[style] = made
@@ -33,17 +45,19 @@ public enum MarkdownSourceHighlight {
     }
 
     /// As ``apply(to:font:window:)``, for a window given in the UTF-16 units of the storage (what a text view reports): a text of 8 KiB or less is styled whole, a longer one only around `visible`.
-    public static func apply(to storage: NSTextStorage, font: NSFont, visible: NSRange) {
+    public static func apply(to storage: NSTextStorage, font: NSFont, visible: NSRange, scalesHeadings: Bool = false) {
         let string = storage.string
         let low = TextStorageStyler.byteOffset(ofUTF16: visible.location, in: string)
         let high = TextStorageStyler.byteOffset(ofUTF16: NSMaxRange(visible), in: string)
-        apply(to: storage, font: font, window: low ..< high)
+        apply(to: storage, font: font, window: low ..< high, scalesHeadings: scalesHeadings)
     }
 
     /// Colours the part of `source` that is shown, as what it is: Markdown as Markdown; a diagram or plain text in one colour,
     /// since `#` and `*` mean nothing there.
-    public static func apply(to source: MarkdownSource, font: NSFont, visible: NSRange) {
-        guard source.content != .markdown else { return apply(to: source.storage, font: font, visible: visible) }
+    public static func apply(to source: MarkdownSource, font: NSFont, visible: NSRange, scalesHeadings: Bool = false) {
+        guard source.content != .markdown else {
+            return apply(to: source.storage, font: font, visible: visible, scalesHeadings: scalesHeadings)
+        }
         let storage = source.storage
         let window = NSIntersectionRange(visible, NSRange(location: 0, length: storage.length))
         guard window.length > 0 else { return }
@@ -57,7 +71,9 @@ public enum MarkdownSourceHighlight {
     }
 
     /// What a style looks like, on top of the base attributes.
-    static func attributes(for style: MarkdownSourceStyle, font: NSFont) -> [NSAttributedString.Key: Any] {
+    static func attributes(for style: MarkdownSourceStyle, font: NSFont, scalesHeadings: Bool = false)
+        -> [NSAttributedString.Key: Any]
+    {
         var result = baseAttributes(font: font)
         switch style.kind {
             case .marker:
@@ -77,6 +93,9 @@ public enum MarkdownSourceHighlight {
         }
         if style.kind == .text {
             var styled = font
+            if scalesHeadings, style.headingLevel > 0 {
+                styled = styled.withSize(font.pointSize * Spacing.scale(.heading(style.headingLevel)))
+            }
             if style.traits.contains(.strong) || style.headingLevel > 0 { styled = bold(styled) }
             if style.traits.contains(.emphasis) {
                 let slanted = italic(styled)

@@ -113,7 +113,12 @@ public final class MarkdownSourceEditorCoordinator: NSObject, NSTextViewDelegate
             let bottom = Swift.min(view.characterIndexForInsertion(at: below), storage.length)
             if bottom > top { window = NSRange(location: top, length: bottom - top) }
         }
-        MarkdownSourceHighlight.apply(to: source, font: font, visible: window)
+        MarkdownSourceHighlight.apply(
+            to: source,
+            font: font,
+            visible: window,
+            scalesHeadings: configuration.scalesHeadings
+        )
         coloured = window
     }
 }

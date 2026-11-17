@@ -109,4 +109,16 @@ struct SourceHighlightTests {
         }
         for index in 0 ..< store.length { #expect(background(store, index) == nil, "\(index)") }
     }
+
+    /// Behind a setting (Sunset's `documents.largerHeadings`, roadmap 0034 step B), a heading's text takes the page's scale
+    /// for its level and stays bold; its `#` keep the body's size, and the body is unchanged.
+    @Test func `a heading can take the page's size, its hashes and the body staying as they are`() {
+        let store = NSTextStorage(string: "# One\n\n## Two\n\nbody **b**")
+        MarkdownSourceHighlight.apply(to: store, font: font, scalesHeadings: true)
+        #expect(attributeFont(store, 0)?.pointSize == 13 && colour(store, 0) == .tertiaryLabelColor)
+        #expect(abs((attributeFont(store, 2)?.pointSize ?? 0) - 13 * Spacing.scale(.heading(1))) < 0.01)
+        #expect(abs((attributeFont(store, 10)?.pointSize ?? 0) - 13 * Spacing.scale(.heading(2))) < 0.01)
+        #expect(attributeFont(store, 2)?.fontDescriptor.symbolicTraits.contains(.bold) == true)
+        #expect(attributeFont(store, 15)?.pointSize == 13 && attributeFont(store, 22)?.pointSize == 13)
+    }
 }
