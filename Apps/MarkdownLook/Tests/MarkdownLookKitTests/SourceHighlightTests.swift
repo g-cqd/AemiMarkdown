@@ -22,14 +22,14 @@ struct SourceHighlightTests {
         store.attribute(.font, at: unit, effectiveRange: nil) as? NSFont
     }
 
-    @Test func `markers are dimmed, strong is bold, code is tinted, and nothing else about the text changes`() {
+    @Test func `markers are dimmed, strong is bold, code is plain, and nothing else about the text changes`() {
         let text = "a **b** `c`"
         let store = storage(text)
         #expect(store.string == text)
         #expect(colour(store, 0) == .labelColor, "plain text keeps the label colour")
         #expect(colour(store, 2) == .tertiaryLabelColor, "a ** marker is dimmed")
         #expect(attributeFont(store, 4)?.fontDescriptor.symbolicTraits.contains(.bold) == true, "b is bold")
-        #expect(colour(store, 9) == .systemOrange, "c is code")
+        #expect(colour(store, 9) == .labelColor, "c is code, in the text's colour")
         // No size change anywhere: lines keep one height.
         for unit in 0 ..< store.length { #expect(attributeFont(store, unit)?.pointSize == 13) }
     }
@@ -77,5 +77,36 @@ struct SourceHighlightTests {
         MarkdownSourceHighlight.apply(to: empty, font: font, window: 5 ..< 9)
         let odd = NSTextStorage(string: "\u{0}*\u{FFFD}* ** `` \u{202E}**x**")
         MarkdownSourceHighlight.apply(to: odd, font: font, window: -3 ..< 1_000)
+    }
+
+    private func background(_ store: NSTextStorage, _ unit: Int) -> NSColor? {
+        store.attribute(.backgroundColor, at: unit, effectiveRange: nil) as? NSColor
+    }
+
+    /// Code is coloured only where its fence names a language a scanner knows, as the page colours it; anything else is in
+    /// the text's colour, and no code has a background (Sunset's owner, 2026-11-17: "a background and orange strings … is
+    /// not really nice to read").
+    @Test func `code is coloured by its language, else plain, never on a background`() {
+        let text =
+            "```swift\nlet s = \"x\" // c\n```\n\n```zzz\nlet s = \"x\"\n```\n\n    let s = \"x\"\n\na `let s = \"x\"` b\n"
+        let store = storage(text)
+        let units = Array(text.utf16)
+        func unit(of needle: String, from: Int) -> Int {
+            let pattern = Array(needle.utf16)
+            return (from ..< units.count).first { Array(units[$0 ..< min($0 + pattern.count, units.count)]) == pattern }
+                ?? -1
+        }
+        let swift = unit(of: "let", from: 0)
+        let string = unit(of: "\"x\"", from: swift)
+        #expect(colour(store, swift) != .labelColor && colour(store, string) != .labelColor)
+        #expect(colour(store, swift) != colour(store, string), "a keyword and a string differ")
+        #expect(colour(store, unit(of: "= ", from: swift)) == .labelColor, "what no token covers is plain")
+        var from = string
+        for _ in 0 ..< 3 {
+            let other = unit(of: "let", from: from + 1)
+            #expect(colour(store, other) == .labelColor && colour(store, unit(of: "\"x\"", from: other)) == .labelColor)
+            from = other
+        }
+        for index in 0 ..< store.length { #expect(background(store, index) == nil, "\(index)") }
     }
 }

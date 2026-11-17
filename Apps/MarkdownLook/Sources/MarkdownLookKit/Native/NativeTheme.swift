@@ -38,13 +38,16 @@ enum NativeTheme {
     static func alert(_ alert: NativeAlert) -> Color { page(light: alert.hex.light, dark: alert.hex.dark) }
 
     private static func dynamic(light: (CGFloat, CGFloat, CGFloat), dark: (CGFloat, CGFloat, CGFloat)) -> Color {
-        Color(
-            nsColor: NSColor(name: nil) { appearance in
-                let isDark = appearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
-                let (r, g, b) = isDark ? dark : light
-                return NSColor(srgbRed: r, green: g, blue: b, alpha: 1)
-            }
-        )
+        Color(nsColor: dynamicNSColor(light: light, dark: dark))
+    }
+
+    private static func dynamicNSColor(light: (CGFloat, CGFloat, CGFloat), dark: (CGFloat, CGFloat, CGFloat)) -> NSColor
+    {
+        NSColor(name: nil) { appearance in
+            let isDark = appearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
+            let (r, g, b) = isDark ? dark : light
+            return NSColor(srgbRed: r, green: g, blue: b, alpha: 1)
+        }
     }
 
     /// The muted tones of a pie's slices, in order.
@@ -60,16 +63,23 @@ enum NativeTheme {
     }
 
     /// The colour of a token of the kind letter `CodeHighlighter` gives (keyword, string, escape, number, type, attribute, tag, property, comment).
-    static func token(_ kind: String) -> Color {
-        switch kind {
-            case "k", "g": dynamic(light: (0.61, 0.14, 0.58), dark: (1, 0.48, 0.70))
-            case "s": dynamic(light: (0.76, 0.22, 0.12), dark: (1, 0.56, 0.48))
-            case "e": dynamic(light: (0.69, 0.32, 0.12), dark: (1, 0.69, 0.52))
-            case "n": dynamic(light: (0.11, 0.37, 0.82), dark: (0.85, 0.79, 0.49))
-            case "t": dynamic(light: (0.12, 0.44, 0.48), dark: (0.42, 0.83, 0.91))
-            case "a": dynamic(light: (0.54, 0.35, 0.08), dark: (0.88, 0.70, 0.42))
-            case "p": dynamic(light: (0.23, 0.43, 0.65), dark: (0.54, 0.71, 0.94))
-            default: dynamic(light: (0.48, 0.50, 0.54), dark: (0.49, 0.52, 0.56))
+    static func token(_ kind: String) -> Color { Color(nsColor: tokenColor(kind)) }
+
+    /// As ``token(_:)``, for AppKit: the source editor colours code as the page does.
+    /// - Parameter kind: The kind letter.
+    /// - Returns: Its colour, light and dark.
+    static func tokenColor(_ kind: String) -> NSColor {
+        typealias Tone = (CGFloat, CGFloat, CGFloat)
+        let dynamic = { (light: Tone, dark: Tone) in dynamicNSColor(light: light, dark: dark) }
+        return switch kind {
+            case "k", "g": dynamic((0.61, 0.14, 0.58), (1, 0.48, 0.70))
+            case "s": dynamic((0.76, 0.22, 0.12), (1, 0.56, 0.48))
+            case "e": dynamic((0.69, 0.32, 0.12), (1, 0.69, 0.52))
+            case "n": dynamic((0.11, 0.37, 0.82), (0.85, 0.79, 0.49))
+            case "t": dynamic((0.12, 0.44, 0.48), (0.42, 0.83, 0.91))
+            case "a": dynamic((0.54, 0.35, 0.08), (0.88, 0.70, 0.42))
+            case "p": dynamic((0.23, 0.43, 0.65), (0.54, 0.71, 0.94))
+            default: dynamic((0.48, 0.50, 0.54), (0.49, 0.52, 0.56))
         }
     }
 }

@@ -14,15 +14,19 @@ public enum MarkdownSourceHighlight {
     public static func apply(to storage: NSTextStorage, font: NSFont, window: Range<Int>? = nil) {
         let bytes = Array(storage.string.utf8)
         let spans = MarkdownSourceHighlighter.spans(of: bytes, visible: window)
-        var cache: [MarkdownSourceStyle: [NSAttributedString.Key: Any]] = [:]
+        var cache: [SourceRun: [NSAttributedString.Key: Any]] = [:]
         TextStorageStyler.apply(
-            spans.map { (bytes: $0.bytes, style: $0.style) },
+            SourceRun.runs(spans, in: bytes),
             to: storage,
             window: window,
             base: baseAttributes(font: font)
         ) { style in
             if let known = cache[style] { return known }
-            let made = attributes(for: style, font: font)
+            let made: [NSAttributedString.Key: Any]
+            switch style {
+                case .markdown(let markdown): made = attributes(for: markdown, font: font)
+                case .token(let kind): made = [.font: font, .foregroundColor: NativeTheme.tokenColor(kind)]
+            }
             cache[style] = made
             return made
         }
@@ -59,8 +63,9 @@ public enum MarkdownSourceHighlight {
             case .marker:
                 result[.foregroundColor] = NSColor.tertiaryLabelColor
             case .code:
-                result[.foregroundColor] = NSColor.systemOrange
-                result[.backgroundColor] = NSColor.quaternaryLabelColor.withAlphaComponent(0.12)
+                // Code with no language a scanner knows is in the text's colour, on no background: the fence and the
+                // backticks around it, dimmed, say it is code (Sunset's owner, 2026-11-17).
+                break
             case .codeLabel:
                 result[.foregroundColor] = NSColor.systemTeal
             case .linkTarget:
