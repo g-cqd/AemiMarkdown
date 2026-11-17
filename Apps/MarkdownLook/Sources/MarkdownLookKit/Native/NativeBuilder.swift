@@ -190,7 +190,11 @@ struct NativeBuilder {
             return
         }
         if inline != nil {
-            if node.kind == .taskMarker { setTask(done: node.payload == 1) } else { inline?.leaf(node, in: document) }
+            if node.kind == .taskMarker {
+                setTask(done: node.payload == 1, at: node.range.lowerBound)
+            } else {
+                inline?.leaf(node, in: document)
+            }
             return
         }
         switch node.kind {
@@ -249,7 +253,7 @@ struct NativeBuilder {
         guard let alert else { return }
         var title = NativeInline(smartPunctuation: false)
         title.appendPlain(alert.title)
-        emitText(title, style: .alertTitle)
+        emitText(title, style: .alertTitle(alert))
     }
 
     private mutating func enterItem() {
@@ -303,11 +307,11 @@ struct NativeBuilder {
         if frames.isEmpty { rootLast = sibling } else { frames[frames.count - 1].last = sibling }
     }
 
-    private mutating func setTask(done: Bool) {
+    private mutating func setTask(done: Bool, at offset: Int) {
         if let item = frames.lastIndex(where: { if case .item = $0.kind { true } else { false } }),
             !frames[item].markerUsed
         {
-            frames[item].marker = .task(done: done)
+            frames[item].marker = .task(done: done, at: offset)
         }
     }
 

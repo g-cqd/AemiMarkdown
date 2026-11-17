@@ -32,6 +32,11 @@ enum NativeTheme {
     static let tint = page(light: 0, dark: 0xffffff, lightAlpha: 0.045, darkAlpha: 0.07)
     static let mark = page(light: 0, dark: 0xffffff, lightAlpha: 0.28, darkAlpha: 0.35)
 
+    /// An alert's colour, for its bar, its icon and its title.
+    /// - Parameter alert: The alert.
+    /// - Returns: Its colour, light and dark.
+    static func alert(_ alert: NativeAlert) -> Color { page(light: alert.hex.light, dark: alert.hex.dark) }
+
     private static func dynamic(light: (CGFloat, CGFloat, CGFloat), dark: (CGFloat, CGFloat, CGFloat)) -> Color {
         Color(
             nsColor: NSColor(name: nil) { appearance in

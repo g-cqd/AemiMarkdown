@@ -72,4 +72,21 @@ struct GitHubExtensionTests {
     @Test func `without the extension a dollar is text`() {
         #expect(!outline("a $x$ b", .gfm).contains("math"))
     }
+
+    /// GitHub reads the type in any case (its documentation spells it in capitals; `[!note]`, `[!Note]` and `[!nOtE]`
+    /// are the same alert there): every case of every type, and white space after the marker.
+    @Test(arguments: ["note", "tip", "important", "warning", "caution"])
+    func `an alert's type is read in any case`(type: String) {
+        let number = ["note", "tip", "important", "warning", "caution"].firstIndex(of: type).map { $0 + 1 } ?? 0
+        var spellings = [type, type.uppercased(), type.prefix(1).uppercased() + type.dropFirst()]
+        spellings.append(
+            String(type.enumerated().map { $0.offset % 2 == 0 ? Character($0.element.uppercased()) : $0.element })
+        )
+        for spelling in spellings {
+            for after in ["", "  ", "\t"] {
+                let text = outline("> [!\(spelling)]\(after)\n> body\n")
+                #expect(text.hasPrefix("blockQuote[\(number)]\n"), "[!\(spelling)]\(after.debugDescription): \(text)")
+            }
+        }
+    }
 }

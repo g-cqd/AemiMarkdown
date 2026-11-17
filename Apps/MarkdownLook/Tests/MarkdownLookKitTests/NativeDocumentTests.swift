@@ -40,7 +40,19 @@ struct NativeDocumentTests {
             text(found[0]) == "Warning" && found[0].guides == [.bar(.warning, continues: false)]
                 && text(found[1]) == "careful"
         )
-        if case .text(let title) = found[0].content { #expect(title.style == .alertTitle) }
+        if case .text(let title) = found[0].content { #expect(title.style == .alertTitle(.warning)) }
+    }
+
+    /// GitHub's alerts each have a colour and an icon, the bar and the title in that colour, the title as written in its
+    /// documentation ("Note", not "NOTE"); the type is read in any case (Sunset, 2026-11-17).
+    @Test func `each alert has a colour and an icon of its own, whatever the case of its type`() {
+        let kinds: [NativeAlert] = [.note, .tip, .important, .warning, .caution]
+        #expect(Set(kinds.map(\.symbol)).count == 5 && Set(kinds.map(\.hex.light)).count == 5)
+        #expect(Set(kinds.map(\.hex.dark)).count == 5)
+        for (spelling, kind) in zip(["note", "Tip", "iMpOrTaNt", "WARNING", "cAUTION"], kinds) {
+            let found = rows("> [!\(spelling)]\n> body")
+            #expect(text(found[0]) == kind.title && found[0].guides == [.bar(kind, continues: false)], "\(spelling)")
+        }
     }
 
     @Test func `list items put a marker on their first row and an indent under it`() {
@@ -69,9 +81,19 @@ struct NativeDocumentTests {
         let found = rows("- [x] done\n- [ ] open\n1. [ ] first")
         #expect(
             found.map(\.guides) == [
-                [.marker(.task(done: true))], [.marker(.task(done: false))], [.marker(.task(done: false))]
+                [.marker(.task(done: true, at: 2))], [.marker(.task(done: false, at: 13))],
+                [.marker(.task(done: false, at: 25))]
             ]
         )
+    }
+
+    /// A task's box is the system's checkbox; a click on it rewrites its three bytes in the source, and nothing else.
+    @Test func `checking a task off rewrites its box in the source`() {
+        let source = Array("- [ ] open\n- [x] done\n- [X] Done\n- not [ ] one".utf8)
+        func edit(_ offset: Int) -> String? { NativeMarker.toggle(in: source, at: offset).map { "\($0.0) \($0.1)" } }
+        #expect(edit(2) == "2..<5 [x]" && edit(13) == "13..<16 [ ]" && edit(24) == "24..<27 [ ]")
+        #expect(NativeMarker.toggle(in: source, at: 0) == nil && NativeMarker.toggle(in: source, at: 40) == nil)
+        #expect(NativeMarker.toggle(in: source, at: source.count - 1) == nil)
     }
 
     @Test func `code keeps its language and its raw text, expands tabs, and is coloured`() {

@@ -259,7 +259,8 @@ struct InlineParser {
         let after =
             text.count > 3 ? text[3] : lineSourceStart[0] + 3 < source.count ? source[lineSourceStart[0] + 3] : 0
         guard after == 0x20 || after == 0x09 else { return }
-        tree.append(InlineNode(kind: .taskMarker, payload: state == 0x20 ? 0 : 1))
+        // Its three bytes in the source: what a view that checks it off rewrites.
+        tree.append(InlineNode(kind: .taskMarker, payload: state == 0x20 ? 0 : 1, start: sourceOffset(0), length: 3))
         position = 3
         while position < text.count, text[position] == 0x20 || text[position] == 0x09 { position += 1 }
     }

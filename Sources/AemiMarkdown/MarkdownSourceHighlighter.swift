@@ -182,6 +182,8 @@ public enum MarkdownSourceHighlighter {
                 case .infoString: return MarkdownSourceStyle(kind: .codeLabel)
                 case .linkDestination, .linkTitle: return MarkdownSourceStyle(kind: .linkTarget)
                 case .htmlInline: return MarkdownSourceStyle(kind: .html)
+                // A task's `[ ]` is syntax, dimmed as before it had a range of its own.
+                case .taskMarker: return MarkdownSourceStyle(kind: .marker)
                 default: break
             }
             var traits: MarkdownSourceStyle.Traits = []

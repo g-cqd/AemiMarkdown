@@ -28,4 +28,18 @@ struct TaskMarkerTests {
         #expect(before == "<ul>\n<li>[x]</li>\n</ul>\n")
         #expect(SpecHTMLRenderer.html(of: parser.snapshot()).contains("checkbox"))
     }
+
+    /// Where the marker is in the source: what a view that checks it off rewrites (Sunset, 2026-11-17: the boxes are to be
+    /// the system's checkboxes, which a click toggles).
+    @Test func `a task marker's range is its three bytes in the source`() {
+        let source = "# T\n\n- [ ] one\n  * [x] two\n1. [X] three\n"
+        let document = MarkdownParser.parse(Array(source.utf8), extensions: .gfm)
+        var markers: [(Range<Int>, Int)] = []
+        for case .leaf(let node) in document.events where node.kind == .taskMarker {
+            markers.append((node.range, node.payload))
+        }
+        let bytes = Array(source.utf8)
+        #expect(markers.map { String(decoding: bytes[$0.0], as: UTF8.self) } == ["[ ]", "[x]", "[X]"])
+        #expect(markers.map(\.1) == [0, 1, 1])
+    }
 }

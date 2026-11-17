@@ -161,7 +161,7 @@ struct NativeRowView: View {
         switch guide {
             case .bar(let alert, let continues):
                 // The bar of a quote is one rectangle for the whole quote; its rows draw their parts, overlapping a little so no seam shows.
-                Rectangle().fill(alert == nil ? NativeTheme.mark : NativeTheme.note).frame(width: 1.5)
+                Rectangle().fill(alert.map(NativeTheme.alert) ?? NativeTheme.mark).frame(width: 1.5)
                     .padding(.top, continues ? 0 : gap).frame(width: indent, alignment: .leading)
                     .frame(maxHeight: .infinity)
             case .marker(let marker): markerGuide(marker)
@@ -192,8 +192,7 @@ struct NativeRowView: View {
                     .frame(width: size * 0.35, height: size * 0.35).offset(y: 0.7)
             case .number(let number):
                 Text(number).font(fonts.font(.text, size: size).monospacedDigit()).foregroundColor(NativeTheme.tertiary)
-            case .task(let done):
-                TaskBox(done: done).frame(width: size * 0.95, height: size * 0.95)
+            case .task(let done, let offset): NativeCheckbox(done: done, offset: offset, size: size)
             case .note(let label):
                 Text(label).font(fonts.font(.text, size: size * 0.92).monospacedDigit())
                     .foregroundColor(NativeTheme.tertiary)
@@ -225,6 +224,11 @@ struct NativeRowView: View {
         let scale = fontScale(text.style)
         let isHeading = if case .heading = text.style { true } else { false }
         return HStack(alignment: .firstTextBaseline, spacing: size * scale * 0.7) {
+            if case .alertTitle(let alert) = text.style {
+                // GitHub's icon before the title, in the alert's colour.
+                Image(systemName: alert.symbol).font(.system(size: size * scale, weight: .medium))
+                    .foregroundStyle(NativeTheme.alert(alert)).padding(.trailing, -size * scale * 0.3)
+            }
             PageText(
                 string: text.string,
                 size: size * scale,
@@ -232,7 +236,6 @@ struct NativeRowView: View {
                 color: color(text.style),
                 lineHeight: size * scale * lineFactor(text.style),
                 tracking: size * scale * tracking(text.style),
-                uppercase: text.style == .alertTitle,
                 balances: isHeading,
                 role: isHeading ? .heading : .text,
                 row: row.id
@@ -260,7 +263,7 @@ struct NativeRowView: View {
         switch style {
             case .body: 1
             case .heading(let level): Spacing.scale(.heading(level))
-            case .alertTitle: 0.85
+            case .alertTitle: 1
             case .note: Spacing.notesScale
         }
     }
@@ -272,7 +275,6 @@ struct NativeRowView: View {
     private func tracking(_ style: NativeText.Style) -> Double {
         switch style {
             case .heading(let level): level == 1 ? -0.02 : -0.012
-            case .alertTitle: 0.06
             default: 0
         }
     }
@@ -280,7 +282,8 @@ struct NativeRowView: View {
     private func color(_ style: NativeText.Style) -> Color {
         switch style {
             case .heading(let level): level >= 5 ? NativeTheme.secondary : NativeTheme.text
-            case .alertTitle, .note: NativeTheme.secondary
+            case .alertTitle(let alert): NativeTheme.alert(alert)
+            case .note: NativeTheme.secondary
             case .body: isQuote ? NativeTheme.secondary : NativeTheme.text
         }
     }

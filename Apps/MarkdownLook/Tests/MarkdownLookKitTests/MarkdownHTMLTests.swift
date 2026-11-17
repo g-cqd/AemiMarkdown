@@ -56,6 +56,15 @@ struct MarkdownHTMLTests {
         balanced(out)
     }
 
+    /// The page draws what the native view does: the system's checkbox, an alert in its colour, its title as written.
+    @Test func `checkboxes are the system's and alerts are coloured`() {
+        let sheet = ViewerStyle.sheet
+        #expect(!sheet.contains("text-transform: uppercase") && !sheet.contains("appearance: none"))
+        for kind in ["note", "tip", "important", "warning", "caution"] {
+            #expect(sheet.contains(".alert.\(kind)"), "\(kind)")
+        }
+    }
+
     @Test func `alerts, quotes and footnotes`() {
         let alert = html("> [!WARNING]\n> careful")
         #expect(alert.contains("class=\"alert warning\"") && alert.contains(">Warning<") && alert.contains("careful"))

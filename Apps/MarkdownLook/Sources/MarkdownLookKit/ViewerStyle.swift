@@ -1,5 +1,5 @@
 /// The style sheet of the viewer (ADR 0004, the typography tokens of ask roadmap 0199): the system font at 13 points, a line of 1.6 and a measure of 40 em, generous space between blocks,
-/// neutral colour (the only colour is a link's underline and a diagram's), hairlines, light and dark through `prefers-color-scheme`.
+/// neutral colour (the only colours are a link's underline, a diagram's and an alert's, GitHub's), hairlines, light and dark through `prefers-color-scheme`.
 @available(macOS 26.0, *)
 public enum ViewerStyle {
     public static let sheet = """
@@ -43,8 +43,11 @@ public enum ViewerStyle {
         pre code .a { color: var(--a); } pre code .g { color: var(--g); } pre code .p { color: var(--p); } pre code .c { color: var(--c); font-style: italic; text-align: inherit; }
         blockquote, .alert { position: relative; padding-left: var(--indent); }
         blockquote::before, .alert::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: var(--bar); border-radius: 1px; background: var(--mark); }
-        blockquote { color: var(--secondary); } .alert::before { background: var(--note); }
-        .alert-title { font-weight: 500; font-size: 0.85em; letter-spacing: 0.06em; text-transform: uppercase; color: var(--secondary); }
+        blockquote { color: var(--secondary); } .alert::before { background: var(--alert); }
+        /* GitHub's alerts: each its colour (Primer's), for the bar and the title. */
+        .alert.note { --alert: #0969da; } .alert.tip { --alert: #1a7f37; } .alert.important { --alert: #8250df; } .alert.warning { --alert: #9a6700; } .alert.caution { --alert: #d1242f; }
+        @media (prefers-color-scheme: dark) { .alert.note { --alert: #4493f8; } .alert.tip { --alert: #3fb950; } .alert.important { --alert: #ab7df8; } .alert.warning { --alert: #d29922; } .alert.caution { --alert: #f85149; } }
+        .alert-title { font-weight: 500; color: var(--alert); }
         .alert > .alert-title + * { margin-block-start: var(--gap-s); }
         ul, ol { padding-left: var(--indent); --item: var(--gap); } ul.tight, ol.tight { --item: var(--gap-s); } ol { font-variant-numeric: tabular-nums; }
         /* Items of a list are --item apart (tight or loose), and a list inside an item starts the same distance below its parent's text, so a child never sits farther from its parent than the next item does. */
@@ -53,11 +56,8 @@ public enum ViewerStyle {
         :is(ul, ol).tight > li > :where(* + *) { margin-block-start: var(--gap-s); }
         li::marker { color: var(--tertiary); }
         li:has(> input:first-child), li:has(> p > input:first-child) { list-style: none; }
-        /* A checkbox is drawn here, not by the system (which ignores its size): a box of 1em, centred on the first line of its item, so it follows the text at every size. */
-        li input[type=checkbox] { -webkit-appearance: none; appearance: none; font: inherit; position: absolute; left: calc(-1 * var(--indent)); top: calc((var(--leading) - 0.95em) / 2); width: 0.95em; height: 0.95em;
-          margin: 0; box-sizing: border-box; border: var(--stroke) solid var(--tertiary); border-radius: 0.28em; background: transparent center / 72% no-repeat; }
-        li input[type=checkbox]:checked { border-color: var(--secondary); background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 247 243'%3E%3Cpath d='M98 230c6 0 11-3 15-8L230 39c3-4 4-8 4-11 0-9-6-15-15-15-6 0-10 2-14 8L97 194 41 122c-4-5-8-7-13-7-9 0-15 6-15 15 0 4 1 8 5 11l65 81c4 5 9 8 15 8z' fill='%236e6e73'/%3E%3C/svg%3E"); }
-        @media (prefers-color-scheme: dark) { li input[type=checkbox]:checked { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 247 243'%3E%3Cpath d='M98 230c6 0 11-3 15-8L230 39c3-4 4-8 4-11 0-9-6-15-15-15-6 0-10 2-14 8L97 194 41 122c-4-5-8-7-13-7-9 0-15 6-15 15 0 4 1 8 5 11l65 81c4 5 9 8 15 8z' fill='%2398989d'/%3E%3C/svg%3E"); } }
+        /* A checkbox is the system's, centred on the first line of its item, in the marker's place. */
+        li input[type=checkbox] { position: absolute; left: calc(-1 * var(--indent)); top: calc((var(--leading) - 1em) / 2); width: 1em; height: 1em; margin: 0; }
         hr { border: 0; height: var(--hair); border-radius: 1px; background: var(--rule); }
         .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
         .table-wrap { scrollbar-width: none; } .table-wrap::-webkit-scrollbar { display: none; }

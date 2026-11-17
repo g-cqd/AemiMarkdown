@@ -32,7 +32,8 @@ public enum NativeMarker: Sendable, Equatable {
     /// A bullet, by the depth of bulleted lists around it.
     case bullet(depth: Int)
     case number(String)
-    case task(done: Bool)
+    /// A task's box, and where its `[ ]` starts in the source: what a click on it rewrites.
+    case task(done: Bool, at: Int)
     case note(String)
 
     var isTask: Bool { if case .task = self { true } else { false } }
@@ -45,6 +46,22 @@ public enum NativeAlert: Int, Sendable, Equatable {
     case tip, important, warning, caution
 
     public var title: String { ["Note", "Tip", "Important", "Warning", "Caution"][rawValue - 1] }
+
+    /// The symbol before its title: GitHub's icons, as the system's symbols.
+    public var symbol: String {
+        [
+            "info.circle", "lightbulb", "exclamationmark.bubble", "exclamationmark.triangle",
+            "exclamationmark.octagon"
+        ][rawValue - 1]
+    }
+
+    /// Its colour, light and dark, as GitHub's (Primer's accent, success, done, attention and danger foregrounds).
+    public var hex: (light: UInt32, dark: UInt32) {
+        [
+            (0x0969da, 0x4493f8), (0x1a7f37, 0x3fb950), (0x8250df, 0xab7df8), (0x9a6700, 0xd29922),
+            (0xd1242f, 0xf85149)
+        ][rawValue - 1]
+    }
 }
 
 @available(macOS 26.0, *)
@@ -67,7 +84,7 @@ public struct NativeText: Sendable {
     public enum Style: Sendable, Equatable {
         case body
         case heading(Int)
-        case alertTitle
+        case alertTitle(NativeAlert)
         case note
     }
 

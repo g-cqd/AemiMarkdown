@@ -20,6 +20,10 @@ public struct MarkdownNode: Sendable, Equatable {
         let kind = Slot.kind(slot)
         let payload = Slot.payload(slot)
         switch Slot.shape(slot) {
+            case .range where kind == .taskMarker:
+                // `[ ]`, `[x]` or `[X]`: three bytes, and the payload past them says whether it is checked.
+                let start = Slot.low(slot)
+                self.init(kind: kind, payload: payload - 3, range: start ..< (start + 3))
             case .range:
                 let start = Slot.low(slot)
                 self.init(kind: kind, payload: 0, range: start ..< (start + payload))

@@ -26,6 +26,10 @@ extension InlineParser {
                     }
                 case .htmlInline, .entity, .linkDestination, .linkTitle, .footnoteReference:
                     inlines.append(Slot.make(.range, node.kind, payload: node.length, low: node.start))
+                case .taskMarker:
+                    // A range, so an edit before it moves it: its three bytes, for a view that checks it off. The slot's payload is the
+                    // length plus whether it is checked (3 or 4); the node reads them back apart.
+                    inlines.append(Slot.make(.range, .taskMarker, payload: node.length + node.payload, low: node.start))
                 default:
                     inlines.append(Slot.make(.marker, node.kind, payload: node.payload, low: 0))
             }
