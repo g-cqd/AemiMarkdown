@@ -12,7 +12,10 @@ public struct NativeDocumentView: View {
     private let onLink: ((URL) -> Void)?
     @State private var selection: DocumentSelection
     @State private var pressed = false
+    /// The link under the pointer, as the page holds it: what a secondary click's menu is about.
+    @State private var pointed: URL?
     @FocusState private var focused: Bool
+    @Environment(\.markdownLinkMenu) private var linkMenu
 
     /// - Parameters:
     ///   - document: the rows.
@@ -67,6 +70,16 @@ public struct NativeDocumentView: View {
                     .onCopyCommand { selection.text.map { [NSItemProvider(object: $0 as NSString)] } ?? [] }
                     .onCommand(#selector(NSResponder.selectAll(_:))) { selection.selectAll() }
                     .onChange(of: signature) { selection.load(document) }
+                    .onContinuousHover(coordinateSpace: .named(NativeDocumentColumn.space)) { phase in
+                        guard linkMenu != nil else { return }
+                        let link: URL? = if case .active(let point) = phase { selection.link(at: point) } else { nil }
+                        if link != pointed { pointed = link }
+                    }
+                    .contextMenu {
+                        if let linkMenu, let pointed, let target = LinkMenuAction.target(of: pointed, base: base) {
+                            linkMenu.content(target)
+                        }
+                    }
             }
             .scrollEdgeEffectStyle(.soft, for: .top)
             .tint(Color(nsColor: .linkColor))

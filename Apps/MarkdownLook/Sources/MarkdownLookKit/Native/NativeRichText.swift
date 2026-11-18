@@ -10,9 +10,13 @@ struct CodePill: TextAttribute {}
 @available(macOS 26.0, *)
 struct NoteRaise: TextAttribute {}
 
-/// Marks the text of a link, so that the renderer below draws its underline.
+/// Marks the text of a link, so that the renderer below draws its underline, and the selection knows the link under a
+/// point (its menu).
 @available(macOS 26.0, *)
-struct LinkUnderline: TextAttribute {}
+struct LinkUnderline: TextAttribute {
+    /// The link as the page holds it.
+    let url: URL
+}
 
 /// Draws a text as SwiftUI would, with what a page adds to it: the rounded tint behind inline code (the rectangle of the run, a font's ascent and descent as an inline box has them, rounded by
 /// 0.3 em), and under a link a line one point thick, 0.22 em below the baseline, in the link's colour at 35 %.
@@ -121,7 +125,7 @@ enum NativeRichText {
                         .customAttribute(NoteRaise())
                     needsRenderer = true
                 } else {
-                    piece = piece.customAttribute(LinkUnderline())
+                    piece = piece.customAttribute(LinkUnderline(url: link))
                     needsRenderer = true
                 }
             }

@@ -22,8 +22,15 @@ struct TextGeometry: Sendable {
         var line: Int
     }
 
+    /// A link's run: its box and where it leads, as the page holds it.
+    struct Link: Sendable {
+        var rect: CGRect
+        var url: URL
+    }
+
     var slices: [Slice] = []
     var lines: [CGRect] = []
+    var links: [Link] = []
 
     /// The offset in the text as written that a point is at: the line it is on (the nearest), then the edge of the glyph it is nearer.
     func offset(at point: CGPoint) -> Int? {
@@ -98,6 +105,9 @@ struct SelectionRecorder: Sendable {
         for (number, line) in layout.enumerated() {
             geometry.lines.append(line.typographicBounds.rect)
             for run in line {
+                if let link = run[LinkUnderline.self] {
+                    geometry.links.append(.init(rect: run.typographicBounds.rect, url: link.url))
+                }
                 for slice in run {
                     guard let first = slice.characterIndices.first, let index = Self.unit(of: first) else { continue }
                     starts.append(
