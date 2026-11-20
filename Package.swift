@@ -20,16 +20,16 @@ let kernelSettings: [SwiftSetting] = strictSettings + [.strictMemorySafety()]
 // dependency: a package that depends on AemiMarkdown does not fetch it.
 let aemiDependency: Package.Dependency = .package(
     url: "https://github.com/Aemi-Studio/aemi.git",
-    revision: "8db567405295d7d8aa4852a66af1cd46bf46a617"
+    revision: "f438182da40a731d5d75a7e22c4f684547401b13"
 )
 // AemiHMMML's front matter locator and readers (its ADR-0009 and ADR-0015), for `MarkdownExtensions.frontMatter`.
 let hmmmlDependency: Package.Dependency = .package(
     url: "https://github.com/g-cqd/AemiHMMML.git",
-    revision: "50df98d1858123fe754ab0a6817ae5f49a0da3c0"
+    revision: "e548cac3543b8e024c7897ffef558bcd20a629bc"
 )
 let regexDependency: Package.Dependency = .package(
     url: "https://github.com/g-cqd/AemiRegex.git",
-    revision: "8e10fbf954f9e34bd838ddfa156eea763e1a9111"
+    revision: "7fafa3bca9d044e0aefbd87ec6387355910bccf9"
 )
 
 // MarkdownLookKit, the viewer and editor kit (ADR-0008): of MarkdownLook, and of Sunset's Markdown pane, which pins this package by
@@ -37,8 +37,8 @@ let regexDependency: Package.Dependency = .package(
 // has neither the target nor what it alone depends on (Mermaid for fences, AemiJSON for a head's table, AemiTextUI for code).
 #if os(macOS)
     let lookDependencies: [Package.Dependency] = [
-        .package(url: "https://github.com/g-cqd/AemiJSON.git", revision: "5114554d1cbb16625556fec05669a00eaf4ada89"),
-        .package(url: "https://github.com/g-cqd/AemiMermaid.git", revision: "2557d5fcec1d302461e9285a6a5391fc8eda5a96"),
+        .package(url: "https://github.com/g-cqd/AemiJSON.git", revision: "21689968b814e01b16e49b5b1899bc5baefa38a5"),
+        .package(url: "https://github.com/g-cqd/AemiMermaid.git", revision: "f0d85d6eaa73462d996047d68b67f254efb25633"),
         .package(url: "https://github.com/g-cqd/AemiTextUI.git", revision: "4b64bf4ea295d3ea68ceaa9ca2360beb7f5b0a3d")
     ]
     let lookProducts: [Product] = [.library(name: "MarkdownLookKit", targets: ["MarkdownLookKit"])]
