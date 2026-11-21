@@ -14,6 +14,8 @@ public struct NativeDocumentView: View {
     @State private var pressed = false
     /// The link under the pointer, as the page holds it: what a secondary click's menu is about.
     @State private var pointed: URL?
+    /// The height the scroll view shows: the page is at least that tall, so a press below a short document's end still selects.
+    @State private var viewport: CGFloat = 0
     @FocusState private var focused: Bool
     @Environment(\.markdownLinkMenu) private var linkMenu
 
@@ -61,6 +63,10 @@ public struct NativeDocumentView: View {
             ScrollView {
                 NativeDocumentColumn(document: document, settings: settings, lazy: true)
                     .coordinateSpace(.named(NativeDocumentColumn.space))
+                    // A press anywhere on the page selects (the owner, 2026-11-21): in the margins, between blocks and below the
+                    // last one, not only on what is drawn.
+                    .frame(minHeight: viewport, alignment: .top)
+                    .contentShape(Rectangle())
                     .environment(\.documentSelection, selection)
                     .environment(\.documentBase, base)
                     .simultaneousGesture(selecting)
@@ -80,6 +86,11 @@ public struct NativeDocumentView: View {
                             linkMenu.content(target)
                         }
                     }
+            }
+            .onGeometryChange(for: CGFloat.self) {
+                $0.size.height
+            } action: {
+                viewport = $0
             }
             .scrollEdgeEffectStyle(.soft, for: .top)
             .tint(Color(nsColor: .linkColor))
