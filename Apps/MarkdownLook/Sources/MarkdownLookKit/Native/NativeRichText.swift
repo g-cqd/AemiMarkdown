@@ -228,9 +228,16 @@ struct PageText: View {
                 line
             }
         }
-        .offset(
-            y: NativeMetrics.halfLeading(font: fonts.nsFont(role, size: size, weight: nsWeight), lineHeight: lineHeight)
-        )
+        .offset(y: drop)
+        // The baselines where the text is drawn, not where the offset left them: a view set beside it on its baseline (an alert's
+        // symbol, a footnote's back link) stood `drop` above the line (the owner, 2026-11-22).
+        .alignmentGuide(.firstTextBaseline) { $0[.firstTextBaseline] + drop }
+        .alignmentGuide(.lastTextBaseline) { $0[.lastTextBaseline] + drop }
+    }
+
+    /// How far below its line box the text is drawn: half the leading, as a page puts it.
+    private var drop: CGFloat {
+        NativeMetrics.halfLeading(font: fonts.nsFont(role, size: size, weight: nsWeight), lineHeight: lineHeight)
     }
 
     private var nsWeight: NSFont.Weight {
