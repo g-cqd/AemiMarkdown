@@ -104,6 +104,11 @@ public struct MarkdownExtensions: OptionSet, Sendable {
     /// is and ``MarkdownDocument/readFrontMatter(limits:)`` reads it; a head never makes the parse fail. Off, CommonMark and GFM read
     /// the same as before. Not in ``github``: GitHub draws a head as a table, which is a renderer's choice.
     public static let frontMatter = MarkdownExtensions(rawValue: 1 << 7)
+    /// In a word that names a file by its absolute or home path (`/var/folders/_l/x_y/notes.txt`, `~/a_b/*.png`), `*`, `_` and `~`
+    /// are the path's own characters, not emphasis or strikethrough (ADR-0012). A word is what lies between blanks, after any of
+    /// `"'([<=` that open it; it is a path when it then starts with `/` or `~/`. For text a program wrote, where a path is a path and
+    /// rarely in a code span. Off, CommonMark and GFM read the same as before; not in ``github``, which GitHub does not do.
+    public static let pathWords = MarkdownExtensions(rawValue: 1 << 8)
 
     /// What cmark-gfm implements and the GitHub Flavored Markdown specification describes.
     public static let gfm: MarkdownExtensions = [.tables, .strikethrough, .autolinks, .taskLists, .footnotes]

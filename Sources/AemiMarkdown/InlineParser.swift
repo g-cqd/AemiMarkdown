@@ -59,6 +59,8 @@ struct InlineParser {
     /// What the leaf block's reference lookups found, folded in order (ADR-0003): zero when it looked up none. A block whose link changes meaning because a
     /// definition appeared, went or changed has a different stamp, and so a different content hash.
     var resolutionStamp: UInt64 = 0
+    /// The last word ``MarkdownExtensions/pathWords`` looked at, so each word is read once however many delimiters it holds.
+    var lastWord = PathWord()
 
     /// Parses `lines` of `source` and appends the leaf block's inline run, ending in a `runEnd` slot, to `inlines`. Returns the index of the run's first slot.
     mutating func parse(
@@ -77,6 +79,7 @@ struct InlineParser {
         self.limits = limits
         self.extensions = extensions
         tree.reset()
+        lastWord = PathWord()
         text.removeAll(keepingCapacity: true)
         lineScratchStart.removeAll(keepingCapacity: true)
         lineSourceStart.removeAll(keepingCapacity: true)

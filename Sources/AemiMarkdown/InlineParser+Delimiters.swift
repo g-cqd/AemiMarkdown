@@ -14,6 +14,10 @@ extension InlineParser {
         while end < text.count, text[end] == character { end += 1 }
         position = end
         let count = end - start
+        if extensions.contains(.pathWords), isInPathWord(start) {
+            appendText(start, end)
+            return
+        }
         // Strikethrough takes one or two tildes; a longer run is just text.
         if character == UInt8(ascii: "~"), count > 2 {
             appendText(start, end)
