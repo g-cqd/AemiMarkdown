@@ -1,4 +1,5 @@
 internal import AppKit
+internal import CoreText
 internal import Foundation
 internal import SwiftUI
 
@@ -165,9 +166,19 @@ enum NativeRichText {
     }
 
     /// The width of a space of the monospaced font, in ems: the room a code span's side padding is made of (a space of a smaller font than the code's, so that the line's height does not change).
-    private static func monospacedSpace(_ fonts: NativeFonts) -> CGFloat {
+    /// Measured directly with CoreText glyph advances rather than `NSAttributedString.size()` so CoreText never builds a
+    /// typesetter attribute dictionary inside SwiftUI's layout pass.
+    static func monospacedSpace(_ fonts: NativeFonts) -> CGFloat {
         let font = fonts.nsFont(.code, size: 100)
-        return NSAttributedString(string: "\u{00A0}", attributes: [.font: font]).size().width / 100
+        var character: UniChar = 0x00A0
+        var glyph: CGGlyph = 0
+        if unsafe CTFontGetGlyphsForCharacters(font, &character, &glyph, 1) {
+            var advance = CGSize.zero
+            let width = unsafe CTFontGetAdvancesForGlyphs(font, .horizontal, &glyph, &advance, 1)
+            if width > 0 { return CGFloat(width) / 100 }
+        }
+        let fallback = font.maximumAdvancement.width
+        return fallback > 0 ? fallback / 100 : 0.6
     }
 }
 
@@ -201,9 +212,7 @@ struct PageText: View {
         var layout = BalancedLayout(lineHeight: lineHeight)
         if balances {
             layout.balances = true
-            layout.text = String(string.characters)
-            layout.font = fonts.nsFont(role, size: size, weight: nsWeight)
-            layout.kern = tracking
+            layout.hasNewline = string.characters.contains("\n")
         }
         var recorder: SelectionRecorder?
         if let row, let selection { recorder = SelectionRecorder(store: selection.store, row: row, map: rich.map) }
