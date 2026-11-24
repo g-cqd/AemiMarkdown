@@ -25,11 +25,11 @@ let aemiDependency: Package.Dependency = .package(
 // AemiHMMML's front matter locator and readers (its ADR-0009 and ADR-0015), for `MarkdownExtensions.frontMatter`.
 let hmmmlDependency: Package.Dependency = .package(
     url: "https://github.com/g-cqd/AemiHMMML.git",
-    revision: "23d9a9d020cda1d215bd05fd9ace215c38198038"
+    revision: "ff6f0d21a99fde3336c711a8d7f1200a7156ff50"
 )
 let regexDependency: Package.Dependency = .package(
     url: "https://github.com/g-cqd/AemiRegex.git",
-    revision: "7f6b1f8b86002f099cca32735ff90455b990c4e6"
+    revision: "3e317a77886f3525ccb7d5176a97bcdee92a90dd"
 )
 
 // MarkdownLookKit, the viewer and editor kit (ADR-0008): of MarkdownLook, and of Sunset's Markdown pane, which pins this package by
@@ -37,8 +37,8 @@ let regexDependency: Package.Dependency = .package(
 // has neither the target nor what it alone depends on (Mermaid for fences, AemiJSON for a head's table, AemiTextUI for code).
 #if os(macOS)
     let lookDependencies: [Package.Dependency] = [
-        .package(url: "https://github.com/g-cqd/AemiJSON.git", revision: "fb3d1649133eee852989bb7b2f40469b8a61c88d"),
-        .package(url: "https://github.com/g-cqd/AemiMermaid.git", revision: "c29ed2ff011fb9e98f15917e48d5ff8538c1c6ce"),
+        .package(url: "https://github.com/g-cqd/AemiJSON.git", revision: "968ecd17e9ba744655d5c3b60d3e759cf61dc211"),
+        .package(url: "https://github.com/g-cqd/AemiMermaid.git", revision: "636c990fac6e7f6d76798c09952aac7c7d0601b8"),
         .package(url: "https://github.com/g-cqd/AemiTextUI.git", revision: "4b64bf4ea295d3ea68ceaa9ca2360beb7f5b0a3d")
     ]
     let lookProducts: [Product] = [.library(name: "MarkdownLookKit", targets: ["MarkdownLookKit"])]
