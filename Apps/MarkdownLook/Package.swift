@@ -13,7 +13,7 @@ let package = Package(
     ],
     dependencies: [
         .package(path: "../.."),
-        .package(url: "https://github.com/Aemi-Studio/aemi.git", revision: "bd5e4cf4441ca3ed1b424935142586ccaac0f835")
+        .package(url: "https://github.com/Aemi-Studio/aemi.git", revision: "9e38d1bee60d5d65acffef4538c671b49860c6af")
     ],
     targets: [
         .executableTarget(
