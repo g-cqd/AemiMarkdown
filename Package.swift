@@ -1,8 +1,6 @@
 // swift-tools-version: 6.4
 import PackageDescription
 
-// Swift 6 language mode, warnings as errors, and the upcoming features that tighten existentials and imports. No unsafe
-// flags, so the library can be consumed through a version-pinned requirement. Same strictness as AemiJSON and AemiRegex.
 let strictSettings: [SwiftSetting] = [
     .swiftLanguageMode(.v6),
     .treatAllWarnings(as: .error),
@@ -12,17 +10,12 @@ let strictSettings: [SwiftSetting] = [
     .enableUpcomingFeature("MemberImportVisibility")
 ]
 
-// The parser reads attacker-controlled bytes (a model's answer, a fetched page), so every unsafe construct in it is marked
-// `unsafe` and justified where it stands.
 let kernelSettings: [SwiftSetting] = strictSettings + [.strictMemorySafety()]
 
-// AemiRegex compiles the spec's own grammars for the differential tests of the hand-written scanners (ADR-0001, decision 7). A test-only
-// dependency: a package that depends on AemiMarkdown does not fetch it.
 let aemiDependency: Package.Dependency = .package(
     url: "https://github.com/Aemi-Studio/aemi.git",
     revision: "bd5e4cf4441ca3ed1b424935142586ccaac0f835"
 )
-// AemiHMMML's front matter locator and readers (its ADR-0009 and ADR-0015), for `MarkdownExtensions.frontMatter`.
 let hmmmlDependency: Package.Dependency = .package(
     url: "https://github.com/g-cqd/AemiHMMML.git",
     revision: "77dc8e23456150cd47bab269b785fcbf7ca29e00"
@@ -32,9 +25,6 @@ let regexDependency: Package.Dependency = .package(
     revision: "2df69da6f7b8086ae07272d4368d45fe1fd57160"
 )
 
-// MarkdownLookKit, the viewer and editor kit (ADR-0008): of MarkdownLook, and of Sunset's Markdown pane, which pins this package by
-// revision. It is AppKit and SwiftUI, for macOS 26 and later, so it exists only when the manifest is read on a Mac: a Linux build
-// has neither the target nor what it alone depends on (Mermaid for fences, AemiJSON for a head's table, AemiTextUI for code).
 #if os(macOS)
     let lookDependencies: [Package.Dependency] = [
         .package(url: "https://github.com/g-cqd/AemiJSON.git", revision: "1c098f0456a2f86dee32dfd9b85455980216589f"),
@@ -61,7 +51,6 @@ let regexDependency: Package.Dependency = .package(
                 .product(name: "AemiMermaidSVG", package: "AemiMermaid")
             ],
             path: "Apps/MarkdownLook/Sources/MarkdownLookKit",
-            // As the kit was built in its own package: the parser's settings without the inferred isolated conformances.
             swiftSettings: [
                 .swiftLanguageMode(.v6), .treatAllWarnings(as: .error), .enableUpcomingFeature("ExistentialAny"),
                 .enableUpcomingFeature("InternalImportsByDefault"), .enableUpcomingFeature("MemberImportVisibility"),
@@ -75,8 +64,6 @@ let regexDependency: Package.Dependency = .package(
     let lookTargets: [Target] = []
 #endif
 
-// The DocC plugin is for contributors (`AEMIMARKDOWN_DEV=1 swift package generate-documentation --target AemiMarkdown`); packages that depend on
-// AemiMarkdown never resolve it.
 let documentationDependencies: [Package.Dependency] =
     Context.environment["AEMIMARKDOWN_DEV"] != nil
     ? [.package(url: "https://github.com/swiftlang/swift-docc-plugin", from: "1.5.0")] : []

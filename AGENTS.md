@@ -1,15 +1,23 @@
-# Working in AemiMarkdown
+# Working in `AemiMarkdown`
 
-A Markdown parser for terminals and streams: UTF-8 bytes in, two flat tapes out, incremental, bounded, never failing. Read `docs/adr/0001-*.md` first.
+Streaming CommonMark 0.31.2 + GFM tape parser for Swift 6 (`g-cqd/AemiMarkdown`).
 
-- **Build and test in release**: `swift test -c release --enable-testable-imports`. A debug build measures a program nobody ships. A plain `swift test` (debug) skips the allocation ceilings, which
-  describe the optimized parser. The AemiRegex grammar tests run in both. The cmark-gfm comparison runs when `AEMIMARKDOWN_DIFFERENTIAL` names a corpus
-  from `Scripts/reference-html.py`.
-- **The spec is the test.** `Tests/AemiMarkdownTests/Fixtures/` holds CommonMark 0.31.2 and the GFM extensions (CC BY-SA, see `LICENSE.md` there). The ratchet
-  (`Fixtures/known-failing.txt`) shrinks and never gains an entry. `Scripts/update-ratchet.sh` rewrites it after a fix and refuses to add one.
-- **No recursion, no failure.** Nesting is an explicit stack with a limit; any bytes give a document. A new loop needs its bound.
-- **Zero allocation per node.** The parser reuses its buffers; a test counts allocations per input with Aemi's `CAemiTestKitMalloc`.
-- **Measure.** Throughput, allocations per KB and the streamed-delta cost are compared with the swift-markdown baseline in ask's diary 2026-10-25-01. A change that
-  can affect them is benchmarked before and after, median and spread, release build.
-- **One Aemi revision** for the graph (`Package.swift`): ask, TerminalKit and AemiJSON pin the same one and move together.
-- Style: `.swift-format` and `.swiftlint.yml` are Aemi's canonical files (`../aemi/Scripts/sync-config.sh`); one primary type per file; files under 250 lines.
+## Engineering principles
+
+- **Verify claims with executable checks.** Write a failing test or measurement before changing behaviour; never state unmeasured performance or unverified behaviour as fact.
+- **Strictness.** Swift 6 language mode, strict concurrency, strict memory safety where configured, and warnings as errors. No force-unwraps or force-casts in production paths.
+- **Bounded work and safety.** Bound untrusted inputs, recursion depth, and memory before allocation; handle errors explicitly without crashing on hostile input.
+- **Factual documentation.** Keep `README.md`, user docs, and `Package.swift` aligned with the current codebase—no roadmaps, speculative plans, or diary logs in public docs.
+
+Formal TLA+ models live in `docs/formal/`. Keep parsing linear-time, iterative, and zero-copy.
+
+## Commands
+
+```sh
+swift test
+swift format lint --strict --recursive Sources Tests Package.swift
+```
+
+## Architecture records
+
+Accepted architectural decisions live in `docs/adr/` (when present). Only add a new ADR for durable architectural choices; mark superseded records clearly.
