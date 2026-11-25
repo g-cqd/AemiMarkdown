@@ -20,11 +20,11 @@ public enum ViewerStyle {
         h1, h2, h3, h4, h5, h6 { font-weight: 600; line-height: 1.25; text-wrap: balance; letter-spacing: -0.012em; }
         h1 { font-size: 1.9em; letter-spacing: -0.02em; } h2 { font-size: 1.45em; } h3 { font-size: 1.15em; } h4 { font-size: 1em; }
         h5, h6 { font-size: 1em; color: var(--secondary); }
-        :where(main, blockquote, .alert, li, .fm-prose) > :where(* + *) { margin-block-start: var(--gap); }
-        * + :is(pre, .code, figure, .table-wrap, blockquote, .alert, .front-matter), :is(pre, .code, figure, .table-wrap, blockquote, .alert, .front-matter) + * { margin-block-start: var(--gap-box); }
+        :where(main, blockquote, .alert, li, .fm-prose, .disclosure-body) > :where(* + *) { margin-block-start: var(--gap); }
+        * + :is(pre, .code, figure, .table-wrap, blockquote, .alert, .front-matter, .disclosure), :is(pre, .code, figure, .table-wrap, blockquote, .alert, .front-matter, .disclosure) + * { margin-block-start: var(--gap-box); }
         * + :is(hr, .footnotes), hr + *, .footnotes + * { margin-block-start: var(--gap-sect); }
         :is(h1, h2, h3, h4, h5, h6) + * { margin-block-start: var(--gap-head); }
-        :where(main, blockquote, .alert, li) > * + :is(h1, h2, h3, h4, h5, h6) { margin-block-start: var(--gap-sect); }
+        :where(main, blockquote, .alert, li, .disclosure-body) > * + :is(h1, h2, h3, h4, h5, h6) { margin-block-start: var(--gap-sect); }
         /* A selection paints out to the edge of the box that holds the text, so prose boxes are as wide as their text (and no wider than the column): the highlight follows the words. */
         :is(p, h1, h2, h3, h4, h5, h6, li, .alert-title, .footnote p) { width: fit-content; max-width: 100%; }
         ::selection { background: color-mix(in srgb, var(--link) 28%, transparent); }
@@ -71,6 +71,13 @@ public enum ViewerStyle {
         .front-matter summary::-webkit-details-marker { display: none; }
         .front-matter summary::after { content: '\\203A'; flex: none; width: 1em; text-align: center; color: var(--tertiary); transition: transform 0.15s; }
         .front-matter details[open] > summary::after, .front-matter[open] > summary::after { transform: rotate(90deg); }
+        .disclosure { border: var(--stroke) solid var(--rule); border-radius: var(--radius); padding: 0.8em 1.1em; line-height: var(--leading); }
+        .disclosure > summary { list-style: none; display: flex; align-items: baseline; gap: 0.6em; font-weight: 500; cursor: default; }
+        .disclosure > summary::-webkit-details-marker { display: none; }
+        .disclosure > summary > .disclosure-label { flex: 1; min-width: 0; }
+        .disclosure > summary::after { content: '\\203A'; flex: none; width: 1em; text-align: center; color: var(--tertiary); transition: transform 0.15s; }
+        .disclosure[open] > summary::after { transform: rotate(90deg); }
+        .disclosure > .disclosure-body { margin-block-start: var(--gap-head); }
         .fm-title { flex: 1; min-width: 0; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .fm-count { color: var(--tertiary); white-space: nowrap; } .fm-count:first-child { flex: 1; }
         .front-matter > .fm { margin-block-start: var(--gap-head); }

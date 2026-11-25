@@ -55,7 +55,8 @@ struct TableLayout {
     }
 
     static func measure(bytes markup: [UInt8], from start: Int) -> (length: Int, word: Int) {
-        var length = 0
+        var longestLine = 0
+        var lineLength = 0
         var word = 0
         var current = 0
         var inTag = false
@@ -75,15 +76,20 @@ struct TableLayout {
             }
             if byte == 0x26 { inEntity = true }
             if byte & 0xC0 == 0x80 { continue }  // a continuation byte: the character was counted
-            length += 1
-            if byte == 0x20 || byte == 0x0A {
+            if byte == 0x0A {
+                longestLine = Swift.max(longestLine, lineLength)
+                lineLength = 0
+                current = 0
+            } else if byte == 0x20 {
+                lineLength += 1
                 current = 0
             } else {
+                lineLength += 1
                 current += 1
                 word = Swift.max(word, current)
             }
         }
-        return (length, word)
+        return (Swift.max(longestLine, lineLength), word)
     }
 
     /// Whether the table, as its columns are sized, is wider than the text column (about 70 characters): it then takes the room beside the column, up to the window, and scrolls only

@@ -74,6 +74,8 @@ public enum NativeContent: Sendable {
     case image(NativeImage)
     /// A document's head, as a panel of its properties.
     case frontMatter(FrontMatterPanel)
+    /// A `<details>` disclosure block with an optional `<summary>` label and nested Markdown rows.
+    case details(NativeDetails)
     case rule
     /// The short rule above the notes of a document.
     case footnoteRule
@@ -92,6 +94,22 @@ public struct NativeText: Sendable {
     public var style: Style
     /// For the last row of a footnote that is referenced, the label to go back to: a link at the right edge of the note.
     public var back: String?
+}
+
+@available(macOS 26.0, *)
+public struct NativeDetails: Sendable {
+    /// The label shown in the disclosure header, styled inline (empty falls back to "Details").
+    public var summary: AttributedString
+    /// Whether `<details open>` was written.
+    public var isOpen: Bool
+    /// The rendered rows inside the disclosure.
+    public var rows: [NativeRow]
+
+    public init(summary: AttributedString, isOpen: Bool, rows: [NativeRow]) {
+        self.summary = summary
+        self.isOpen = isOpen
+        self.rows = rows
+    }
 }
 
 @available(macOS 26.0, *)

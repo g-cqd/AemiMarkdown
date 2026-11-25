@@ -18,7 +18,7 @@ extension NativeDocument {
 
 /// One open container.
 @available(macOS 26.0, *)
-private struct Frame {
+struct Frame {
     enum Kind {
         case quote(NativeAlert?)
         case list(ordered: Bool, tight: Bool, parenthesis: Bool, depth: Int)
@@ -48,8 +48,8 @@ struct NativeBuilder {
     let document: MarkdownDocument
     let settings: ViewerSettings
     private var result = NativeDocument()
-    private var frames: [Frame] = []
-    private var rootLast: Sibling?
+    var frames: [Frame] = []
+    var rootLast: Sibling?
     private var notesStarted = false
     private var inline: NativeInline?
     private var leafKind: NodeKind?
@@ -58,6 +58,8 @@ struct NativeBuilder {
     var table: TableState?
     private var cell: NativeInline?
     private var inNotes = false
+    /// Open `<details>` containers collecting child rows.
+    var detailsStack: [DetailsState] = []
     /// The source bytes the leaves of the block being read name, and the source to give its row when that is not the lines they are on.
     var span: Range<Int>?
     var pendingSource: String?
@@ -67,7 +69,10 @@ struct NativeBuilder {
         self.settings = settings
     }
 
-    mutating func finish() -> NativeDocument { result }
+    mutating func finish() -> NativeDocument {
+        flushOpenDetails()
+        return result
+    }
 
     /// A document that is one diagram (a Mermaid file): its row, or its source as code when the engine does not draw it.
     static func diagramDocument(_ source: String, settings: ViewerSettings) -> NativeDocument {
@@ -298,6 +303,10 @@ struct NativeBuilder {
 
     private mutating func closeContainer() {
         guard let closed = frames.popLast() else { return }
+        // Close any `<details>` that opened inside the container that just ended.
+        while let top = detailsStack.last, top.frameDepth > frames.count {
+            closeOneDetails()
+        }
         let sibling: Sibling =
             switch closed.kind {
                 case .quote: .box
@@ -339,11 +348,72 @@ struct NativeBuilder {
 
     private var pendingReferences: [String] = []
 
-    /// Puts a row in the document: its guides from the open containers, and the space above it from what came before.
+    /// Puts a row in the document (or inside the innermost open `<details>`): its guides from the open containers, and the space above it from what came before.
     mutating func emit(_ content: NativeContent, kind: Sibling) {
+        if captureDetailsSummaryIfAwaiting(content) { return }
+        let baseDepth = detailsStack.last?.frameDepth ?? 0
+        let (guides, rawGap) = collectGuides(from: baseDepth, kind: kind)
+        let source = takeSource(for: content)
+        if appendToDetailsIfOpen(
+            content,
+            guides: guides,
+            rawGap: rawGap,
+            source: source,
+            kind: kind,
+            baseDepth: baseDepth
+        ) {
+            return
+        }
+        let gap = result.rows.isEmpty ? 0 : rawGap
+        let id = result.rows.count
+        result.rows.append(NativeRow(id: id, guides: guides, gap: gap, content: content, source: source))
+        for label in pendingReferences where result.referenceRow[label] == nil { result.referenceRow[label] = id }
+        pendingReferences = []
+        if let note = frames.lastIndex(where: { if case .note = $0.kind { true } else { false } }),
+            frames[note].firstRowPending
+        {
+            frames[note].firstRowPending = false
+            result.noteRow[frames[note].label] = id
+        }
+        if frames.isEmpty { rootLast = kind } else { frames[frames.count - 1].last = kind }
+    }
+}
+
+@available(macOS 26.0, *)
+extension NativeBuilder {
+    private mutating func captureDetailsSummaryIfAwaiting(_ content: NativeContent) -> Bool {
+        guard let top = detailsStack.indices.last, detailsStack[top].awaitingSummaryText,
+            case .text(let text) = content
+        else { return false }
+        if !detailsStack[top].summary.characters.isEmpty { detailsStack[top].summary += AttributedString(" ") }
+        detailsStack[top].summary += text.string
+        let source = takeSource(for: content)
+        if !source.isEmpty { detailsStack[top].sources.append("<summary>\(source)</summary>") }
+        return true
+    }
+
+    private mutating func appendToDetailsIfOpen(
+        _ content: NativeContent,
+        guides: [NativeGuide],
+        rawGap: Double,
+        source: String,
+        kind: Sibling,
+        baseDepth: Int
+    ) -> Bool {
+        guard let top = detailsStack.indices.last else { return false }
+        let gap = detailsStack[top].rows.isEmpty ? 0 : rawGap
+        let id = detailsStack[top].rows.count
+        detailsStack[top].rows.append(NativeRow(id: id, guides: guides, gap: gap, content: content, source: source))
+        if !source.isEmpty { detailsStack[top].sources.append(source) }
+        pendingReferences = []
+        if frames.count <= baseDepth { rootLast = kind } else { frames[frames.count - 1].last = kind }
+        return true
+    }
+
+    mutating func collectGuides(from baseDepth: Int, kind: Sibling) -> ([NativeGuide], Double) {
         var guides: [NativeGuide] = []
         var gap = Spacing.margin(after: lastChild, this: kind, flow: flow, itemStep: itemStep)
-        for index in frames.indices {
+        for index in baseDepth ..< frames.count {
             switch frames[index].kind {
                 case .quote(let alert):
                     guides.append(.bar(alert, continues: frames[index].hasRows))
@@ -362,18 +432,6 @@ struct NativeBuilder {
                 frames[index].gapForFirst = nil
             }
         }
-        if result.rows.isEmpty { gap = 0 }
-        let id = result.rows.count
-        let source = takeSource(for: content)
-        result.rows.append(NativeRow(id: id, guides: guides, gap: gap, content: content, source: source))
-        for label in pendingReferences where result.referenceRow[label] == nil { result.referenceRow[label] = id }
-        pendingReferences = []
-        if let note = frames.lastIndex(where: { if case .note = $0.kind { true } else { false } }),
-            frames[note].firstRowPending
-        {
-            frames[note].firstRowPending = false
-            result.noteRow[frames[note].label] = id
-        }
-        if frames.isEmpty { rootLast = kind } else { frames[frames.count - 1].last = kind }
+        return (guides, gap)
     }
 }

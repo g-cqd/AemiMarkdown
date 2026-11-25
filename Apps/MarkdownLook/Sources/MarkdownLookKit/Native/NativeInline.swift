@@ -23,6 +23,8 @@ struct NativeInline {
     private var inLink = false
     private var autolinkKind: Int?
     private var smart: SmartPunctuation?
+    /// Drops a soft break or leading spaces right after an HTML `<br>` tag (matching HTML whitespace collapsing).
+    private var trimAfterBreak = false
 
     init(smartPunctuation: Bool) { smart = smartPunctuation ? SmartPunctuation() : nil }
 
@@ -40,7 +42,9 @@ struct NativeInline {
             case .emphasis: emphasis += 1
             case .strong: strong += 1
             case .strikethrough: strike += 1
-            case .codeSpan, .math: code += 1
+            case .codeSpan, .math:
+                trimAfterBreak = false
+                code += 1
             case .link:
                 inLink = true
                 link = nil
@@ -87,15 +91,40 @@ struct NativeInline {
                 }
             case .text:
                 if let kind = autolinkKind {
+                    trimAfterBreak = false
                     appendAutolink(text(node.range), kind: kind)
                 } else {
-                    append(text(node.range), smartly: true)
+                    var piece = text(node.range)
+                    if trimAfterBreak, code == 0 {
+                        piece = String(piece.drop { $0 == " " || $0 == "\t" })
+                        if !piece.isEmpty { trimAfterBreak = false }
+                    } else {
+                        trimAfterBreak = false
+                    }
+                    append(piece, smartly: true)
                 }
-            case .entity: append(String(decoding: document.decode(node.range), as: UTF8.self))
-            case .htmlInline: append(text(node.range))
-            case .softBreak: append(" ")
-            case .hardBreak: append("\n")
+            case .entity:
+                trimAfterBreak = false
+                append(String(decoding: document.decode(node.range), as: UTF8.self))
+            case .htmlInline:
+                if SafeHTML.isLineBreak(document.source[node.range]) {
+                    append("\n")
+                    trimAfterBreak = true
+                } else {
+                    trimAfterBreak = false
+                    append(text(node.range))
+                }
+            case .softBreak:
+                if trimAfterBreak {
+                    // `<br>\nnext` already broke the line; avoid inserting a leading space on the new line.
+                } else {
+                    append(" ")
+                }
+            case .hardBreak:
+                trimAfterBreak = false
+                append("\n")
             case .footnoteReference:
+                trimAfterBreak = false
                 let label = text(node.range)
                 notes.append(label)
                 hasWords = true

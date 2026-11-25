@@ -78,21 +78,28 @@ struct NativeTableShape {
         return Swift.max(best, current)
     }
 
-    /// The characters of a cell and the longest word in it, a line break counting as a space.
+    /// The characters of a cell and the longest word in it: each explicit line break (`\n`) starts a fresh line so
+    /// multi-line cells (e.g. with `<br>`) size to their longest line rather than summing all lines together.
     static func measure(_ cell: AttributedString) -> (length: Int, word: Int) {
-        var length = 0
+        var longestLine = 0
+        var lineLength = 0
         var word = 0
         var current = 0
         for character in cell.characters {
-            length += 1
-            if character == " " || character == "\n" {
+            if character == "\n" {
+                longestLine = Swift.max(longestLine, lineLength)
+                lineLength = 0
+                current = 0
+            } else if character == " " {
+                lineLength += 1
                 current = 0
             } else {
+                lineLength += 1
                 current += 1
                 word = Swift.max(word, current)
             }
         }
-        return (length, word)
+        return (Swift.max(longestLine, lineLength), word)
     }
 }
 

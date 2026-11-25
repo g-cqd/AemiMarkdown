@@ -45,6 +45,10 @@ struct HTMLWriter {
     var currentFootnote = ""
     var inFootnotes = false
     var pendingSpaces = 0
+    /// Open `<details>` disclosure panels (kept strictly balanced with `stack`).
+    var detailsFrames: [DetailsFrame] = []
+    /// Suppresses `<p>…</p>` wrapper when a paragraph is the text of a split `<summary>\n\nTitle\n\n</summary>`.
+    var inlineSummaryParagraph = false
 
     init(document: MarkdownDocument, options: MarkdownHTMLRenderer, embedsDiagramStyle: Bool) {
         self.document = document
@@ -58,6 +62,7 @@ struct HTMLWriter {
     mutating func finishBytes() -> [UInt8] {
         closeHead()
         while !stack.isEmpty { closeFrame() }
+        closeAllDetails()
         closeFootnotes()
         return out.array
     }
@@ -180,6 +185,16 @@ struct HTMLWriter {
     }
 
     mutating func enter(_ node: MarkdownNode) {
+        if !detailsFrames.isEmpty, isBlockKind(node.kind), node.kind != .htmlBlock, node.kind != .frontMatter,
+            let top = detailsFrames.last, stack.count == top.stackDepth
+        {
+            if prepareDetailsForBlock(kind: node.kind) {
+                smart = SmartPunctuation()
+                inlineSummaryParagraph = true
+                stack.append(Frame(kind: .paragraph, closing: ""))
+                return
+            }
+        }
         switch node.kind {
             case .paragraph:
                 smart = SmartPunctuation()
@@ -285,8 +300,18 @@ struct HTMLWriter {
         }
     }
 
+    private func isBlockKind(_ kind: NodeKind) -> Bool {
+        switch kind {
+            case .paragraph, .heading, .blockQuote, .list, .codeBlock, .table, .footnoteDefinition, .thematicBreak:
+                true
+            default: false
+        }
+    }
+
     mutating func closeFrame() {
+        closeDetailsAbove(stackDepth: stack.count - 1)
         guard let frame = stack.popLast() else { return }
+        if frame.kind == .paragraph, inlineSummaryParagraph { inlineSummaryParagraph = false }
         if let closing = frame.closing {
             out += closing
         } else {

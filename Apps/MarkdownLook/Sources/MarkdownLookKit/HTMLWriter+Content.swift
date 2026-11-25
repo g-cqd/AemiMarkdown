@@ -29,10 +29,19 @@ extension HTMLWriter {
                 if let kind = autolinkKind { return writeAutolink(node, kind: kind) }
                 writeSource(node.range)
             case .entity: write(document.decode(node.range))
-            case .htmlInline: writeSource(node.range, smart: false)
+            case .htmlInline:
+                if SafeHTML.isLineBreak(document.source[node.range]) {
+                    out += "<br>\n"
+                } else {
+                    writeSource(node.range, smart: false)
+                }
             case .softBreak: out += codeDepth > 0 ? " " : "\n"
             case .hardBreak: out += "<br>\n"
-            case .thematicBreak: out += "<hr>\n"
+            case .thematicBreak:
+                if !detailsFrames.isEmpty, let top = detailsFrames.last, stack.count == top.stackDepth {
+                    _ = prepareDetailsForBlock(kind: .thematicBreak)
+                }
+                out += "<hr>\n"
             case .taskMarker: out += "<input type=\"checkbox\" disabled\(node.payload == 1 ? " checked" : "")> "
             case .footnoteReference:
                 let label = text(node.range)
@@ -90,6 +99,13 @@ extension HTMLWriter {
         let code = codeBytes
         codeBytes = []
         codeLineCount = 0
+        if isHTML {
+            let raw = String(decoding: code, as: UTF8.self)
+            if handleDetailsHTMLBlock(raw) { return }
+            if !detailsFrames.isEmpty, let top = detailsFrames.last, stack.count == top.stackDepth {
+                _ = prepareDetailsForBlock(kind: .codeBlock)
+            }
+        }
         if !isHTML, options.drawsDiagrams, language.lowercased() == "mermaid",
             let svg = MermaidFence.svg(Self.wellFormed(code), embedsStyle: embedsDiagramStyle)
         {

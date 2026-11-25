@@ -12,6 +12,7 @@ extension NativeBuilder {
         guard let state = code else { return }
         code = nil
         let raw = state.lines.joined(separator: "\n")
+        if state.isHTML, handleDetailsHTMLBlock(raw) { return }
         pendingSource = state.isHTML ? raw : "```\(state.language)\n\(raw)\n```"
         if !state.isHTML, settings.drawsDiagrams, state.language.lowercased() == "mermaid",
             let diagram = Self.diagram(raw)
