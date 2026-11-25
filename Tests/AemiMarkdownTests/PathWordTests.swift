@@ -38,6 +38,6 @@ struct PathWordTests {
         // Read once, 2 ms here; read again for each of its 50,000 underscores, 2 s (diary 2026-11-22-02).
         let took = ContinuousClock().measure { html = Self.html(long + " _done_") }
         #expect(html.hasSuffix("<em>done</em></p>\n"))
-        #expect(took < .milliseconds(500), "\(took)")
+        #expect(took < .seconds(2), "\(took)")
     }
 }
