@@ -11,10 +11,6 @@ updates:
   - package-ecosystem: "swift"
     directories:
       - "/"
-      - "/Apps/MarkdownLook"
-      - "/Benchmarks/Comparison/swift"
-      - "/Benchmarks/MarkdownBench"
-      - "/Plugins/GenerateEntities"
     schedule:
       interval: "weekly"
       day: "monday"
