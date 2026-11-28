@@ -14,21 +14,21 @@ let kernelSettings: [SwiftSetting] = strictSettings + [.strictMemorySafety()]
 
 let aemiDependency: Package.Dependency = .package(
     url: "https://github.com/Aemi-Studio/aemi.git",
-    revision: "8633e6352822d15fc11e46b69da6a76adee72f31"
+    revision: "7aca98cb8cccc833cbfd19f0fee50d29c69df163"
 )
 let hmmmlDependency: Package.Dependency = .package(
     url: "https://github.com/g-cqd/AemiHMMML.git",
-    revision: "433747ef378e0efa33879595d835ae9c3b8ca81d"
+    revision: "73133b4c583f3d172f0da6c2303bd1ae46c0176d"
 )
 let regexDependency: Package.Dependency = .package(
     url: "https://github.com/g-cqd/AemiRegex.git",
-    revision: "cdde55a04a7fa09afdcd98f9be922402b0583b69"
+    revision: "8ab37203ae3d2155c0a5543508365042dfe20d4b"
 )
 
 #if os(macOS)
     let lookDependencies: [Package.Dependency] = [
-        .package(url: "https://github.com/g-cqd/AemiJSON.git", revision: "b6aaf0127cc480b33090dc4564324b7abfdcb408"),
-        .package(url: "https://github.com/g-cqd/AemiMermaid.git", revision: "6bce3d23db8b727a5d45d2f3dc07f63e1f1678c9"),
+        .package(url: "https://github.com/g-cqd/AemiJSON.git", revision: "4d3fd43b02889f186178801dc599fdb5615bc4ad"),
+        .package(url: "https://github.com/g-cqd/AemiMermaid.git", revision: "513b05233fa9849c6740b76bc6c6cae75949d595"),
         .package(url: "https://github.com/g-cqd/AemiTextUI.git", revision: "aebc2c6341367ee06f6fdc4a91fe81d41a12deee")
     ]
     let lookProducts: [Product] = [.library(name: "MarkdownLookKit", targets: ["MarkdownLookKit"])]
